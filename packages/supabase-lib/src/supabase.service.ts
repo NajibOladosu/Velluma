@@ -4,7 +4,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-    private client: SupabaseClient;
+    private client!: SupabaseClient;
 
     constructor(private configService: ConfigService) { }
 
@@ -13,7 +13,8 @@ export class SupabaseService implements OnModuleInit {
         const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
         if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Supabase configuration missing in microservice environment');
+            console.warn('⚠️ Supabase configuration missing. SupabaseService will not be initialized.');
+            return;
         }
 
         this.client = createClient(supabaseUrl, supabaseKey, {
