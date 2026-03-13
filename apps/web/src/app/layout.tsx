@@ -1,0 +1,48 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { AppSidebar } from "@/components/ui/app-sidebar";
+import { AppTopBar } from "@/components/ui/app-topbar";
+import { GlobalTimer } from "@/components/ui/global-timer";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Velluma | Freelancer Business OS",
+  description: "The enterprise-grade operating system for elite freelancers.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-zinc-900 selection:text-white`}
+      >
+        <div className="flex h-screen w-full overflow-hidden bg-zinc-50">
+          <AppSidebar />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <AppTopBar />
+            <main className="flex-1 overflow-y-auto p-8">
+              <div className="mx-auto max-w-7xl">
+                {children}
+              </div>
+            </main>
+          </div>
+          <GlobalTimer />
+        </div>
+      </body>
+    </html>
+  );
+}
