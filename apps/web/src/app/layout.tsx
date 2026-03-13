@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import { AppTopBar } from "@/components/ui/app-topbar";
 import { GlobalTimer } from "@/components/ui/global-timer";
+import { QueryProvider } from "@/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,18 +31,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-zinc-900 selection:text-white`}
       >
-        <div className="flex h-screen w-full overflow-hidden bg-zinc-50">
-          <AppSidebar />
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <AppTopBar />
-            <main className="flex-1 overflow-y-auto p-8">
-              <div className="mx-auto max-w-7xl">
-                {children}
-              </div>
-            </main>
-          </div>
-          <GlobalTimer />
-        </div>
+        <QueryProvider>
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );

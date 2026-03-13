@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { useAppStore } from "@/store/use-app-store"
 import {
     LayoutDashboard,
     Users,
@@ -54,12 +55,12 @@ const navItems = [
 ]
 
 export function AppSidebar() {
-    const [isCollapsed, setIsCollapsed] = React.useState(false)
+    const { sidebarCollapsed, toggleSidebar } = useAppStore()
     const pathname = usePathname()
 
     return (
         <motion.aside
-            animate={{ width: isCollapsed ? 64 : 260 }}
+            animate={{ width: sidebarCollapsed ? 64 : 260 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className={cn(
                 "relative flex flex-col border-r border-zinc-200 bg-white h-screen select-none",
@@ -71,7 +72,7 @@ export function AppSidebar() {
                 <div className="flex items-center gap-2 overflow-hidden">
                     <div className="h-6 w-6 rounded bg-zinc-900 flex-shrink-0" />
                     <AnimatePresence>
-                        {!isCollapsed && (
+                        {!sidebarCollapsed && (
                             <motion.span
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -91,7 +92,7 @@ export function AppSidebar() {
                 {navItems.map((group, i) => (
                     <div key={group.group} className={cn("mb-6 px-4", i === 0 && "mt-2")}>
                         <AnimatePresence mode="wait">
-                            {!isCollapsed && (
+                            {!sidebarCollapsed && (
                                 <motion.h4
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
@@ -117,7 +118,7 @@ export function AppSidebar() {
                                         >
                                             <item.icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-zinc-900" : "text-zinc-400 group-hover:text-zinc-900")} strokeWidth={1.5} />
                                             <AnimatePresence>
-                                                {!isCollapsed && (
+                                                {!sidebarCollapsed && (
                                                     <motion.span
                                                         initial={{ opacity: 0, x: -5 }}
                                                         animate={{ opacity: 1, x: 0 }}
@@ -145,7 +146,7 @@ export function AppSidebar() {
                         pathname === "/settings" && "bg-zinc-100 text-zinc-900"
                     )}>
                         <Settings className="h-5 w-5 flex-shrink-0" strokeWidth={1.5} />
-                        {!isCollapsed && <span className="ml-3">Settings</span>}
+                        {!sidebarCollapsed && <span className="ml-3">Settings</span>}
                     </div>
                 </Link>
             </div>
@@ -154,10 +155,10 @@ export function AppSidebar() {
             <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={toggleSidebar}
                 className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-zinc-200 bg-white p-0 hover:bg-zinc-50 md:flex"
             >
-                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
         </motion.aside>
     )
