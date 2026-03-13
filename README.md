@@ -3,7 +3,7 @@
 </h1>
 
 <p align="center">
-  <strong>Streamlining freelance contracts and payments with security, transparency, and ease of use.</strong>
+  <strong>The Enterprise-Grade Freelancer Business Operating System (FBOS).</strong>
 </p>
 
 <p align="center">
@@ -11,127 +11,102 @@
   <img src="https://img.shields.io/badge/NestJS-11.0-e0234e?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS">
   <img src="https://img.shields.io/badge/TypeScript-5.9-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/Supabase-Database-3ecf8e?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase">
-  <img src="https://img.shields.io/badge/Stripe-Payments-008cdd?style=for-the-badge&logo=stripe&logoColor=white" alt="Stripe">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind">
 </p>
 
+## 🌌 The Vision
+Velluma is a high-performance, strictly minimalist platform designed for elite freelancers. It combines a high-velocity **Proposal Engine** with a comprehensive **Execution Layer** and a **Secure Escrow Moat** to provide absolute financial transparency and legal integrity.
+
+## 🏗️ Technical Architecture
+Velluma is built as a **Turborepo Monorepo**, orchestrating 13 specialized NestJS microservices through an API Gateway (BFF) and a high-fidelity Next.js frontend.
+
+### Implementation Status
+| Module | Feature | Implementation Details |
+| :--- | :--- | :--- |
+| **Foundation** | ✅ **Core Matrix** | Next.js 16.1 (App Router), React 19.2, Tailwind v4. |
+| **Design System**| ✅ **Cosmic Navy** | Monochrome (zinc-50), high-contrast, "Anti-Slop" (zero structural shadows). |
+| **Proposals** | ✅ **Proposal Engine** | Custom TipTap editor, interactive pricing, digital signatures. |
+| **Execution** | ✅ **Project Mastery** | Project Kanban/List views, global floating timer. |
+| **Escrow** | ✅ **Financial Moat** | Secure finance dashboards, profitability matrix. |
+| **BFF** | ✅ **API Gateway** | Request orchestration and Zod-based sanitization. |
+| **Core Services** | ✅ **13 Microservices** | Domain-driven services (Identity, Contract, Finance, etc.). |
+
 ---
 
-## 🌌 The Vibe: Cosmic Navy Precision
+## 🏗️ Modular Design System
+We adhere to **Clean Functional Minimalism**. Depth is created via `border-zinc-200` separation and intentional negative space, never via structural shadows.
 
-Velluma is not just a tool; it's a **premium ecosystem** designed for high-stakes freelance governance. Our "Cosmic Navy" design philosophy blends deep space aesthetics with professional-grade clarity, ensuring that every contract signed and every payment funded feels secure, authoritative, and world-class.
-
-### ✨ Elite Features
-
-- **🛡️ Secure Escrow Governance**: Multi-party payment protection powered by Stripe Connect.
-- **📜 Smart Contract Wizard**: AI-augmented legal templates tailored for modern digital work.
-- **🖊️ Digital Signature Integrity**: High-fidelity electronic signatures with audit-ready verification.
-- **📊 Real-time Project Hub**: Live milestone tracking and deliverable management in a single pane of glass.
-- **🚢 Enterprise-Grade Microservices**: 12 dedicated domain services ensuring 99.9% fault tolerance.
+- **Backgrounds**: `bg-zinc-50` (App) / `bg-white` (Surfaces)
+- **Typography**: `Geist Sans`, `tracking-tight`, `text-zinc-900`
+- **Animations**: `framer-motion` (subtle 0.15s fades)
+- **Components**: Atomic primitives (Surface, Button, Typography, DataTable)
 
 ---
 
-## 🏗️ Architecture: Domain-Driven Excellence
-
-Velluma's backbone is a sophisticated monorepo managed by **Turborepo**, utilizing an **API Gateway (BFF)** pattern to orchestrate 12 specialized microservices.
+## 🛠️ Infrastructure Overview
 
 ```mermaid
 graph TD
-    Client[Next.js Frontend / Cosmic Navy] -->|GraphQL/REST| Gateway[API Gateway / BFF]
-    Gateway -->|Redis Event-Driven| Identity[Identity Service]
-    Gateway -->|Redis Event-Driven| Contract[Contract Service]
-    Gateway -->|Redis Event-Driven| Finance[Invoice & Payment Service]
-    Gateway -->|Redis Event-Driven| Project[Project Service]
-    Gateway -->|Redis Event-Driven| Notification[Notification Service]
+    UI[Next.js Frontend] -->|API Calls| Gateway[API Gateway / BFF]
+    Gateway -->|Redis Bus| Services[13 Domain Microservices]
     
-    subgraph "Domain Microservices (NestJS 11)"
-        Identity
-        Contract
-        Finance
-        Project
-        Notification
-        CRM[CRM Service]
-        Docs[Document Service]
+    subgraph "Domain Services (NestJS 11)"
+        Identity[Identity]
+        Contract[Contract]
+        Finance[Finance]
+        Project[Project]
+        Document[Document]
         Time[Time Tracking]
-        Resource[Resource Service]
-        Expense[Expense Service]
-        Budget[Budget Service]
+        Notification[Notification]
+        Automation[Automation]
+        CRM[CRM]
+        Resource[Resource]
+        Budget[Budget]
+        Expense[Expense]
     end
 
-    subgraph "Infrastructure"
-        Supabase[(Supabase / PostgreSQL)]
-        Redis[(Redis Cloud / Shared Cache)]
-        Stripe(Stripe API)
+    subgraph "Persistent Data"
+        Supabase[(Supabase / PG)]
+        Redis[(Redis / Event Bus)]
     end
 
-    Identity & Contract & Finance & Project & CRM & Docs --> Supabase
-    Finance --> Stripe
+    Services --> Supabase
+    Services --> Redis
 ```
 
 ---
 
-## 🎨 Visual Showcase
-
-### Premium Dashboard Experience
-![Velluma Homepage Final](image.png)
-*High-contrast dark mode with premium gradients and bento-grid layouts.*
-
----
-
-## 🛠️ Performance-First Tech Stack
-
-### Core Technologies
-- **Frontend**: `Next.js 16.1` (App Router), `React 19.2`, `Tailwind CSS v4`
-- **Backend**: `NestJS 11`, `Node.js 24+`, `Turborepo`
-- **Data & Auth**: `Supabase` (PG + RLS), `JWT`
-- **Payments**: `Stripe Connect` (Express/Custom)
-- **Quality**: `ESLint 9` (Flat Config), `Playwright`, `Jest`
-
----
-
-## 🚀 Quick Start (Local Development)
+## 🚀 Development Workflow
 
 ### 1. Prerequisites
-- **Docker Desktop** (for Redis infrastructure)
-- **Node.js 24+** (LTS recommended)
+- **Node.js 24+** (LTS)
+- **Docker Desktop** (for local Redis/Postgres)
 
-### 2. Ignite the Monorepo
+### 2. Ignition
 ```bash
-# Install dependencies
+# Install the ecosystem
 npm install
 
-# Start local infrastructure
+# Lift local infrastructure
 docker-compose up -d
 
-# Launch the entire ecosystem (Next.js + 12 Microservices)
+# Spin up entire monorepo (Frontend + 13 Services)
 npm run dev
 ```
 
-The platform will be available at `http://localhost:3000`.
+The platform is live at `http://localhost:3000`.
 
 ---
 
-## 🔐 Security Standards
-
-- **RLS Guardrails**: Row Level Security enabled on 100% of tables.
-- **BFF Sanitization**: API Gateway enforces strictly typed request/response schemas.
-- **Audit Logging**: Every contract modification is versioned and tracked.
-- **KYC Integration**: Automated profile verification via Supabase Storage.
-
----
-
-## 🤝 The Roadmap
-
-| Status | Feature |
-| :--- | :--- |
-| ✅ Done | **Cosmic Navy Branding Overhaul** |
-| ✅ Done | **12 Microservice Core Architecture** |
-| ✅ Done | **Stripe Escrow Governance** |
-| 🔄 Soon | **Mobile App (React Native)** |
-| 📅 Later | **Blockchain Verification Layer** |
+## 🤝 Roadmap Highlights
+- [x] **Phase 1**: Web Microservice & Core Foundation
+- [ ] **Phase 2**: Real-time Stripe Connect Webhooks
+- [ ] **Phase 3**: Mobile App (React Native)
+- [ ] **Phase 4**: Advanced Automation Workflows
 
 ---
 
 <p align="center">
-  Built with ❤️ by the Velluma Team.<br>
-  <em>Modern freelance commerce, perfected.</em>
+  Built with precision by the Velluma Architect.<br>
+  <em>Clean. Functional. Minimal. Massive.</em>
 </p>
