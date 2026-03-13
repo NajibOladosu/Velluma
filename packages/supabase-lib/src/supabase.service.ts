@@ -9,8 +9,8 @@ export class SupabaseService implements OnModuleInit {
     constructor(private configService: ConfigService) { }
 
     onModuleInit() {
-        const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
-        const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+        const supabaseUrl = this.configService.get<string>('SUPABASE_URL') || this.configService.get<string>('NEXT_PUBLIC_SUPABASE_URL');
+        const supabaseKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY') || this.configService.get<string>('NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY') || this.configService.get<string>('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
         if (!supabaseUrl || !supabaseKey) {
             console.warn('⚠️ Supabase configuration missing. SupabaseService will not be initialized.');
