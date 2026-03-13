@@ -69,8 +69,8 @@ export function AppSidebar() {
         >
             {/* Brand Header */}
             <div className="flex h-16 items-center px-6">
-                <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="h-6 w-6 rounded bg-zinc-900 flex-shrink-0" />
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="h-5 w-5 bg-zinc-900 flex-shrink-0" />
                     <AnimatePresence>
                         {!sidebarCollapsed && (
                             <motion.span
@@ -78,7 +78,7 @@ export function AppSidebar() {
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -10 }}
                                 transition={{ duration: 0.1 }}
-                                className="font-semibold tracking-tight text-lg text-zinc-900"
+                                className="font-bold tracking-tight text-lg text-zinc-900"
                             >
                                 Velluma
                             </motion.span>
@@ -156,7 +156,7 @@ export function AppSidebar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-zinc-200 bg-white p-0 hover:bg-zinc-50 md:flex"
+                className="absolute -right-3 top-20 h-6 w-6 rounded-md border border-zinc-200 bg-white p-0 hover:bg-zinc-50 md:flex shadow-sm"
             >
                 {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>
