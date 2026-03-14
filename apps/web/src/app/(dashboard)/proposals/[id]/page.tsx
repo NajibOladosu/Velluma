@@ -232,6 +232,12 @@ const legalClauses: LegalClause[] = [
   },
 ];
 
+const contractTemplates = [
+  { id: "t1", name: "Master Services Agreement", type: "standard" },
+  { id: "t2", name: "Independent Contractor Agreement", type: "standard" },
+  { id: "t3", name: "Web Development SOW", type: "custom" },
+];
+
 const sections: { key: SectionKey; label: string; icon: React.ElementType }[] = [
   { key: "welcome", label: "Welcome", icon: FileText },
   { key: "scope", label: "Scope", icon: LayoutTemplate },
@@ -259,6 +265,7 @@ export default function ProposalBuilderPage() {
 
   const [activeSection, setActiveSection] = React.useState<SectionKey>("welcome");
   const [selectedTier, setSelectedTier] = React.useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>("t1");
   const [addOns, setAddOns] = React.useState<AddOn[]>(defaultAddOns);
   const [enabledClauses, setEnabledClauses] = React.useState<string[]>(
     legalClauses.map((c) => c.id)
@@ -665,10 +672,46 @@ export default function ProposalBuilderPage() {
                 <div className="space-y-1">
                   <H2 className="text-2xl tracking-tight">Legal Agreement</H2>
                   <Muted>
-                    Legally-vetted clauses are locked. Toggle clauses on or off, but
-                    individual text cannot be edited.
+                    Select a base template from your library. Legally-vetted clauses are locked. Toggle clauses on or off as needed.
                   </Muted>
                 </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-zinc-700 uppercase tracking-widest">Selected Template</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {contractTemplates.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => setSelectedTemplateId(t.id)}
+                        className={cn(
+                          "flex flex-col gap-2 p-4 rounded-md border cursor-pointer transition-all",
+                          selectedTemplateId === t.id
+                            ? "border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50"
+                            : "border-zinc-200 hover:border-zinc-300 bg-white"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
+                              {t.type === "standard" ? (
+                                <Shield className="h-3 w-3 text-zinc-700" />
+                              ) : (
+                                <FileText className="h-3 w-3 text-zinc-500" />
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold text-zinc-900">
+                              {t.name}
+                            </span>
+                          </div>
+                          {selectedTemplateId === t.id && (
+                            <Check className="h-4 w-4 text-zinc-900 flex-shrink-0" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <Separator />
 
                 {/* AI suggestion button */}
