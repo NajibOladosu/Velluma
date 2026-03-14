@@ -5,21 +5,20 @@ import { Bell, Search, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
 import { Input } from "./input"
+import { H2 } from "./typography"
 
 export function AppTopBar() {
     return (
         <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-zinc-200 bg-white px-6">
             <div className="flex flex-1 justify-center">
-                <div className="relative w-full max-w-lg">
+                <div className="relative w-full max-w-xl">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <div className="flex items-center">
-                        <Input
-                            type="search"
-                            readOnly
-                            placeholder="Press ⌘K to jump anywhere"
-                            className="pl-10 bg-zinc-50 border-zinc-200 focus:bg-white transition-all h-10 w-full cursor-pointer rounded-md text-sm font-normal"
-                        />
-                    </div>
+                    <Input
+                        type="search"
+                        readOnly
+                        placeholder="Press ⌘K to search clients, invoices, or projects..."
+                        className="pl-10 bg-zinc-50 border-zinc-200 focus:bg-white transition-all h-10 w-full cursor-pointer rounded-md text-sm font-normal"
+                    />
                 </div>
             </div>
             <div className="flex items-center gap-3">

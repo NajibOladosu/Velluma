@@ -17,7 +17,8 @@ import {
     Zap,
     Briefcase,
     PieChart,
-    ShieldCheck
+    ShieldCheck,
+    TrendingUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -25,31 +26,29 @@ import { Button } from "./button"
 const navItems = [
     {
         group: "Core", items: [
-            { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-            { name: "Clients", href: "/clients", icon: Users },
-        ]
-    },
-    {
-        group: "Execution", items: [
-            { name: "Projects", href: "/projects", icon: Briefcase },
-            { name: "Time Tracking", href: "/time", icon: Clock },
-        ]
-    },
-    {
-        group: "Vault", items: [
-            { name: "Proposals", href: "/proposals", icon: FileText },
-            { name: "Escrow & Finance", href: "/finance", icon: Wallet },
+            { name: "Home", href: "/dashboard", icon: LayoutDashboard },
+            { name: "Command Palette", href: "/commands", icon: Zap },
         ]
     },
     {
         group: "Growth", items: [
-            { name: "Automation", href: "/automation", icon: Zap },
-            { name: "Analytics", href: "/analytics", icon: PieChart },
+            { name: "Pipeline", href: "/pipeline", icon: TrendingUp },
+            { name: "Clients", href: "/clients", icon: Users },
+            { name: "Proposals", href: "/proposals", icon: FileText },
         ]
     },
     {
-        group: "Portal", items: [
-            { name: "Client Success", href: "/portal", icon: ShieldCheck },
+        group: "Vault", items: [
+            { name: "Contracts", href: "/contracts", icon: ShieldCheck },
+            { name: "Invoices", href: "/invoices", icon: Wallet },
+            { name: "Profitability", href: "/profitability", icon: PieChart },
+        ]
+    },
+    {
+        group: "Operations", items: [
+            { name: "Projects", href: "/projects", icon: Briefcase },
+            { name: "Time", href: "/time", icon: Clock },
+            { name: "Automations", href: "/automations", icon: Zap },
         ]
     },
 ]

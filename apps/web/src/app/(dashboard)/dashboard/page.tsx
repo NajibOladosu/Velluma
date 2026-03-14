@@ -3,12 +3,15 @@
 import { H1, H2, Muted, P } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   TrendingUp,
-  Clock,
+  ShieldCheck,
   FileText,
-  CheckCircle2,
-  ArrowUpRight
+  Clock,
+  ArrowUpRight,
+  Search,
+  CheckCircle2
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -20,71 +23,78 @@ export default function DashboardPage() {
         <Muted>Business at a glance.</Muted>
       </div>
 
-      {/* The Pulse (Bento Grid) */}
+      {/* Row 1: The Ledger (High-Level Finance) */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        {/* Net Revenue (YTD) */}
         <Surface className="p-6">
           <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Total Revenue</Muted>
-            <TrendingUp className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Net Revenue (YTD)</Muted>
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$12,450.00</div>
-          {/* Minimalist Revenue Line */}
-          <div className="mt-4 h-[1px] w-full bg-zinc-100 relative">
-            <div className="absolute inset-0 bg-blue-500 w-[70%]" />
+          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$124,450.00</div>
+          {/* 1px gray sparkline line */}
+          <div className="mt-4 h-[1px] w-full bg-zinc-100 overflow-hidden">
+            <div className="h-full bg-zinc-300 w-[60%] animate-pulse" />
           </div>
         </Surface>
 
+        {/* Protected in Escrow */}
         <Surface className="p-6">
           <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">In Escrow</Muted>
-            <Clock className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Protected in Escrow</Muted>
+            <ShieldCheck className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$4,200.00</div>
-          <Muted className="mt-1 text-[10px] uppercase tracking-wider">Awaiting Milestone #4</Muted>
+          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$12,200.00</div>
+          <Muted className="mt-1 text-[10px] uppercase tracking-wider">Stripe Connect Verified</Muted>
         </Surface>
 
+        {/* Awaiting Payment */}
         <Surface className="p-6">
           <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Outstanding</Muted>
+            <div className="flex items-center gap-2">
+              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Awaiting Payment</Muted>
+              <div className="h-2 w-2 rounded-full bg-zinc-900" /> {/* Late badge */}
+            </div>
             <FileText className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$2,150.00</div>
-          <Muted className="mt-1 text-[10px] uppercase tracking-wider">3 Overdue</Muted>
+          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$8,150.00</div>
+          <Muted className="mt-1 text-[10px] uppercase tracking-wider text-zinc-900 font-bold">3 Overdue</Muted>
         </Surface>
 
+        {/* Effective Hourly Margin */}
         <Surface className="p-6">
           <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Rate (Effective)</Muted>
-            <TrendingUp className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Hourly Margin</Muted>
+            <Clock className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$145/hr</div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider">
-            <ArrowUpRight className="h-3 w-3" strokeWidth={2} />
-            <span>+8% optimized</span>
+          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$185/hr</div>
+          <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+            <span>Across active contracts</span>
           </div>
         </Surface>
       </div>
 
-      {/* Middle Row: Active Milestones & Action Center */}
+      {/* Row 2: Active Operations (Execution) */}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
-        {/* Active Milestones (Left) */}
+        {/* Active Milestones (60%) */}
         <div className="md:col-span-7 space-y-4">
           <H2>Active Milestones</H2>
           <Surface className="divide-y divide-zinc-100">
             {[
-              { name: "Brand Strategy Implementation", client: "Vesper AI", progress: 65 },
-              { name: "NodeJS Infrastructure Audit", client: "Orbit Systems", progress: 30 },
-              { name: "UI Design Phase 2", client: "Acme Corp", progress: 90 },
+              { client: "Vesper AI", milestone: "Brand Strategy Implementation", progress: 65 },
+              { client: "Orbit Systems", milestone: "NodeJS Infrastructure Audit", progress: 30 },
+              { client: "Acme Corp", milestone: "UI Design Phase 2", progress: 95 },
             ].map((item, i) => (
-              <div key={i} className="p-6 space-y-3 group cursor-pointer hover:bg-zinc-50 transition-colors">
+              <div key={i} className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="font-semibold text-zinc-900 tracking-tight">{item.name}</div>
-                    <Muted className="text-xs">{item.client}</Muted>
+                    <Muted className="text-xs uppercase tracking-widest leading-none mb-1">{item.client}</Muted>
+                    <div className="font-semibold text-zinc-900 tracking-tight text-lg">{item.milestone}</div>
                   </div>
-                  <Badge variant="outline" className="font-medium px-2 py-0 h-5">Active</Badge>
+                  <Button variant="outline" size="sm" className="h-8 text-xs font-semibold border-zinc-200 hover:bg-zinc-50 transition-colors">
+                    Request Approval
+                  </Button>
                 </div>
-                {/* 2px monochrome progress bar */}
+                {/* 2px black progress bar */}
                 <div className="h-[2px] w-full bg-zinc-100">
                   <div
                     className="h-full bg-zinc-900 transition-all duration-500"
@@ -96,22 +106,21 @@ export default function DashboardPage() {
           </Surface>
         </div>
 
-        {/* Action Center (Right) */}
+        {/* Action Center (40%) */}
         <div className="md:col-span-5 space-y-4">
           <H2>Action Center</H2>
           <Surface className="p-6">
             <div className="space-y-6">
               {[
-                { message: "Client Vesper AI viewed proposal for \"Marketing Kit\"", time: "2m ago" },
-                { message: "Escrow funds cleared for Milestone #2 ($1,200)", time: "1h ago" },
-                { message: "New change request from Acme Corp on Contract #104", time: "4h ago" },
-                { message: "You marked Milestone #3 as delivered to Orbit Systems", time: "1d ago" },
+                { message: "Review Acme Corp signed contract.", time: "2m ago" },
+                { message: "Milestone 2 approved. Transferring $2,500 from escrow.", time: "1h ago" },
+                { message: "Client Vesper AI viewed proposal for \"Marketing Kit\"", time: "4h ago" },
               ].map((item, i) => (
-                <div key={i} className="relative pl-4 border-l border-zinc-200">
-                  <P className="text-sm leading-tight text-zinc-900">
+                <div key={i} className="space-y-1">
+                  <P className="text-sm leading-snug text-zinc-900 font-medium">
                     {item.message}
                   </P>
-                  <Muted className="text-[10px] uppercase tracking-widest mt-1 block">
+                  <Muted className="text-[10px] uppercase tracking-widest block">
                     {item.time}
                   </Muted>
                 </div>
