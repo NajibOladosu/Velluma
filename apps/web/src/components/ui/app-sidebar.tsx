@@ -27,7 +27,6 @@ const navItems = [
     {
         group: "Core", items: [
             { name: "Home", href: "/dashboard", icon: LayoutDashboard },
-            { name: "Command Palette", href: "/commands", icon: Zap },
         ]
     },
     {
