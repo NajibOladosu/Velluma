@@ -1,186 +1,182 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Surface } from "@/components/ui/surface"
-import { Button } from "@/components/ui/button"
-import { H1, H2, H3, P, Muted } from "@/components/ui/typography"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
+import * as React from "react";
+import { H1, H2, Muted, P } from "@/components/ui/typography";
+import { Surface } from "@/components/ui/surface";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
-    Send,
-    Download,
-    DollarSign,
-    Calendar,
-    User,
-    CreditCard,
-    Plus,
-    Trash2
-} from "lucide-react"
+  Plus,
+  Search,
+  Send,
+  Download,
+  MoreHorizontal,
+} from "lucide-react";
 
-export default function InvoiceDraftPage() {
-    return (
-        <div className="space-y-8 pb-20">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <H1>Invoice #INV-2026-001</H1>
-                    <Muted>Drafting your next payout. Funds will be routed via Velluma Escrow.</Muted>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline">
-                        <Download className="mr-2 h-4 w-4" />
-                        PDF
-                    </Button>
-                    <Button variant="blue">
-                        <Send className="mr-2 h-4 w-4" />
-                        Send Invoice
-                    </Button>
-                </div>
-            </div>
+interface Invoice {
+  id: string;
+  number: string;
+  client: string;
+  amount: string;
+  status: "paid" | "processing" | "upcoming" | "overdue";
+  dueDate: string;
+  sentDate: string;
+}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Invoice Body */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Surface className="p-10 space-y-12">
-                        {/* Invoice Top Section */}
-                        <div className="flex justify-between items-start">
-                            <div className="space-y-4">
-                                <div className="h-10 w-10 rounded bg-zinc-900" />
-                                <div className="space-y-1">
-                                    <P className="font-semibold">Najib Oladosu</P>
-                                    <Muted className="text-xs block">123 Design St, London, UK</Muted>
-                                    <Muted className="text-xs block">billing@najib.dev</Muted>
-                                </div>
-                            </div>
-                            <div className="text-right space-y-1">
-                                <H2 className="text-4xl text-zinc-900">INVOICE</H2>
-                                <Muted className="text-xs block tracking-widest uppercase">Issued Mar 13, 2026</Muted>
-                            </div>
-                        </div>
+const invoices: Invoice[] = [
+  { id: "1", number: "INV-0045", client: "Acme Corp", amount: "$2,500", status: "paid", dueDate: "Mar 01", sentDate: "Feb 25" },
+  { id: "2", number: "INV-0046", client: "Terra Finance", amount: "$5,500", status: "paid", dueDate: "Mar 05", sentDate: "Feb 28" },
+  { id: "3", number: "INV-0047", client: "Orbit Systems", amount: "$3,200", status: "processing", dueDate: "Mar 12", sentDate: "Mar 08" },
+  { id: "4", number: "INV-0048", client: "Acme Corp", amount: "$4,000", status: "upcoming", dueDate: "Mar 20", sentDate: "Mar 10" },
+  { id: "5", number: "INV-0049", client: "Vesper AI", amount: "$7,500", status: "upcoming", dueDate: "Mar 25", sentDate: "Mar 14" },
+  { id: "6", number: "INV-0040", client: "Nexus Labs", amount: "$1,800", status: "overdue", dueDate: "Feb 15", sentDate: "Feb 10" },
+  { id: "7", number: "INV-0041", client: "Bloom Studio", amount: "$3,200", status: "overdue", dueDate: "Feb 20", sentDate: "Feb 14" },
+  { id: "8", number: "INV-0042", client: "Cascade Media", amount: "$3,150", status: "overdue", dueDate: "Feb 28", sentDate: "Feb 22" },
+];
 
-                        <Separator />
+const tabs = [
+  { key: "all", label: "All" },
+  { key: "paid", label: "Paid" },
+  { key: "processing", label: "Processing" },
+  { key: "upcoming", label: "Upcoming" },
+  { key: "overdue", label: "Overdue" },
+] as const;
 
-                        {/* Bill To / Info Section */}
-                        <div className="grid grid-cols-2 gap-8">
-                            <div className="space-y-2">
-                                <Muted className="text-[10px] uppercase tracking-widest font-bold">Bill To</Muted>
-                                <div className="space-y-1">
-                                    <P className="font-semibold">Acme Corporation</P>
-                                    <Muted className="text-xs block">456 Enterprise Way</Muted>
-                                    <Muted className="text-xs block">San Francisco, CA 94105</Muted>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <Muted className="text-[10px] uppercase tracking-widest font-bold">Due Date</Muted>
-                                    <P className="text-sm font-medium">Mar 27, 2026</P>
-                                </div>
-                                <div className="space-y-1 text-right">
-                                    <Muted className="text-[10px] uppercase tracking-widest font-bold">Payment Method</Muted>
-                                    <P className="text-sm font-medium">Velluma Escrow</P>
-                                </div>
-                            </div>
-                        </div>
+type TabKey = typeof tabs[number]["key"];
 
-                        {/* Line Items */}
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-12 gap-4 px-2">
-                                <div className="col-span-6"><Muted className="text-[10px] uppercase tracking-widest font-bold">Description</Muted></div>
-                                <div className="col-span-2 text-right"><Muted className="text-[10px] uppercase tracking-widest font-bold">Qty/Hrs</Muted></div>
-                                <div className="col-span-2 text-right"><Muted className="text-[10px] uppercase tracking-widest font-bold">Rate</Muted></div>
-                                <div className="col-span-2 text-right"><Muted className="text-[10px] uppercase tracking-widest font-bold">Amount</Muted></div>
-                            </div>
-                            <Separator />
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-12 gap-4 items-center">
-                                    <div className="col-span-6 space-y-1">
-                                        <P className="text-sm font-medium">Next.js Dashboard Implementation</P>
-                                        <Muted className="text-xs">Phase 1: Component library and basic routing.</Muted>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm">40</span>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm">$150.00</span>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm font-semibold">$6,000.00</span>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-12 gap-4 items-center">
-                                    <div className="col-span-6 space-y-1">
-                                        <P className="text-sm font-medium">Consulting Sessions</P>
-                                        <Muted className="text-xs">Architecture review with CTO.</Muted>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm">4</span>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm">$200.00</span>
-                                    </div>
-                                    <div className="col-span-2 text-right">
-                                        <span className="text-sm font-semibold">$800.00</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+const statusStyles: Record<string, string> = {
+  paid: "text-zinc-500",
+  processing: "text-zinc-600",
+  upcoming: "text-zinc-600",
+  overdue: "text-zinc-900 font-bold",
+};
 
-                        {/* Totals */}
-                        <div className="flex justify-end pt-8">
-                            <div className="w-full max-w-[240px] space-y-3">
-                                <div className="flex justify-between">
-                                    <Muted>Subtotal</Muted>
-                                    <span className="text-sm font-medium text-zinc-900">$6,800.00</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <Muted>Platform Fee (1.5%)</Muted>
-                                    <span className="text-sm font-medium text-zinc-400">-$102.00</span>
-                                </div>
-                                <Separator />
-                                <div className="flex justify-between items-center py-2">
-                                    <H3 className="text-lg">Total Due</H3>
-                                    <span className="text-2xl font-bold text-zinc-900">$6,698.00</span>
-                                </div>
-                            </div>
-                        </div>
-                    </Surface>
-                </div>
+export default function InvoicesPage() {
+  const [activeTab, setActiveTab] = React.useState<TabKey>("all");
 
-                {/* Action Sidebar */}
-                <div className="space-y-6">
-                    <Surface className="p-6 space-y-4">
-                        <H3 className="text-sm uppercase tracking-wider font-semibold">Invoice Status</H3>
-                        <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-blue-500" />
-                            <P className="text-sm font-medium">Drafting</P>
-                        </div>
-                        <Muted className="text-xs block">Last saved 2 minutes ago</Muted>
-                        <Separator />
-                        <div className="space-y-1">
-                            <Muted className="text-[10px] uppercase tracking-widest font-bold">Payment Schedule</Muted>
-                            <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                                    <span className="text-xs">Net 14</span>
-                                </div>
-                                <span className="text-xs font-semibold text-zinc-900">Edit</span>
-                            </div>
-                        </div>
-                    </Surface>
+  const filtered = activeTab === "all"
+    ? invoices
+    : invoices.filter((inv) => inv.status === activeTab);
 
-                    <Surface className="p-6 space-y-4 bg-zinc-50 border-zinc-300">
-                        <div className="flex items-center gap-2">
-                            <CreditCard className="h-4 w-4 text-zinc-900" />
-                            <H3 className="text-sm uppercase tracking-wider font-semibold">Payout Routing</H3>
-                        </div>
-                        <P className="text-xs text-zinc-600">
-                            Funds will be deposited to your **Standard Chartered bank account (****1234)** via Stripe Connect.
-                        </P>
-                        <Button variant="outline" className="w-full text-xs h-8">Change Account</Button>
-                    </Surface>
-                </div>
-            </div>
+  const totals = {
+    paid: invoices.filter((i) => i.status === "paid").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
+    processing: invoices.filter((i) => i.status === "processing").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
+    upcoming: invoices.filter((i) => i.status === "upcoming").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
+    overdue: invoices.filter((i) => i.status === "overdue").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <H1>Invoices</H1>
+          <Muted>Payments overview and invoice management.</Muted>
         </div>
-    )
+        <Button className="font-semibold px-5 gap-2">
+          <Plus className="h-4 w-4" strokeWidth={1.5} />
+          New Invoice
+        </Button>
+      </div>
+
+      {/* Payment Summary Cards */}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Surface className="p-5">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Paid</Muted>
+          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.paid.toLocaleString()}</div>
+        </Surface>
+        <Surface className="p-5">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Processing</Muted>
+          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.processing.toLocaleString()}</div>
+        </Surface>
+        <Surface className="p-5">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Upcoming</Muted>
+          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.upcoming.toLocaleString()}</div>
+        </Surface>
+        <Surface className="p-5">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Overdue</Muted>
+          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.overdue.toLocaleString()}</div>
+          {totals.overdue > 0 && <div className="h-1.5 w-1.5 rounded-full bg-zinc-900 mt-2" />}
+        </Surface>
+      </div>
+
+      {/* Tabs + Search */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 border-b border-zinc-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
+                activeTab === tab.key
+                  ? "border-zinc-900 text-zinc-900"
+                  : "border-transparent text-zinc-400 hover:text-zinc-600"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+          <Input
+            placeholder="Search invoices..."
+            className="pl-9 h-9 bg-white border-zinc-200 text-sm focus:ring-0"
+          />
+        </div>
+      </div>
+
+      {/* Invoice Table */}
+      <Surface className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Invoice</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Client</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Amount</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Due Date</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {filtered.map((invoice) => (
+                <tr key={invoice.id} className="group hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-zinc-900 tracking-tight">{invoice.number}</div>
+                    <Muted className="text-[10px]">Sent {invoice.sentDate}</Muted>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-zinc-600">{invoice.client}</td>
+                  <td className="px-6 py-4 font-medium text-zinc-900">{invoice.amount}</td>
+                  <td className="px-6 py-4">
+                    <Badge variant="outline" className={cn("border-zinc-200 bg-transparent", statusStyles[invoice.status])}>
+                      {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-zinc-500">{invoice.dueDate}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {invoice.status === "overdue" && (
+                        <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 border-zinc-200">
+                          <Send className="h-3 w-3 mr-1" />
+                          Remind
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Download className="h-3.5 w-3.5 text-zinc-400" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Surface>
+    </div>
+  );
 }
