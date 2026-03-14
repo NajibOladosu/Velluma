@@ -33,6 +33,7 @@ export function MinimalEditor({
     className,
 }: MinimalEditorProps) {
     const editor = useEditor({
+        immediatelyRender: false,
         extensions: [
             StarterKit,
             Placeholder.configure({
