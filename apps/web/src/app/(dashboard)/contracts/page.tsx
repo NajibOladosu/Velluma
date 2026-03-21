@@ -59,7 +59,7 @@ const statusConfig: Record<ContractStatus, { label: string; className: string }>
    ═══════════════════════════════════════════════════════ */
 
 export default function ContractsDirectoryPage() {
-  const [viewMode, setViewMode] = React.useState<ViewMode>("templates");
+  const [viewMode, setViewMode] = React.useState<ViewMode>("active");
   const [activeTab, setActiveTab] = React.useState<ContractStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [showNewDrawer, setShowNewDrawer] = React.useState(false);
@@ -131,18 +131,6 @@ export default function ContractsDirectoryPage() {
         {/* ── View Toggle ──────────────────────── */}
         <div className="flex bg-zinc-100/50 p-1 border border-zinc-200 rounded-lg w-fit">
           <button
-            onClick={() => { setViewMode("templates"); setSearchQuery(""); }}
-            className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-sm",
-              viewMode === "templates"
-                ? "bg-white text-zinc-900 border border-zinc-200/50"
-                : "text-zinc-500 hover:text-zinc-700 shadow-none border border-transparent"
-            )}
-          >
-            <Library className="h-4 w-4" />
-            Template Library
-          </button>
-          <button
             onClick={() => { setViewMode("active"); setSearchQuery(""); }}
             className={cn(
               "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-sm",
@@ -153,6 +141,18 @@ export default function ContractsDirectoryPage() {
           >
             <Briefcase className="h-4 w-4" />
             Active Agreements
+          </button>
+          <button
+            onClick={() => { setViewMode("templates"); setSearchQuery(""); }}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-sm",
+              viewMode === "templates"
+                ? "bg-white text-zinc-900 border border-zinc-200/50"
+                : "text-zinc-500 hover:text-zinc-700 shadow-none border border-transparent"
+            )}
+          >
+            <Library className="h-4 w-4" />
+            Template Library
           </button>
         </div>
       </div>
@@ -342,8 +342,7 @@ export default function ContractsDirectoryPage() {
                         className="group hover:bg-zinc-50/50 transition-colors"
                       >
                         <td className="px-6 py-4 align-top">
-                          {/* We don't link these to the builder, active agreements usually open a viewer or a proposal link */}
-                          <div className="block cursor-pointer">
+                          <Link href={`/contracts/${contract.id}`} className="block">
                             <div className="flex gap-3">
                               <div className="h-9 w-9 mt-0.5 rounded-md bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0">
                                 <FileText
@@ -360,7 +359,7 @@ export default function ContractsDirectoryPage() {
                                 </Muted>
                               </div>
                             </div>
-                          </div>
+                          </Link>
                         </td>
                         <td className="px-6 py-4 align-top">
                           <Badge
