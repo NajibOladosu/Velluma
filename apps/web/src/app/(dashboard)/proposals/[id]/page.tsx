@@ -232,6 +232,12 @@ const legalClauses: LegalClause[] = [
   },
 ];
 
+const contractTemplates = [
+  { id: "t1", name: "Master Services Agreement", type: "standard" },
+  { id: "t2", name: "Independent Contractor Agreement", type: "standard" },
+  { id: "t3", name: "Web Development SOW", type: "custom" },
+];
+
 const sections: { key: SectionKey; label: string; icon: React.ElementType }[] = [
   { key: "welcome", label: "Welcome", icon: FileText },
   { key: "scope", label: "Scope", icon: LayoutTemplate },
@@ -259,6 +265,7 @@ export default function ProposalBuilderPage() {
 
   const [activeSection, setActiveSection] = React.useState<SectionKey>("welcome");
   const [selectedTier, setSelectedTier] = React.useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>("t1");
   const [addOns, setAddOns] = React.useState<AddOn[]>(defaultAddOns);
   const [enabledClauses, setEnabledClauses] = React.useState<string[]>(
     legalClauses.map((c) => c.id)
@@ -306,27 +313,29 @@ export default function ProposalBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+        <div className="flex items-start sm:items-center gap-4">
           <Link
             href="/proposals"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
           >
             <ArrowLeft className="h-4 w-4" />
-            Proposals
+            <span className="hidden sm:inline">Proposals</span>
           </Link>
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6 hidden sm:block" />
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               <H1 className="text-xl">{proposal.title}</H1>
-              <Badge
-                variant="outline"
-                className={cn("bg-transparent", statusConfig[proposal.status].className)}
-              >
-                {statusConfig[proposal.status].label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn("bg-transparent", statusConfig[proposal.status].className)}
+                >
+                  {statusConfig[proposal.status].label}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
               <Link
                 href={`/clients/${proposal.clientId}`}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -335,23 +344,25 @@ export default function ProposalBuilderPage() {
                 {proposal.client}
                 <ExternalLink className="h-2.5 w-2.5" />
               </Link>
-              <span className="text-zinc-300">·</span>
+              <span className="text-zinc-300 hidden sm:inline">·</span>
               <Muted className="text-xs">Created {proposal.createdAt}</Muted>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Preview
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Preview</span>
           </Button>
-          <Button variant="outline">
-            <Save className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Save Draft
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Save Draft</span>
+            <span className="inline sm:hidden">Save</span>
           </Button>
-          <Button>
-            <Send className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Send to Client
+          <Button className="flex-1 sm:flex-none h-9">
+            <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Send to Client</span>
+            <span className="inline sm:hidden">Send</span>
           </Button>
         </div>
       </div>
@@ -665,10 +676,46 @@ export default function ProposalBuilderPage() {
                 <div className="space-y-1">
                   <H2 className="text-2xl tracking-tight">Legal Agreement</H2>
                   <Muted>
-                    Legally-vetted clauses are locked. Toggle clauses on or off, but
-                    individual text cannot be edited.
+                    Select a base template from your library. Legally-vetted clauses are locked. Toggle clauses on or off as needed.
                   </Muted>
                 </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-zinc-700 uppercase tracking-widest">Selected Template</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {contractTemplates.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => setSelectedTemplateId(t.id)}
+                        className={cn(
+                          "flex flex-col gap-2 p-4 rounded-md border cursor-pointer transition-all",
+                          selectedTemplateId === t.id
+                            ? "border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50"
+                            : "border-zinc-200 hover:border-zinc-300 bg-white"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
+                              {t.type === "standard" ? (
+                                <Shield className="h-3 w-3 text-zinc-700" />
+                              ) : (
+                                <FileText className="h-3 w-3 text-zinc-500" />
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold text-zinc-900">
+                              {t.name}
+                            </span>
+                          </div>
+                          {selectedTemplateId === t.id && (
+                            <Check className="h-4 w-4 text-zinc-900 flex-shrink-0" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <Separator />
 
                 {/* AI suggestion button */}

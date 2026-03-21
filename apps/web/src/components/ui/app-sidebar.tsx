@@ -18,7 +18,10 @@ import {
     Briefcase,
     PieChart,
     ShieldCheck,
-    TrendingUp
+    TrendingUp,
+    ReceiptText,
+    BarChart3,
+    DollarSign,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -26,28 +29,31 @@ import { Button } from "./button"
 const navItems = [
     {
         group: "Core", items: [
-            { name: "Home", href: "/dashboard", icon: LayoutDashboard },
+            { name: "Home",      href: "/dashboard", icon: LayoutDashboard },
+            { name: "Analytics", href: "/analytics", icon: BarChart3       },
         ]
     },
     {
         group: "Growth", items: [
-            { name: "Pipeline", href: "/pipeline", icon: TrendingUp },
-            { name: "Clients", href: "/clients", icon: Users },
-            { name: "Proposals", href: "/proposals", icon: FileText },
+            { name: "Pipeline",  href: "/pipeline",  icon: TrendingUp },
+            { name: "Clients",   href: "/clients",   icon: Users      },
+            { name: "Proposals", href: "/proposals", icon: FileText   },
         ]
     },
     {
         group: "Vault", items: [
-            { name: "Contracts", href: "/contracts", icon: ShieldCheck },
-            { name: "Invoices", href: "/invoices", icon: Wallet },
-            { name: "Profitability", href: "/profitability", icon: PieChart },
+            { name: "Contracts",     href: "/contracts",     icon: ShieldCheck  },
+            { name: "Invoices",      href: "/invoices",      icon: Wallet       },
+            { name: "Finance",       href: "/finance",       icon: DollarSign   },
+            { name: "Expenses",      href: "/expenses",      icon: ReceiptText  },
+            { name: "Profitability", href: "/profitability",  icon: PieChart     },
         ]
     },
     {
         group: "Operations", items: [
-            { name: "Projects", href: "/projects", icon: Briefcase },
-            { name: "Time", href: "/time", icon: Clock },
-            { name: "Automations", href: "/automations", icon: Zap },
+            { name: "Projects",    href: "/projects",    icon: Briefcase },
+            { name: "Time",        href: "/time",        icon: Clock     },
+            { name: "Automations", href: "/automations", icon: Zap       },
         ]
     },
 ]
@@ -61,7 +67,7 @@ export function AppSidebar() {
             animate={{ width: sidebarCollapsed ? 64 : 260 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className={cn(
-                "relative flex flex-col border-r border-zinc-200 bg-white h-screen select-none",
+                "relative hidden md:flex flex-col border-r border-zinc-200 bg-white h-screen select-none",
                 "transition-colors duration-200"
             )}
         >
