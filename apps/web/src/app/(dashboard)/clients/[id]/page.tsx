@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useParams } from "next/navigation";
+import { useClient } from "@/lib/queries/clients";
 import { H1, H2, H3, Muted, P } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
@@ -267,9 +268,17 @@ type DetailTab = "overview" | "activity" | "invoices" | "documents";
 
 export default function ClientDetailPage() {
   const params = useParams();
-  const client = getClientById(params.id as string);
+  const clientId = params.id as string;
+  const client = getClientById(clientId);
+  // Fetch live data from Supabase — overrides mock name/company/email when available
+  const { data: liveClient } = useClient(clientId);
   const [activeTab, setActiveTab] = React.useState<DetailTab>("overview");
   const statusLabel: Record<string, string> = { active: "Active", lead: "Lead", past: "Past" };
+
+  // Overlay real data from DB on top of the mock detail structure
+  const displayName    = liveClient?.name         ?? client.name;
+  const displayCompany = liveClient?.company_name ?? client.company;
+  const displayEmail   = liveClient?.email        ?? client.email;
 
   const tabs: { id: DetailTab; label: string; count?: number }[] = [
     { id: "overview", label: "Overview" },
@@ -297,14 +306,14 @@ export default function ClientDetailPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <H1 className="text-2xl">{client.name}</H1>
+                <H1 className="text-2xl">{displayName}</H1>
                 {client.enrichment.confidence >= 90 && (
                   <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
                     <Bot className="h-3 w-3" /> Enriched
                   </span>
                 )}
               </div>
-              <Muted>{client.company} · Client since {client.createdAt}</Muted>
+              <Muted>{displayCompany} · Client since {client.createdAt}</Muted>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -427,7 +436,7 @@ export default function ClientDetailPage() {
               <div className="space-y-2">
                 <Muted className="text-[10px] uppercase tracking-widest font-bold">Contact</Muted>
                 {[
-                  { icon: Mail, value: client.email },
+                  { icon: Mail, value: displayEmail },
                   { icon: Phone, value: client.phone },
                   { icon: Globe, value: client.website },
                 ].map((item) => (
