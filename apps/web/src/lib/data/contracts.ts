@@ -170,3 +170,53 @@ export function resolveContractDescription(id: string): string {
 export function isTemplateId(id: string): boolean {
   return templatesData.some((t) => t.id === id);
 }
+
+/** Returns a unified metadata record for use in headings/metadata rows. */
+export interface ContractMeta {
+  name: string;
+  description: string;
+  isTemplate: boolean;
+  /** For active contracts: the client name. For templates: undefined. */
+  client?: string;
+  clientId?: string;
+  /** For active contracts: createdAt. For templates: lastModified. */
+  date: string;
+  /** Templates only. */
+  usageCount?: number;
+  lockedClauses?: number;
+  type?: "standard" | "custom";
+  status?: ContractStatus;
+}
+
+export function resolveContractMeta(id: string): ContractMeta {
+  const contract = contractsData.find((c) => c.id === id);
+  if (contract) {
+    return {
+      name: contract.title,
+      description: contract.description ?? "",
+      isTemplate: false,
+      client: contract.client,
+      clientId: contract.clientId,
+      date: contract.createdAt,
+      status: contract.status,
+    };
+  }
+  const template = templatesData.find((t) => t.id === id);
+  if (template) {
+    return {
+      name: template.name,
+      description: template.description,
+      isTemplate: true,
+      date: template.lastModified,
+      usageCount: template.usageCount,
+      lockedClauses: template.lockedClauses,
+      type: template.type,
+    };
+  }
+  return {
+    name: "Untitled Contract",
+    description: "",
+    isTemplate: false,
+    date: "—",
+  };
+}
