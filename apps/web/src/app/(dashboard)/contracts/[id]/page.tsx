@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
@@ -9,6 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
+import {
+  resolveContractName,
+  resolveContractDescription,
+  isTemplateId,
+} from "@/lib/data/contracts";
 import {
   ArrowLeft,
   Eye,
@@ -177,11 +183,16 @@ function ClauseBlock({
    PAGE COMPONENT
    ═══════════════════════════════════════════════════════ */
 
-export default function ContractBuilderPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function ContractBuilderPage() {
+  const params = useParams();
+  const id = (params?.id as string) ?? "";
+
+  // Resolve name and meta from the shared data layer
+  const contractName        = resolveContractName(id);
+  const contractDescription = resolveContractDescription(id);
+  const isTemplate          = isTemplateId(id);
+  const badgeLabel          = isTemplate ? "Template" : "Active Contract";
+
   const [activeTab, setActiveTab] = React.useState<EditorTab>("editor");
 
   // Per-clause lock state — Set of locked clause IDs.
@@ -252,10 +263,10 @@ export default function ContractBuilderPage({
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold tracking-tight text-zinc-900">
-              Master Services Agreement
+              {contractName}
             </span>
             <Badge variant="outline" className="ml-2 font-mono text-[10px] uppercase tracking-wider text-zinc-500 bg-zinc-50">
-              Template
+              {badgeLabel}
             </Badge>
           </div>
         </div>
@@ -348,7 +359,9 @@ export default function ContractBuilderPage({
                 <div className="mb-8 border-b border-zinc-200 pb-6">
                   <H2>Agreement Template</H2>
                   <Muted className="mt-1 text-sm">
-                    Design the legal structure of your contract. Locked clauses cannot be edited when adding this to a proposal.
+                    {contractDescription
+                      ? contractDescription
+                      : "Design the legal structure of your contract. Locked clauses cannot be edited when adding this to a proposal."}
                   </Muted>
                 </div>
 
@@ -450,7 +463,7 @@ export default function ContractBuilderPage({
                       <input
                         type="text"
                         className="w-full flex h-10 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
-                        defaultValue="Master Services Agreement"
+                        defaultValue={contractName}
                       />
                     </div>
                     <div className="space-y-2">
@@ -459,7 +472,7 @@ export default function ContractBuilderPage({
                       </label>
                       <textarea
                         className="w-full flex rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 min-h-[100px]"
-                        defaultValue="Standard MSA for new clients. Includes generic IP assignment and net-30 terms."
+                        defaultValue={contractDescription || ""}
                       />
                     </div>
                   </div>

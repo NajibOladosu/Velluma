@@ -10,6 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
+  type ContractStatus,
+  type Contract,
+  type ContractTemplate,
+  contractsData,
+  templatesData,
+} from "@/lib/data/contracts";
+import {
   Plus,
   Search,
   X,
@@ -27,145 +34,10 @@ import {
   Lock,
 } from "lucide-react";
 
-/* ═══════════════════════════════════════════════════════
-   TYPES
-   ═══════════════════════════════════════════════════════ */
 
 type ViewMode = "active" | "templates";
-type ContractStatus = "draft" | "pending" | "signed" | "expired";
 
-interface Signer {
-  id: string;
-  name: string;
-  role: string;
-  status: "pending" | "signed";
-}
 
-interface Contract {
-  id: string;
-  title: string;
-  client: string;
-  clientId: string;
-  status: ContractStatus;
-  value: string;
-  numericValue: number;
-  createdAt: string;
-  sentAt: string | null;
-  signedAt: string | null;
-  expiresAt: string | null;
-  template: string;
-  signers: Signer[];
-}
-
-interface ContractTemplate {
-  id: string;
-  name: string;
-  description: string;
-  type: "standard" | "custom";
-  lastModified: string;
-  usageCount: number;
-  lockedClauses: number;
-}
-
-/* ═══════════════════════════════════════════════════════
-   MOCK DATA
-   ═══════════════════════════════════════════════════════ */
-
-const templatesData: ContractTemplate[] = [
-  {
-    id: "t1",
-    name: "Master Services Agreement (Retainer)",
-    description: "Core MSA with locked standard clauses for all retainer clients. Includes strict intellectual property and confidentiality terms.",
-    type: "standard",
-    lastModified: "Mar 10, 2026",
-    usageCount: 45,
-    lockedClauses: 8,
-  },
-  {
-    id: "t2",
-    name: "Independent Contractor Agreement",
-    description: "Standard agreement for hiring freelancers or subcontractors.",
-    type: "standard",
-    lastModified: "Feb 15, 2026",
-    usageCount: 18,
-    lockedClauses: 5,
-  },
-  {
-    id: "t3",
-    name: "Web Development SOW",
-    description: "Statement of work template specific to web engineering projects. Editable scope and timeline.",
-    type: "custom",
-    lastModified: "Mar 05, 2026",
-    usageCount: 12,
-    lockedClauses: 2,
-  },
-  {
-    id: "t4",
-    name: "Brand Design Agreement",
-    description: "Contract template for brand identity and strategy projects. Flexible licensing terms.",
-    type: "custom",
-    lastModified: "Feb 28, 2026",
-    usageCount: 28,
-    lockedClauses: 0,
-  },
-];
-
-const contractsData: Contract[] = [
-  {
-    id: "1",
-    title: "Master Services Agreement",
-    client: "Acme Corp",
-    clientId: "1",
-    status: "signed",
-    value: "$12,500",
-    numericValue: 12500,
-    createdAt: "Feb 28, 2026",
-    sentAt: "Mar 01, 2026",
-    signedAt: "Mar 03, 2026",
-    expiresAt: null,
-    template: "Standard MSA",
-    signers: [
-      { id: "s1", name: "David Kim", role: "Client", status: "signed" },
-      { id: "s2", name: "Sarah Connor", role: "Freelancer", status: "signed" },
-    ],
-  },
-  {
-    id: "2",
-    title: "Brand Identity Contract",
-    client: "Vesper AI",
-    clientId: "3",
-    status: "pending",
-    value: "$8,500",
-    numericValue: 8500,
-    createdAt: "Mar 05, 2026",
-    sentAt: "Mar 06, 2026",
-    signedAt: null,
-    expiresAt: null,
-    template: "Brand Design Agreement",
-    signers: [
-      { id: "s3", name: "Lena Ray", role: "Client", status: "pending" },
-      { id: "s2", name: "Sarah Connor", role: "Freelancer", status: "signed" },
-    ],
-  },
-  {
-    id: "3",
-    title: "Mobile App Subcontractor",
-    client: "Orbit Systems",
-    clientId: "4",
-    status: "draft",
-    value: "$18,000",
-    numericValue: 18000,
-    createdAt: "Mar 10, 2026",
-    sentAt: null,
-    signedAt: null,
-    expiresAt: null,
-    template: "Independent Contractor",
-    signers: [
-      { id: "s6", name: "James Holden", role: "Client", status: "pending" },
-      { id: "s2", name: "Sarah Connor", role: "Freelancer", status: "pending" },
-    ],
-  },
-];
 
 const statusTabs: { key: ContractStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
