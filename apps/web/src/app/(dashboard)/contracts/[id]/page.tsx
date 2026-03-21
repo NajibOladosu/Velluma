@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
@@ -57,9 +58,9 @@ export default function ContractBuilderPage({
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-zinc-200 bg-white/80 px-4 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500" asChild>
-            <a href="/contracts">
+            <Link href="/contracts">
               <ArrowLeft className="h-4 w-4" />
-            </a>
+            </Link>
           </Button>
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold tracking-tight text-zinc-900">
