@@ -313,27 +313,29 @@ export default function ProposalBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+        <div className="flex items-start sm:items-center gap-4">
           <Link
             href="/proposals"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
           >
             <ArrowLeft className="h-4 w-4" />
-            Proposals
+            <span className="hidden sm:inline">Proposals</span>
           </Link>
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6 hidden sm:block" />
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               <H1 className="text-xl">{proposal.title}</H1>
-              <Badge
-                variant="outline"
-                className={cn("bg-transparent", statusConfig[proposal.status].className)}
-              >
-                {statusConfig[proposal.status].label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn("bg-transparent", statusConfig[proposal.status].className)}
+                >
+                  {statusConfig[proposal.status].label}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
               <Link
                 href={`/clients/${proposal.clientId}`}
                 className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -342,23 +344,25 @@ export default function ProposalBuilderPage() {
                 {proposal.client}
                 <ExternalLink className="h-2.5 w-2.5" />
               </Link>
-              <span className="text-zinc-300">·</span>
+              <span className="text-zinc-300 hidden sm:inline">·</span>
               <Muted className="text-xs">Created {proposal.createdAt}</Muted>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Preview
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Preview</span>
           </Button>
-          <Button variant="outline">
-            <Save className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Save Draft
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Save Draft</span>
+            <span className="inline sm:hidden">Save</span>
           </Button>
-          <Button>
-            <Send className="mr-2 h-4 w-4" strokeWidth={1.5} />
-            Send to Client
+          <Button className="flex-1 sm:flex-none h-9">
+            <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Send to Client</span>
+            <span className="inline sm:hidden">Send</span>
           </Button>
         </div>
       </div>

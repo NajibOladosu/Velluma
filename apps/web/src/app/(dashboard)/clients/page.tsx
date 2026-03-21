@@ -229,7 +229,7 @@ export default function ClientsPage() {
     <>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <H1>Clients</H1>
             <Muted>
@@ -262,12 +262,13 @@ export default function ClientsPage() {
         {/* Tabs + Search + Tag Filter */}
         <div className="space-y-4">
           {/* Status Tabs */}
-          <div className="flex items-center gap-1 border-b border-zinc-200">
+          <div className="overflow-x-auto">
+            <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 className={cn(
-                  "px-4 py-2.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px",
+                  "px-4 py-2.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px whitespace-nowrap",
                   statusTab === tab
                     ? "border-zinc-900 text-zinc-900"
                     : "border-transparent text-zinc-400 hover:text-zinc-600"
@@ -279,12 +280,13 @@ export default function ClientsPage() {
                   {statusCounts[tab]}
                 </span>
               </button>
-            ))}
+              ))}
+            </div>
           </div>
 
           {/* Search + Tag Filter */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 max-w-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="relative flex-1 w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <Input
                 placeholder="Search clients..."
@@ -294,11 +296,11 @@ export default function ClientsPage() {
               />
             </div>
 
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
-                className={cn("h-9 border-zinc-200 gap-1.5", tagFilter !== "all" && "border-zinc-900")}
+                className={cn("h-9 w-full sm:w-auto border-zinc-200 gap-1.5", tagFilter !== "all" && "border-zinc-900")}
                 onClick={() => setTagFilterOpen(!tagFilterOpen)}
               >
                 <Tag className="h-3.5 w-3.5" />
@@ -344,12 +346,12 @@ export default function ClientsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Client</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Health</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Revenue</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Tags</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Added</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Client</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Health</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Revenue</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden lg:table-cell">Tags</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Added</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -366,11 +368,21 @@ export default function ClientsPage() {
                           </div>
                         </div>
                       </td>
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <td key={j} className="px-6 py-4">
-                          <div className="h-3 w-16 rounded bg-zinc-100" />
-                        </td>
-                      ))}
+                      <td className="px-4 py-4">
+                        <div className="h-3 w-16 rounded bg-zinc-100" />
+                      </td>
+                      <td className="px-4 py-4 hidden sm:table-cell">
+                        <div className="h-3 w-16 rounded bg-zinc-100" />
+                      </td>
+                      <td className="px-4 py-4 hidden md:table-cell">
+                        <div className="h-3 w-16 rounded bg-zinc-100" />
+                      </td>
+                      <td className="px-4 py-4 hidden lg:table-cell">
+                        <div className="h-3 w-16 rounded bg-zinc-100" />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="h-3 w-16 rounded bg-zinc-100" />
+                      </td>
                     </tr>
                   ))}
 
@@ -404,7 +416,7 @@ export default function ClientsPage() {
                     return (
                       <Link key={client.id} href={`/clients/${client.id}`} className="contents">
                         <tr className="group hover:bg-zinc-50/50 transition-colors cursor-pointer">
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                                 <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
@@ -417,12 +429,12 @@ export default function ClientsPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4">
                             <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize">
                               {statusLabel[status] ?? status}
                             </Badge>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 hidden sm:table-cell">
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-zinc-900 text-sm">{client.health_score ?? "—"}</span>
                               {client.health_score != null && (
@@ -432,10 +444,10 @@ export default function ClientsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 hidden md:table-cell">
                             <div className="font-medium text-zinc-900">{formatRevenue(client)}</div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-4 hidden lg:table-cell">
                             <div className="flex flex-wrap gap-1">
                               {(client.tags ?? []).slice(0, 2).map((tag) => (
                                 <TagBadge key={tag} tag={tag} />
@@ -447,7 +459,7 @@ export default function ClientsPage() {
                               )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-right">
+                          <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <span className="text-xs text-zinc-400">
                                 {new Date(client.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}

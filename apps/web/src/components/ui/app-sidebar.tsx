@@ -67,7 +67,7 @@ export function AppSidebar() {
             animate={{ width: sidebarCollapsed ? 64 : 260 }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className={cn(
-                "relative flex flex-col border-r border-zinc-200 bg-white h-screen select-none",
+                "relative hidden md:flex flex-col border-r border-zinc-200 bg-white h-screen select-none",
                 "transition-colors duration-200"
             )}
         >

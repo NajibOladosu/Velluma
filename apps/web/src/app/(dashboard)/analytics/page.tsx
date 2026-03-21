@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {/* Core KPIs */}
                 <Surface className="p-6 space-y-2">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold">Gross Margin</Muted>
@@ -63,32 +63,34 @@ export default function AnalyticsPage() {
                 <div className="lg:col-span-2 space-y-4">
                     <H3 className="text-lg font-semibold">Project Performance Matrix</H3>
                     <Surface className="p-0 overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead className="bg-zinc-50 border-b border-zinc-200">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Project</th>
-                                    <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Revenue</th>
-                                    <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Margin</th>
-                                    <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">ROI</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-200">
-                                {[
-                                    { name: "Solaris Mobile App", revenue: "$12,000", margin: "82%", roi: "5.4x" },
-                                    { name: "Acme Web Portal", revenue: "$8,500", margin: "64%", roi: "2.8x" },
-                                    { name: "Velluma Integration", revenue: "$4,000", margin: "91%", roi: "11.2x" },
-                                ].map((row, i) => (
-                                    <tr key={i} className="hover:bg-zinc-50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-zinc-900">{row.name}</td>
-                                        <td className="px-6 py-4 text-right text-zinc-600">{row.revenue}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Badge variant="default" className="bg-zinc-100 text-zinc-900 border-zinc-200">{row.margin}</Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-semibold text-zinc-900">{row.roi}</td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-zinc-50 border-b border-zinc-200">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-500">Project</th>
+                                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Revenue</th>
+                                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">Margin</th>
+                                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-500">ROI</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-200">
+                                    {[
+                                        { name: "Solaris Mobile App", revenue: "$12,000", margin: "82%", roi: "5.4x" },
+                                        { name: "Acme Web Portal", revenue: "$8,500", margin: "64%", roi: "2.8x" },
+                                        { name: "Velluma Integration", revenue: "$4,000", margin: "91%", roi: "11.2x" },
+                                    ].map((row, i) => (
+                                        <tr key={i} className="hover:bg-zinc-50 transition-colors">
+                                            <td className="px-4 py-4 font-medium text-zinc-900">{row.name}</td>
+                                            <td className="px-4 py-4 text-right text-zinc-600">{row.revenue}</td>
+                                            <td className="px-4 py-4 text-right">
+                                                <Badge variant="default" className="bg-zinc-100 text-zinc-900 border-zinc-200">{row.margin}</Badge>
+                                            </td>
+                                            <td className="px-4 py-4 text-right font-semibold text-zinc-900">{row.roi}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </Surface>
                 </div>
 
