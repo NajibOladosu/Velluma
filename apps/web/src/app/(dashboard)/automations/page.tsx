@@ -113,12 +113,12 @@ export default function AutomationsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div>
           <H1>Automations</H1>
           <Muted>Put your business on autopilot. Set rules once, run forever.</Muted>
         </div>
-        <Button className="gap-2 font-semibold px-5">
+        <Button className="gap-2 font-semibold px-5 w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           New Automation
         </Button>
@@ -173,12 +173,12 @@ export default function AutomationsPage() {
                     )}
                   </div>
                   <P className="text-xs text-zinc-500 truncate">{automation.description}</P>
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[9px] font-bold uppercase tracking-widest">
+                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                    <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[9px] font-bold uppercase tracking-widest truncate max-w-full">
                       {automation.trigger}
                     </Badge>
-                    <ChevronRight className="h-3 w-3 text-zinc-300" />
-                    <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[9px] font-bold uppercase tracking-widest">
+                    <ChevronRight className="h-3 w-3 text-zinc-300 hidden sm:block" />
+                    <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[9px] font-bold uppercase tracking-widest truncate max-w-full">
                       {automation.action}
                     </Badge>
                   </div>

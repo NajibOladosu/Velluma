@@ -309,7 +309,7 @@ export default function ProposalsDirectoryPage() {
   return (
     <div className="space-y-8">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <H1>Proposals</H1>
           <Muted>
@@ -318,7 +318,7 @@ export default function ProposalsDirectoryPage() {
           </Muted>
         </div>
         <Button
-          className="font-semibold px-5 gap-2"
+          className="font-semibold px-5 gap-2 self-start sm:self-auto"
           onClick={() => setShowNewDrawer(true)}
         >
           <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -366,34 +366,36 @@ export default function ProposalsDirectoryPage() {
       </div>
 
       {/* ── Tabs + Search ──────────────────────── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-1 border-b border-zinc-200">
-          {statusTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
-                activeTab === tab.key
-                  ? "border-zinc-900 text-zinc-900"
-                  : "border-transparent text-zinc-400 hover:text-zinc-600"
-              )}
-            >
-              {tab.label}
-              <span className="ml-1.5 text-[10px] text-zinc-400">
-                {tabCounts[tab.key] || 0}
-              </span>
-            </button>
-          ))}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-x-auto">
+          <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px] whitespace-nowrap",
+                  activeTab === tab.key
+                    ? "border-zinc-900 text-zinc-900"
+                    : "border-transparent text-zinc-400 hover:text-zinc-600"
+                )}
+              >
+                {tab.label}
+                <span className="ml-1.5 text-[10px] text-zinc-400">
+                  {tabCounts[tab.key] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
             <Input
               placeholder="Search proposals..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 w-64 bg-white border-zinc-200 text-sm"
+              className="pl-9 h-9 w-full sm:w-64 bg-white border-zinc-200 text-sm"
             />
           </div>
           {(searchQuery || activeTab !== "all") && (
@@ -419,27 +421,13 @@ export default function ProposalsDirectoryPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Proposal
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Value
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Sent
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Expires
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  Views
-                </th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">
-                  Actions
-                </th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Proposal</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Value</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Sent</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Expires</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden lg:table-cell">Views</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -483,16 +471,16 @@ export default function ProposalsDirectoryPage() {
                         {statusConfig[proposal.status].label}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 font-medium text-zinc-900">
+                    <td className="px-4 py-4 hidden sm:table-cell font-medium text-zinc-900">
                       {proposal.value}
                     </td>
-                    <td className="px-6 py-4 text-sm text-zinc-500">
+                    <td className="px-4 py-4 text-sm text-zinc-500 hidden md:table-cell">
                       {proposal.sentAt || "—"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-zinc-500">
+                    <td className="px-4 py-4 text-sm text-zinc-500 hidden md:table-cell">
                       {proposal.expiresAt || "—"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 hidden lg:table-cell">
                       {proposal.viewCount > 0 ? (
                         <div className="flex items-center gap-1.5 text-sm text-zinc-600">
                           <Eye

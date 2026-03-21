@@ -72,12 +72,12 @@ export default function TimePage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div>
           <H1>Time Tracker</H1>
           <Muted>Log billable hours with precision. Every minute is money.</Muted>
         </div>
-        <Button className="gap-2 font-semibold px-5" variant="outline">
+        <Button className="gap-2 font-semibold px-5 w-full sm:w-auto" variant="outline">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           Manual Entry
         </Button>
@@ -154,39 +154,43 @@ export default function TimePage() {
       <div className="space-y-3">
         <H2 className="text-base">Recent Entries</H2>
         <Surface className="overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                {["Task", "Project / Client", "Date", "Duration", "Total"].map((h) => (
-                  <th key={h} className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">{h}</th>
-                ))}
-              </tr>
-            </thead>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Task</th>
+                  <th className="px-4 py-4 hidden sm:table-cell text-[10px] uppercase tracking-widest font-bold text-zinc-500">Project / Client</th>
+                  <th className="px-4 py-4 hidden md:table-cell text-[10px] uppercase tracking-widest font-bold text-zinc-500">Date</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Duration</th>
+                  <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Total</th>
+                </tr>
+              </thead>
             <tbody className="divide-y divide-zinc-100">
               {recentEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-zinc-50/50 transition-colors group">
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <span className="font-medium text-zinc-900 text-sm">{entry.task}</span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 hidden sm:table-cell">
                     <div className="text-sm text-zinc-900">{entry.project}</div>
                     <div className="text-xs text-zinc-400">{entry.client}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4 hidden md:table-cell">
                     <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[10px] font-medium capitalize">
                       {entry.date}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <span className="font-mono text-sm font-medium text-zinc-900">{entry.duration}</span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <span className="font-semibold text-zinc-900">{entry.total}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </Surface>
       </div>
     </div>

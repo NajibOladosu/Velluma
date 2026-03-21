@@ -265,42 +265,44 @@ export default function ContractBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+        <div className="flex items-start sm:items-center gap-4">
           <Link
             href="/contracts"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            Contracts
+            <span className="hidden sm:inline">Contracts</span>
           </Link>
-          <Separator orientation="vertical" className="h-6" />
+          <Separator orientation="vertical" className="h-6 hidden sm:block" />
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
               <H1 className="text-xl">{contractName}</H1>
-              {/* Template type badge */}
-              {meta.isTemplate && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "bg-transparent text-zinc-500 border-zinc-200",
-                    meta.type === "standard" && "text-zinc-700"
-                  )}
-                >
-                  {meta.type === "standard" ? "Standard" : "Custom"} Template
-                </Badge>
-              )}
-              {/* Status badge for active contracts */}
-              {!meta.isTemplate && meta.status && (
-                <Badge
-                  variant="outline"
-                  className={cn("bg-transparent", statusConfig[meta.status]?.className)}
-                >
-                  {statusConfig[meta.status]?.label}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Template type badge */}
+                {meta.isTemplate && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "bg-transparent text-zinc-500 border-zinc-200",
+                      meta.type === "standard" && "text-zinc-700"
+                    )}
+                  >
+                    {meta.type === "standard" ? "Standard" : "Custom"} Template
+                  </Badge>
+                )}
+                {/* Status badge for active contracts */}
+                {!meta.isTemplate && meta.status && (
+                  <Badge
+                    variant="outline"
+                    className={cn("bg-transparent", statusConfig[meta.status]?.className)}
+                  >
+                    {statusConfig[meta.status]?.label}
+                  </Badge>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
               {/* Active contract — link to client */}
               {!meta.isTemplate && meta.client && (
                 <>
@@ -312,7 +314,7 @@ export default function ContractBuilderPage() {
                     {meta.client}
                     <ExternalLink className="h-2.5 w-2.5" />
                   </Link>
-                  <span className="text-zinc-300">·</span>
+                  <span className="text-zinc-300 hidden sm:inline">·</span>
                 </>
               )}
               {/* Template — usage count */}
@@ -322,12 +324,12 @@ export default function ContractBuilderPage() {
                     <ReceiptText className="h-3 w-3" strokeWidth={1.5} />
                     {meta.usageCount} uses
                   </span>
-                  <span className="text-zinc-300">·</span>
+                  <span className="text-zinc-300 hidden sm:inline">·</span>
                   <span className="flex items-center gap-1 text-xs text-zinc-500">
                     <Lock className="h-3 w-3" strokeWidth={1.5} />
                     {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
                   </span>
-                  <span className="text-zinc-300">·</span>
+                  <span className="text-zinc-300 hidden sm:inline">·</span>
                 </>
               )}
               <Muted className="text-xs">
@@ -338,20 +340,20 @@ export default function ContractBuilderPage() {
         </div>
 
         {/* CTA buttons */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5">
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
             <Eye className="h-4 w-4" strokeWidth={1.5} />
-            Preview
+            <span className="hidden sm:inline">Preview</span>
           </Button>
           {meta.isTemplate && (
-            <Button variant="outline" size="sm" className="h-9 gap-1.5">
+            <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
               <Copy className="h-4 w-4" strokeWidth={1.5} />
-              Duplicate
+              <span className="hidden sm:inline">Duplicate</span>
             </Button>
           )}
-          <Button size="sm" className="h-9 gap-1.5">
+          <Button size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
             <Save className="h-4 w-4" strokeWidth={1.5} />
-            Save Template
+            <span className="hidden sm:inline">Save</span><span className="inline sm:hidden">Template</span>
           </Button>
         </div>
       </div>

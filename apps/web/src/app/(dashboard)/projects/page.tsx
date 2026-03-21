@@ -44,31 +44,31 @@ export default function ProjectsPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div>
           <H1>Projects</H1>
           <Muted>{projects.length} projects across all clients.</Muted>
         </div>
-        <Button className="font-semibold px-5 gap-2">
+        <Button className="font-semibold px-5 gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           New Project
         </Button>
       </div>
 
       {/* Search + View Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="relative max-w-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             placeholder="Search projects..."
-            className="pl-9 h-9 bg-white border-zinc-200 text-sm focus:ring-0"
+            className="pl-9 h-9 w-full bg-white border-zinc-200 text-sm focus:ring-0"
           />
         </div>
-        <div className="flex items-center gap-1 border border-zinc-200 rounded-md p-0.5">
-          <Button variant="ghost" size="sm" className="h-7 px-2.5 bg-zinc-100 text-zinc-900">
+        <div className="flex items-center gap-1 border border-zinc-200 rounded-md p-0.5 w-full sm:w-auto justify-center sm:justify-start">
+          <Button variant="ghost" size="sm" className="h-7 px-2.5 bg-zinc-100 text-zinc-900 w-full sm:w-auto">
             <List className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 px-2.5 text-zinc-400">
+          <Button variant="ghost" size="sm" className="h-7 px-2.5 text-zinc-400 w-full sm:w-auto">
             <LayoutGrid className="h-3.5 w-3.5" />
           </Button>
         </div>
@@ -80,18 +80,18 @@ export default function ProjectsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Project</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Progress</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Value</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Next Milestone</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Project</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
+                <th className="px-4 py-4 hidden md:table-cell text-[10px] uppercase tracking-widest font-bold text-zinc-500">Progress</th>
+                <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Value</th>
+                <th className="px-4 py-4 hidden sm:table-cell text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Next Milestone</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
               {projects.map((project) => (
                 <Link key={project.id} href={`/projects/${project.id}`} className="contents">
                   <tr className="group hover:bg-zinc-50/50 transition-colors cursor-pointer">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                           <Briefcase className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
@@ -102,12 +102,12 @@ export default function ProjectsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium">
                         {statusLabel[project.status]}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4 hidden md:table-cell">
                       <div className="flex items-center gap-3">
                         <div className="h-[2px] w-24 bg-zinc-100">
                           <div className="h-full bg-zinc-900" style={{ width: `${project.progress}%` }} />
@@ -115,10 +115,10 @@ export default function ProjectsPage() {
                         <span className="text-xs font-medium text-zinc-500">{project.progress}%</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
                       <div className="font-medium text-zinc-900">{project.value}</div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-4 hidden sm:table-cell text-right">
                       <div className="flex items-center justify-end gap-2">
                         <span className="text-xs text-zinc-400">{project.nextMilestone}</span>
                         <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />

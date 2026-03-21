@@ -112,7 +112,7 @@ export default function ContractsDirectoryPage() {
     <div className="space-y-8 pb-10">
       {/* ── Header ─────────────────────────────── */}
       <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <H1>Contracts & Legal</H1>
             <Muted>
@@ -162,15 +162,15 @@ export default function ContractsDirectoryPage() {
         // TEMPLATES VIEW
         // ==========================================
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <H3>Your Templates</H3>
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <Input
                 placeholder="Search templates..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 w-64 bg-white border-zinc-200 text-sm"
+                className="pl-9 h-9 w-full sm:w-64 bg-white border-zinc-200 text-sm"
               />
             </div>
           </div>
@@ -261,14 +261,15 @@ export default function ContractsDirectoryPage() {
             </Surface>
           </div>
 
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-1 border-b border-zinc-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="overflow-x-auto">
+              <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
               {statusTabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={cn(
-                    "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
+                    "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px] whitespace-nowrap",
                     activeTab === tab.key
                       ? "border-zinc-900 text-zinc-900"
                       : "border-transparent text-zinc-400 hover:text-zinc-600"
@@ -280,15 +281,16 @@ export default function ContractsDirectoryPage() {
                   </span>
                 </button>
               ))}
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="relative">
+              <div className="relative flex-1 sm:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                 <Input
                   placeholder="Search agreements..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9 w-64 bg-white border-zinc-200 text-sm"
+                  className="pl-9 h-9 w-full sm:w-64 bg-white border-zinc-200 text-sm"
                 />
               </div>
               {(searchQuery || activeTab !== "all") && (
@@ -314,24 +316,12 @@ export default function ContractsDirectoryPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                      Contract
-                    </th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                      Value
-                    </th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                      Signers
-                    </th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                      Dates
-                    </th>
-                    <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">
-                      Actions
-                    </th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Contract</th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Value</th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Signers</th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden lg:table-cell">Dates</th>
+                    <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -341,7 +331,7 @@ export default function ContractsDirectoryPage() {
                         key={contract.id}
                         className="group hover:bg-zinc-50/50 transition-colors"
                       >
-                        <td className="px-6 py-4 align-top">
+                        <td className="px-4 py-4 align-top">
                           <Link href={`/contracts/${contract.id}`} className="block">
                             <div className="flex gap-3">
                               <div className="h-9 w-9 mt-0.5 rounded-md bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0">
@@ -361,7 +351,7 @@ export default function ContractsDirectoryPage() {
                             </div>
                           </Link>
                         </td>
-                        <td className="px-6 py-4 align-top">
+                        <td className="px-4 py-4 align-top">
                           <Badge
                             variant="outline"
                             className={cn(
@@ -372,10 +362,10 @@ export default function ContractsDirectoryPage() {
                             {statusConfig[contract.status].label}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 font-medium text-zinc-900 align-top">
+                        <td className="px-4 py-4 font-medium text-zinc-900 align-top hidden sm:table-cell">
                           {contract.value}
                         </td>
-                        <td className="px-6 py-4 align-top">
+                        <td className="px-4 py-4 align-top hidden md:table-cell">
                           <div className="space-y-2">
                             {contract.signers.map((signer) => (
                               <div key={signer.id} className="flex items-center gap-2">
@@ -393,7 +383,7 @@ export default function ContractsDirectoryPage() {
                             ))}
                           </div>
                         </td>
-                        <td className="px-6 py-4 align-top">
+                        <td className="px-4 py-4 align-top hidden lg:table-cell">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2 text-sm text-zinc-500">
                               <span className="w-12 text-[10px] uppercase font-semibold text-zinc-400">Created</span>
@@ -413,7 +403,7 @@ export default function ContractsDirectoryPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right align-top">
+                        <td className="px-4 py-4 text-right align-top">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             {contract.status === "draft" && (
                               <Button
