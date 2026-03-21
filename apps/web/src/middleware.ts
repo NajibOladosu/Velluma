@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from "next/server"
  * 1. Refresh the Supabase session cookie so it doesn't expire mid-session.
  * 2. Protect all routes under /(dashboard) — redirect unauthenticated users to /login.
  * 3. Redirect authenticated users away from /login back to /dashboard.
+ * 4. Protect /portal routes — redirect unauthenticated clients to /portal/login.
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -67,6 +68,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // --- Protect portal routes (magic-link auth, separate from dashboard) ---
+  // /portal/login is always accessible so clients can authenticate.
+  const isPortalRoute = pathname.startsWith("/portal")
+  const isPortalLoginRoute = pathname === "/portal/login"
+
+  if (isPortalRoute && !isPortalLoginRoute && !user) {
+    const portalLoginUrl = request.nextUrl.clone()
+    portalLoginUrl.pathname = "/portal/login"
+    return NextResponse.redirect(portalLoginUrl)
+  }
+
   // --- Redirect logged-in users away from auth pages ---
   const isAuthRoute = pathname === "/login" || pathname === "/signup" || pathname === "/"
 
@@ -87,9 +99,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico, sitemap.xml, robots.txt
-     * - /portal routes (client-facing, protected separately via magic link)
      * - /api routes (handle their own auth)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|portal|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api).*)",
   ],
 }
