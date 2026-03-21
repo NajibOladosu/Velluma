@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { H2, H3, Muted } from "@/components/ui/typography";
+import { H1, H2, H3, Muted } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
 import {
-  resolveContractName,
+  resolveContractMeta,
   resolveContractDescription,
-  isTemplateId,
 } from "@/lib/data/contracts";
 import {
   ArrowLeft,
@@ -25,6 +24,11 @@ import {
   Sparkles,
   Lock,
   Unlock,
+  Building,
+  ExternalLink,
+  Copy,
+  Save,
+  ReceiptText,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -187,11 +191,18 @@ export default function ContractBuilderPage() {
   const params = useParams();
   const id = (params?.id as string) ?? "";
 
-  // Resolve name and meta from the shared data layer
-  const contractName        = resolveContractName(id);
+  // Resolve all metadata from the shared data layer
+  const meta             = resolveContractMeta(id);
+  const contractName     = meta.name;
   const contractDescription = resolveContractDescription(id);
-  const isTemplate          = isTemplateId(id);
-  const badgeLabel          = isTemplate ? "Template" : "Active Contract";
+
+  // Status badge config for active contracts
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    draft:   { label: "Draft",             className: "text-zinc-500 border-zinc-200" },
+    pending: { label: "Pending Signatures", className: "text-amber-700 border-amber-300 bg-amber-50/50" },
+    signed:  { label: "Executed",           className: "text-zinc-900 border-zinc-900 font-bold" },
+    expired: { label: "Expired",            className: "text-zinc-400 border-zinc-200" },
+  };
 
   const [activeTab, setActiveTab] = React.useState<EditorTab>("editor");
 
@@ -252,43 +263,101 @@ export default function ContractBuilderPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-4rem)] -mt-8 -mx-8">
-      {/* ── Top Header bar ── */}
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-zinc-200 bg-white/80 px-4 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-500" asChild>
-            <Link href="/contracts">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tracking-tight text-zinc-900">
-              {contractName}
-            </span>
-            <Badge variant="outline" className="ml-2 font-mono text-[10px] uppercase tracking-wider text-zinc-500 bg-zinc-50">
-              {badgeLabel}
-            </Badge>
+    <div className="space-y-6 pb-20">
+      {/* ── Header ─────────────────────────────── */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/contracts"
+            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            Contracts
+          </Link>
+          <Separator orientation="vertical" className="h-6" />
+          <div>
+            <div className="flex items-center gap-3">
+              <H1 className="text-xl">{contractName}</H1>
+              {/* Template type badge */}
+              {meta.isTemplate && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "bg-transparent text-zinc-500 border-zinc-200",
+                    meta.type === "standard" && "text-zinc-700"
+                  )}
+                >
+                  {meta.type === "standard" ? "Standard" : "Custom"} Template
+                </Badge>
+              )}
+              {/* Status badge for active contracts */}
+              {!meta.isTemplate && meta.status && (
+                <Badge
+                  variant="outline"
+                  className={cn("bg-transparent", statusConfig[meta.status]?.className)}
+                >
+                  {statusConfig[meta.status]?.label}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              {/* Active contract — link to client */}
+              {!meta.isTemplate && meta.client && (
+                <>
+                  <Link
+                    href={`/clients/${meta.clientId}`}
+                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                  >
+                    <Building className="h-3 w-3" strokeWidth={1.5} />
+                    {meta.client}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </Link>
+                  <span className="text-zinc-300">·</span>
+                </>
+              )}
+              {/* Template — usage count */}
+              {meta.isTemplate && meta.usageCount !== undefined && (
+                <>
+                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                    <ReceiptText className="h-3 w-3" strokeWidth={1.5} />
+                    {meta.usageCount} uses
+                  </span>
+                  <span className="text-zinc-300">·</span>
+                  <span className="flex items-center gap-1 text-xs text-zinc-500">
+                    <Lock className="h-3 w-3" strokeWidth={1.5} />
+                    {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
+                  </span>
+                  <span className="text-zinc-300">·</span>
+                </>
+              )}
+              <Muted className="text-xs">
+                {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
+              </Muted>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="mr-4 flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Saved
-          </div>
-          <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100">
-            <Eye className="h-4 w-4" />
+        {/* CTA buttons */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5">
+            <Eye className="h-4 w-4" strokeWidth={1.5} />
             Preview
           </Button>
-          <Separator orientation="vertical" className="h-4 mx-1" />
-          <Button size="sm" className="h-8 bg-zinc-900 hover:bg-zinc-800 text-white">
+          {meta.isTemplate && (
+            <Button variant="outline" size="sm" className="h-9 gap-1.5">
+              <Copy className="h-4 w-4" strokeWidth={1.5} />
+              Duplicate
+            </Button>
+          )}
+          <Button size="sm" className="h-9 gap-1.5">
+            <Save className="h-4 w-4" strokeWidth={1.5} />
             Save Template
           </Button>
         </div>
-      </header>
+      </div>
 
-      {/* ── Main Layout ── */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* ── Two-column builder layout ── */}
+      <div className="flex gap-6 min-h-[calc(100vh-14rem)]">
 
         {/* Left Sidebar */}
         <aside className="w-64 border-r border-zinc-200 bg-zinc-50 p-4 shrink-0 overflow-y-auto hidden md:block">
