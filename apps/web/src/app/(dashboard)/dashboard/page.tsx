@@ -38,12 +38,12 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10">
       {/* Header + Quick Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <H1>Dashboard</H1>
           <Muted>Business at a glance.</Muted>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {quickActions.map((action) => (
             <Button
               key={action.label}
@@ -76,7 +76,7 @@ export default function DashboardPage() {
       {/* Row 1: The Ledger (High-Level Finance) */}
       <div className="space-y-4">
         <H2>The Ledger</H2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           {/* Net Revenue (YTD) */}
           <Surface className="p-6">
             <div className="flex items-center justify-between pb-2">

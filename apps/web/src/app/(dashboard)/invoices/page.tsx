@@ -70,12 +70,12 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div>
           <H1>Invoices</H1>
           <Muted>Payments overview and invoice management.</Muted>
         </div>
-        <Button className="font-semibold px-5 gap-2">
+        <Button className="font-semibold px-5 gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           New Invoice
         </Button>
@@ -103,28 +103,30 @@ export default function InvoicesPage() {
       </div>
 
       {/* Tabs + Search */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 border-b border-zinc-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
-                activeTab === tab.key
-                  ? "border-zinc-900 text-zinc-900"
-                  : "border-transparent text-zinc-400 hover:text-zinc-600"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="w-full overflow-x-auto hide-scrollbar border-b border-zinc-200">
+          <div className="flex items-center gap-1 min-w-max">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
+                  activeTab === tab.key
+                    ? "border-zinc-900 text-zinc-900"
+                    : "border-transparent text-zinc-400 hover:text-zinc-600"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="relative max-w-xs">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
           <Input
             placeholder="Search invoices..."
-            className="pl-9 h-9 bg-white border-zinc-200 text-sm focus:ring-0"
+            className="pl-9 h-9 w-full bg-white border-zinc-200 text-sm focus:ring-0"
           />
         </div>
       </div>
