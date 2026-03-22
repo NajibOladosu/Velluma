@@ -339,17 +339,17 @@ export default function ProposalBuilderPage() {
           </div>
 
           {/* Meta row */}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
             <Link
               href={`/clients/${proposal.clientId}`}
-              className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
             >
               <Building className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">{proposal.client}</span>
               <ExternalLink className="h-3 w-3 shrink-0" />
             </Link>
             <span className="flex-shrink-0 text-zinc-300">•</span>
-            <span className="truncate min-w-0 flex-shrink-0">Created {proposal.createdAt}</span>
+            <span className="whitespace-nowrap">Created {proposal.createdAt}</span>
           </div>
         </div>
 
@@ -372,7 +372,7 @@ export default function ProposalBuilderPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_280px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_280px] gap-6">
         {/* ══ LEFT: Section Navigation ══════════ */}
         <div className="space-y-2">
           <Muted className="text-[10px] uppercase tracking-widest font-bold px-3 mb-3">
@@ -631,7 +631,7 @@ export default function ProposalBuilderPage() {
                           : "border-zinc-200 hover:border-zinc-300"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div
                           className={cn(
                             "h-5 w-5 rounded border flex items-center justify-center",
@@ -644,7 +644,7 @@ export default function ProposalBuilderPage() {
                             <Check className="h-3 w-3 text-white" strokeWidth={3} />
                           )}
                         </div>
-                        <span className="text-sm font-medium text-zinc-900">
+                        <span className="text-sm font-medium text-zinc-900 truncate min-w-0">
                           {addon.label}
                         </span>
                       </div>
@@ -700,7 +700,7 @@ export default function ProposalBuilderPage() {
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
                               {t.type === "standard" ? (
                                 <Shield className="h-3 w-3 text-zinc-700" />
@@ -800,9 +800,9 @@ export default function ProposalBuilderPage() {
                         )}
                       >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-                          <div className="flex items-center gap-2">
-                            <Lock className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
-                            <span className="text-sm font-semibold text-zinc-900">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Lock className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
+                            <span className="text-sm font-semibold text-zinc-900 truncate">
                               {clause.title}
                             </span>
                             <Badge variant="outline" className="text-[9px] border-zinc-300 text-zinc-500">

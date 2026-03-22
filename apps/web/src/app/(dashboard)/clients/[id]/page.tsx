@@ -328,10 +328,10 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Meta row */}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
-            <span className="truncate min-w-0 flex-shrink-0">{displayCompany}</span>
-            <span className="flex-shrink-0 text-zinc-300">•</span>
-            <span className="truncate min-w-0 flex-shrink-0">Client since {client.createdAt}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
+            <span className="whitespace-nowrap">{displayCompany}</span>
+            <span className="text-zinc-300">•</span>
+            <span className="whitespace-nowrap">Client since {client.createdAt}</span>
           </div>
         </div>
 
@@ -609,8 +609,8 @@ export default function ClientDetailPage() {
                   { label: "Overdue", value: `${overdueInvoices.length} ($${overdueInvoices.reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0).toLocaleString()})` },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-4">
-                    <Muted className="text-[10px] uppercase tracking-widest truncate">{item.label}</Muted>
-                    <P className="text-sm font-medium truncate">{item.value}</P>
+                    <Muted className="text-[10px] uppercase tracking-widest min-w-0 truncate">{item.label}</Muted>
+                    <P className="text-sm font-medium shrink-0 whitespace-nowrap">{item.value}</P>
                   </div>
                 ))}
               </div>
