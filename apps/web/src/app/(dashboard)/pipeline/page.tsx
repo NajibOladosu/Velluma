@@ -842,10 +842,10 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
             <tr className="border-b border-zinc-100 bg-zinc-50/50">
               <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Lead</th>
               <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Value</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Stage</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Priority</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Tags</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Last Action</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Stage</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Priority</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden lg:table-cell">Tags</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right hidden sm:table-cell">Last Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -873,12 +873,12 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-zinc-900">{lead.value}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden sm:table-cell">
                     <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium">
                       {lead.stage}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden md:table-cell">
                     <div className="flex items-center gap-1.5">
                       <div className={cn(
                         "h-2 w-2 rounded-full",
@@ -887,7 +887,7 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
                       <span className="text-xs text-zinc-600 capitalize">{lead.priority}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {lead.tags.slice(0, 2).map((tag) => (
                         <TagBadge key={tag} tag={tag} />
@@ -897,7 +897,7 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right hidden sm:table-cell">
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-xs text-zinc-400">{lead.lastAction}</span>
                       <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -976,14 +976,14 @@ export default function PipelinePage() {
     <>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
           <div className="min-w-0">
             <H1 className="truncate">Pipeline</H1>
             <Muted className="truncate">
               {stages.flatMap((s) => s.leads).length} leads across {stages.length} stages
             </Muted>
           </div>
-          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0" onClick={() => setAddLeadOpen(true)}>
+          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto" onClick={() => setAddLeadOpen(true)}>
             <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="hidden sm:inline">Add Lead</span>
             <span className="sm:hidden">Add</span>
