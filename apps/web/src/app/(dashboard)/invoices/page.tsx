@@ -138,10 +138,10 @@ export default function InvoicesPage() {
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Invoice</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Client</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Client</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Amount</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Due Date</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Due Date</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Actions</th>
               </tr>
             </thead>
@@ -152,14 +152,14 @@ export default function InvoicesPage() {
                     <div className="font-semibold text-zinc-900 tracking-tight truncate max-w-[150px] sm:max-w-[200px]">{invoice.number}</div>
                     <Muted className="text-[10px] truncate max-w-[150px] sm:max-w-[200px] block">Sent {invoice.sentDate}</Muted>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-600 truncate max-w-[120px] sm:max-w-[150px]">{invoice.client}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-600 truncate max-w-[120px] sm:max-w-[150px] hidden sm:table-cell">{invoice.client}</td>
                   <td className="px-6 py-4 font-medium text-zinc-900 truncate max-w-[100px] sm:max-w-[120px]">{invoice.amount}</td>
                   <td className="px-6 py-4">
                     <Badge variant="outline" className={cn("border-zinc-200 bg-transparent shrink-0", statusStyles[invoice.status])}>
                       {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-500 whitespace-nowrap">{invoice.dueDate}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-500 whitespace-nowrap hidden md:table-cell">{invoice.dueDate}</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       {invoice.status === "overdue" && (

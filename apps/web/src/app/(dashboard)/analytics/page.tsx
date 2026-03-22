@@ -19,7 +19,7 @@ export default function AnalyticsPage() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
                 <div className="min-w-0">
                     <H1 className="truncate">Profitability Terminal</H1>
                     <Muted className="truncate">Real-time margin analysis and project velocity metrics.</Muted>
