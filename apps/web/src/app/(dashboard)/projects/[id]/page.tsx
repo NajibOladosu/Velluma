@@ -120,7 +120,7 @@ function TaskDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
 
         <div className="space-y-6">
-          <H2 className="text-xl break-words">{task.title}</H2>
+          <H2 className="text-xl truncate">{task.title}</H2>
 
           <Separator />
 

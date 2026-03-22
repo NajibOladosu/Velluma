@@ -116,7 +116,7 @@ export default function AutomationsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
           <H1 className="truncate">Automations</H1>
-          <Muted className="break-words">Put your business on autopilot. Set rules once, run forever.</Muted>
+          <Muted className="truncate">Put your business on autopilot. Set rules once, run forever.</Muted>
         </div>
         <Button className="gap-2 font-semibold px-5 w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -220,7 +220,7 @@ export default function AutomationsPage() {
                 <Zap className="h-4 w-4 text-zinc-400 group-hover:text-zinc-700 transition-colors" strokeWidth={1.5} />
               </div>
               <div className="space-y-1 min-w-0">
-                <P className="text-sm font-semibold text-zinc-900 leading-snug break-words">{tpl.name}</P>
+                <P className="text-sm font-semibold text-zinc-900 leading-snug truncate">{tpl.name}</P>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Badge variant="outline" className="border-zinc-200 text-zinc-400 bg-transparent text-[9px] font-bold uppercase">
                     {tpl.trigger}

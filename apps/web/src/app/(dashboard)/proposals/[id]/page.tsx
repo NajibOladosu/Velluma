@@ -464,7 +464,7 @@ export default function ProposalBuilderPage() {
                 </div>
                 <div className="p-8 space-y-6">
                   <div className="space-y-2">
-                    <H2 className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold tracking-tight break-words">
+                    <H2 className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold tracking-tight truncate">
                       {proposal.title}
                     </H2>
                     <Muted className="truncate">{proposal.client}</Muted>

@@ -251,7 +251,7 @@ export default function ClientsPage() {
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-zinc-500" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-zinc-900 truncate">Failed to load clients</p>
-              <p className="text-xs text-zinc-500 mt-0.5 break-words">{(error as Error)?.message}</p>
+              <p className="text-xs text-zinc-500 mt-0.5 truncate">{(error as Error)?.message}</p>
             </div>
             <Button variant="outline" size="sm" className="h-7 text-xs border-zinc-200" onClick={() => refetch()}>
               Retry

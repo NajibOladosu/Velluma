@@ -22,7 +22,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between">
                 <div className="min-w-0">
                     <H1 className="truncate">Profitability Terminal</H1>
-                    <Muted className="break-words">Real-time margin analysis and project velocity metrics.</Muted>
+                    <Muted className="truncate">Real-time margin analysis and project velocity metrics.</Muted>
                 </div>
             </div>
 
@@ -30,7 +30,7 @@ export default function AnalyticsPage() {
                 {/* Core KPIs */}
                 <Surface className="p-6 flex flex-col min-w-0 space-y-2">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Gross Margin</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">78%</H2>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter truncate max-w-full">78%</H2>
                     <div className="flex items-center gap-1 text-emerald-600 min-w-0">
                         <ArrowUpRight className="h-3 w-3 shrink-0" />
                         <span className="text-xs font-medium truncate">+4% vs last month</span>
@@ -39,13 +39,13 @@ export default function AnalyticsPage() {
 
                 <Surface className="p-6 flex flex-col min-w-0 space-y-2">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Billance Velocity</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">4.2</H2>
-                    <P className="text-xs text-zinc-500 break-words max-w-full">Days from invoice to payout.</P>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter truncate max-w-full">4.2</H2>
+                    <P className="text-xs text-zinc-500 truncate max-w-full">Days from invoice to payout.</P>
                 </Surface>
 
                 <Surface className="p-6 flex flex-col min-w-0 space-y-2">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Burn Rate</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">$1,850</H2>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter truncate max-w-full">$1,850</H2>
                     <div className="flex items-center gap-1 text-zinc-500 min-w-0">
                         <span className="text-xs font-medium truncate">Monthly overhead</span>
                     </div>
@@ -53,8 +53,8 @@ export default function AnalyticsPage() {
 
                 <Surface className="p-6 flex flex-col min-w-0 space-y-2 bg-zinc-900 border-zinc-800">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold text-zinc-400 truncate">Projected Q2</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] text-white font-bold tracking-tighter break-words max-w-full">$74,500</H2>
-                    <P className="text-xs text-zinc-500 italic break-words max-w-full">Based on active escrow.</P>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] text-white font-bold tracking-tighter truncate max-w-full">$74,500</H2>
+                    <P className="text-xs text-zinc-500 italic truncate max-w-full">Based on active escrow.</P>
                 </Surface>
             </div>
 
@@ -104,12 +104,12 @@ export default function AnalyticsPage() {
                         <div className="space-y-4">
                             <div className="space-y-1">
                                 <P className="text-xs font-bold text-zinc-900 truncate">Overhead Alert</P>
-                                <P className="text-xs text-zinc-500 leading-relaxed break-words">Software subscriptions are up 15%. Consider auditing unused Project Management seats.</P>
+                                <P className="text-xs text-zinc-500 leading-relaxed truncate">Software subscriptions are up 15%. Consider auditing unused Project Management seats.</P>
                             </div>
                             <Separator />
                             <div className="space-y-1">
                                 <P className="text-xs font-bold text-zinc-900 truncate">Revenue Opportunity</P>
-                                <P className="text-xs text-zinc-500 leading-relaxed break-words">Solaris Tech has consistent monthly overages. Propose a retainer to increase margin by 12%.</P>
+                                <P className="text-xs text-zinc-500 leading-relaxed truncate">Solaris Tech has consistent monthly overages. Propose a retainer to increase margin by 12%.</P>
                             </div>
                         </div>
                     </Surface>
@@ -120,7 +120,7 @@ export default function AnalyticsPage() {
                         <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
                             <div className="bg-white h-full w-[74%]" />
                         </div>
-                        <Muted className="text-blue-100 text-[10px] block pt-2 break-words">74% of your annual revenue target reached.</Muted>
+                        <Muted className="text-blue-100 text-[10px] block pt-2 truncate">74% of your annual revenue target reached.</Muted>
                     </Surface>
                 </div>
             </div>

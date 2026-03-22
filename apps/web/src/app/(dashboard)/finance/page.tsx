@@ -24,7 +24,7 @@ export default function FinancePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
                 <div className="min-w-0">
                     <H1 className="truncate">Escrow & Finance</H1>
-                    <Muted className="break-words">Your cryptographic vault for secured project funds and payouts.</Muted>
+                    <Muted className="truncate">Your cryptographic vault for secured project funds and payouts.</Muted>
                 </div>
                 <Button variant="outline" className="h-9">
                     <ExternalLink className="mr-2 h-4 w-4" />
@@ -40,7 +40,7 @@ export default function FinancePage() {
                     </div>
                     <div className="space-y-1 min-w-0">
                         <P className="text-white font-medium truncate">Verify your business for Escrow payouts</P>
-                        <Muted className="text-zinc-400 break-words line-clamp-2 text-xs sm:text-sm">Complete your Stripe Connect onboarding to start receiving secured milestone payments.</Muted>
+                        <Muted className="text-zinc-400 line-clamp-2 text-xs sm:text-sm">Complete your Stripe Connect onboarding to start receiving secured milestone payments.</Muted>
                     </div>
                 </div>
                 <Button className="bg-white text-zinc-900 hover:bg-zinc-100 relative z-10 shrink-0 w-full sm:w-auto">
@@ -57,19 +57,19 @@ export default function FinancePage() {
                         <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] truncate leading-none">$18,450.00</H2>
                         <Badge variant="blue" className="mb-0.5 shrink-0">+12%</Badge>
                     </div>
-                    <P className="text-xs text-zinc-500 break-words line-clamp-2">Secured funds waiting for milestone approval.</P>
+                    <P className="text-xs text-zinc-500 line-clamp-2">Secured funds waiting for milestone approval.</P>
                 </Surface>
 
                 <Surface className="p-6 space-y-2 flex flex-col justify-center">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Available Payout</Muted>
                     <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] truncate leading-none">$3,200.00</H2>
-                    <P className="text-xs text-zinc-500 break-words line-clamp-2">Cleared funds ready for instant transfer.</P>
+                    <P className="text-xs text-zinc-500 line-clamp-2">Cleared funds ready for instant transfer.</P>
                 </Surface>
 
                 <Surface className="p-6 space-y-2 flex flex-col justify-center">
                     <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Projected Monthly</Muted>
                     <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] truncate leading-none">$24,000.00</H2>
-                    <P className="text-xs text-zinc-500 break-words line-clamp-2">Based on currently signed smart proposals.</P>
+                    <P className="text-xs text-zinc-500 line-clamp-2">Based on currently signed smart proposals.</P>
                 </Surface>
             </div>
 
@@ -139,7 +139,7 @@ export default function FinancePage() {
                         <CreditCard className="h-5 w-5 text-zinc-400 shrink-0" />
                         <div className="space-y-1 min-w-0">
                             <P className="text-sm font-medium truncate">Auto-Savings (Velluma Tax)</P>
-                            <Muted className="text-xs break-words line-clamp-2">20% of every payout is automatically stashed for taxes.</Muted>
+                            <Muted className="text-xs line-clamp-2">20% of every payout is automatically stashed for taxes.</Muted>
                         </div>
                         <Button variant="outline" className="w-full h-8 text-xs shrink-0 mt-auto">Configure Rules</Button>
                     </Surface>

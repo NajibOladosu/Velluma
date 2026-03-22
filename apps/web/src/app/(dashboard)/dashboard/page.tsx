@@ -41,7 +41,7 @@ export default function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <H1 className="truncate">Dashboard</H1>
-          <Muted className="break-words">Business at a glance.</Muted>
+          <Muted className="truncate">Business at a glance.</Muted>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {quickActions.map((action) => (
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                 { message: "Client Vesper AI viewed proposal for \"Marketing Kit\"", time: "4h ago" },
               ].map((item, i) => (
                 <div key={i} className="space-y-1">
-                  <P className="text-sm leading-snug text-zinc-900 font-medium break-words">
+                  <P className="text-sm leading-snug text-zinc-900 font-medium truncate">
                     {item.message}
                   </P>
                   <Muted className="text-[10px] uppercase tracking-widest block">
