@@ -245,7 +245,7 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-4 md:[grid-template-columns:repeat(4,minmax(0,1fr))]">
           {kanbanData.map((column) => (
             <div key={column.id} className="space-y-3">
               {/* Column Header */}
