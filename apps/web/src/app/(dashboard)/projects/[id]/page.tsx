@@ -200,17 +200,44 @@ export default function ProjectDetailPage() {
     <>
       <div className="space-y-8">
         {/* Back + Header */}
-        <div>
-          <Link href="/projects" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-900 transition-colors mb-4">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Projects
-          </Link>
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <H1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] truncate">E-commerce Redesign</H1>
-              <Muted className="truncate">Acme Corp · $18,500 · 65% complete</Muted>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+          {/* LEFT: back link + title + badge + meta */}
+          <div className="flex flex-col min-w-0 flex-1 w-full">
+            {/* Back link */}
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Projects
+            </Link>
+
+            {/* Title + badge inline */}
+            <div className="flex items-center gap-2 min-w-0 mb-1">
+              <H1 className="text-2xl font-medium truncate min-w-0">
+                E-commerce Redesign
+              </H1>
+              <Badge
+                variant="outline"
+                className="flex-shrink-0 bg-zinc-50 text-zinc-600 border-zinc-200"
+              >
+                In Progress
+              </Badge>
             </div>
-            <Button className="font-semibold px-5 gap-2">
+
+            {/* Meta row */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground truncate min-w-0">
+              <span className="truncate min-w-0 flex-shrink-0">Acme Corp</span>
+              <span className="flex-shrink-0 text-zinc-300">•</span>
+              <span className="truncate min-w-0 flex-shrink-0">$18,500</span>
+              <span className="flex-shrink-0 text-zinc-300">•</span>
+              <span className="truncate min-w-0 flex-shrink-0">65% complete</span>
+            </div>
+          </div>
+
+          {/* RIGHT: Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+            <Button className="w-full sm:w-auto font-semibold px-5 gap-2">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               Add Task
             </Button>
