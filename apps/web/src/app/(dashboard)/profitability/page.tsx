@@ -47,36 +47,36 @@ export default function ProfitabilityPage() {
   return (
     <div className="space-y-10">
       {/* Header */}
-      <div>
-        <H1>Profitability</H1>
-        <Muted>Tax planning, expenses, and per-project margins.</Muted>
+      <div className="min-w-0">
+        <H1 className="truncate">Profitability</H1>
+        <Muted className="truncate">Tax planning, expenses, and per-project margins.</Muted>
       </div>
 
       {/* Top Metrics Row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Surface className="p-6">
-          <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Net Income (YTD)</Muted>
-            <TrendingUp className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+        <Surface className="p-6 flex flex-col min-w-0">
+          <div className="flex items-center justify-between pb-2 gap-2">
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Net Income (YTD)</Muted>
+            <TrendingUp className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$108,200</div>
-          <Muted className="text-[10px] mt-1">Revenue minus expenses</Muted>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$108,200</div>
+          <Muted className="text-[10px] mt-1 truncate max-w-full">Revenue minus expenses</Muted>
         </Surface>
-        <Surface className="p-6">
-          <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Total Expenses (YTD)</Muted>
-            <Receipt className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+        <Surface className="p-6 flex flex-col min-w-0">
+          <div className="flex items-center justify-between pb-2 gap-2">
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Total Expenses (YTD)</Muted>
+            <Receipt className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">${totalExpenses.toLocaleString()}</div>
-          <Muted className="text-[10px] mt-1">{expenseCategories.reduce((s, e) => s + e.transactions, 0)} transactions</Muted>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>${totalExpenses.toLocaleString()}</div>
+          <Muted className="text-[10px] mt-1 truncate max-w-full">{expenseCategories.reduce((s, e) => s + e.transactions, 0)} transactions</Muted>
         </Surface>
-        <Surface className="p-6">
-          <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Tax Set Aside</Muted>
-            <PiggyBank className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+        <Surface className="p-6 flex flex-col min-w-0">
+          <div className="flex items-center justify-between pb-2 gap-2">
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Tax Set Aside</Muted>
+            <PiggyBank className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">$37,664</div>
-          <Muted className="text-[10px] mt-1">30.3% of net income</Muted>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$37,664</div>
+          <Muted className="text-[10px] mt-1 truncate max-w-full">30.3% of net income</Muted>
         </Surface>
       </div>
 
@@ -88,12 +88,12 @@ export default function ProfitabilityPage() {
           <Surface className="divide-y divide-zinc-100">
             {taxBuckets.map((bucket, i) => (
               <div key={i} className="p-6 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-zinc-900 tracking-tight">{bucket.label}</div>
-                    <Muted className="text-[10px] uppercase tracking-widest">{bucket.percentage} of net income</Muted>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-zinc-900 tracking-tight truncate">{bucket.label}</div>
+                    <Muted className="text-[10px] uppercase tracking-widest truncate">{bucket.percentage} of net income</Muted>
                   </div>
-                  <div className="text-lg font-bold text-zinc-900">{bucket.amount}</div>
+                  <div className="text-lg font-bold text-zinc-900 shrink-0">{bucket.amount}</div>
                 </div>
                 <div className="h-[2px] w-full bg-zinc-100">
                   <div className="h-full bg-zinc-900" style={{ width: `${bucket.fill}%` }} />
@@ -108,12 +108,12 @@ export default function ProfitabilityPage() {
           <H2>Quarterly Estimates</H2>
           <Surface className="divide-y divide-zinc-100">
             {quarterlyEstimates.map((q, i) => (
-              <div key={i} className="p-5 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-zinc-900 tracking-tight">{q.quarter}</div>
-                  <Muted className="text-xs">Due {q.due}</Muted>
+              <div key={i} className="p-5 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-semibold text-zinc-900 tracking-tight truncate">{q.quarter}</div>
+                  <Muted className="text-xs truncate">Due {q.due}</Muted>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                   <div className="font-medium text-zinc-900">{q.amount}</div>
                   {q.status === "upcoming" && (
                     <Badge variant="outline" className="border-zinc-200 text-zinc-900 bg-transparent font-bold text-[10px]">
@@ -136,12 +136,12 @@ export default function ProfitabilityPage() {
           <H2>Expense Categories</H2>
           <Surface className="divide-y divide-zinc-100">
             {expenseCategories.map((cat, i) => (
-              <div key={i} className="p-5 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-zinc-900 tracking-tight text-sm">{cat.category}</div>
-                  <Muted className="text-[10px] uppercase tracking-widest">{cat.transactions} transactions</Muted>
+              <div key={i} className="p-5 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-semibold text-zinc-900 tracking-tight text-sm truncate">{cat.category}</div>
+                  <Muted className="text-[10px] uppercase tracking-widest truncate">{cat.transactions} transactions</Muted>
                 </div>
-                <div className="font-medium text-zinc-900">{cat.amount}</div>
+                <div className="font-medium text-zinc-900 shrink-0">{cat.amount}</div>
               </div>
             ))}
           </Surface>
@@ -163,9 +163,11 @@ export default function ProfitabilityPage() {
                 <tbody className="divide-y divide-zinc-100">
                   {projectRates.map((pr, i) => (
                     <tr key={i}>
-                      <td className="px-5 py-3">
-                        <div className="font-medium text-zinc-900 text-sm">{pr.project}</div>
-                        <Muted className="text-[10px]">{pr.client} · {pr.hours}</Muted>
+                      <td className="px-5 py-3 max-w-[150px] sm:max-w-xs w-full">
+                        <div className="min-w-0">
+                          <div className="font-medium text-zinc-900 text-sm truncate">{pr.project}</div>
+                          <Muted className="text-[10px] truncate">{pr.client} · {pr.hours}</Muted>
+                        </div>
                       </td>
                       <td className="px-5 py-3 font-bold text-zinc-900 text-sm">{pr.rate}</td>
                       <td className="px-5 py-3 text-right text-sm text-zinc-600">{pr.revenue}</td>

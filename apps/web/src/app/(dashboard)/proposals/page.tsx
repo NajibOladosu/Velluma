@@ -328,35 +328,35 @@ export default function ProposalsDirectoryPage() {
 
       {/* ── Metrics Row ────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
             Total Pipeline
           </Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
             ${metrics.totalPipeline.toLocaleString()}
           </div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
             Drafts
           </Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
             {metrics.drafts}
           </div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
             Awaiting Signature
           </Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
             {metrics.awaiting}
           </div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
             Signed
           </Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
             {metrics.signedCount}{" "}
             <span className="text-sm font-normal text-zinc-500">
               · ${metrics.signedValue.toLocaleString()}
@@ -449,11 +449,11 @@ export default function ProposalsDirectoryPage() {
                               strokeWidth={1.5}
                             />
                           </div>
-                          <div>
-                            <div className="font-semibold text-zinc-900 tracking-tight text-sm group-hover:underline">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-zinc-900 tracking-tight text-sm group-hover:underline truncate max-w-[150px] sm:max-w-[200px]">
                               {proposal.title}
                             </div>
-                            <Muted className="text-[10px]">
+                            <Muted className="text-[10px] truncate max-w-[150px] sm:max-w-[200px] block">
                               {proposal.client} · {proposal.template}
                             </Muted>
                           </div>
@@ -464,7 +464,7 @@ export default function ProposalsDirectoryPage() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "bg-transparent",
+                          "bg-transparent shrink-0",
                           statusConfig[proposal.status].className
                         )}
                       >

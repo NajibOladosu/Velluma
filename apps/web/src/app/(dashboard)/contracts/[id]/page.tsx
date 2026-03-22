@@ -106,7 +106,7 @@ function ClauseBlock({
   return (
     <Surface
       className={cn(
-        "p-8 relative transition-colors",
+        "p-4 sm:p-8 relative transition-colors",
         locked && !clause.alwaysEditable
           ? "border-l-4 border-l-zinc-300"
           : "border-l-4 border-l-zinc-900"
@@ -265,95 +265,99 @@ export default function ContractBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div className="flex items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
           <Link
             href="/contracts"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Contracts</span>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Contracts
           </Link>
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-xl">{contractName}</H1>
-              <div className="flex items-center gap-2">
-                {/* Template type badge */}
-                {meta.isTemplate && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "bg-transparent text-zinc-500 border-zinc-200",
-                      meta.type === "standard" && "text-zinc-700"
-                    )}
-                  >
-                    {meta.type === "standard" ? "Standard" : "Custom"} Template
-                  </Badge>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {contractName}
+            </H1>
+            {/* Template type badge */}
+            {meta.isTemplate && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "flex-shrink-0 bg-transparent text-zinc-500 border-zinc-200",
+                  meta.type === "standard" && "text-zinc-700"
                 )}
-                {/* Status badge for active contracts */}
-                {!meta.isTemplate && meta.status && (
-                  <Badge
-                    variant="outline"
-                    className={cn("bg-transparent", statusConfig[meta.status]?.className)}
-                  >
-                    {statusConfig[meta.status]?.label}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
-              {/* Active contract — link to client */}
-              {!meta.isTemplate && meta.client && (
-                <>
-                  <Link
-                    href={`/clients/${meta.clientId}`}
-                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
-                  >
-                    <Building className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.client}
-                    <ExternalLink className="h-2.5 w-2.5" />
-                  </Link>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                </>
-              )}
-              {/* Template — usage count */}
-              {meta.isTemplate && meta.usageCount !== undefined && (
-                <>
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <ReceiptText className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.usageCount} uses
-                  </span>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <Lock className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
-                  </span>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                </>
-              )}
-              <Muted className="text-xs">
-                {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
-              </Muted>
-            </div>
+              >
+                {meta.type === "standard" ? "Standard" : "Custom"} Template
+              </Badge>
+            )}
+            {/* Status badge for active contracts */}
+            {!meta.isTemplate && meta.status && (
+              <Badge
+                variant="outline"
+                className={cn("flex-shrink-0 bg-transparent", statusConfig[meta.status]?.className)}
+              >
+                {statusConfig[meta.status]?.label}
+              </Badge>
+            )}
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+            {/* Active contract — link to client */}
+            {!meta.isTemplate && meta.client && (
+              <>
+                <Link
+                  href={`/clients/${meta.clientId}`}
+                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+                >
+                  <Building className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{meta.client}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </Link>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+              </>
+            )}
+            {/* Template — usage count */}
+            {meta.isTemplate && meta.usageCount !== undefined && (
+              <>
+                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
+                  <ReceiptText className="h-3 w-3 shrink-0" />
+                  {meta.usageCount} uses
+                </span>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
+                  <Lock className="h-3 w-3 shrink-0" />
+                  {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
+                </span>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+              </>
+            )}
+            <span className="truncate min-w-0 flex-shrink-0">
+              {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
+            </span>
           </div>
         </div>
 
-        {/* CTA buttons */}
+        {/* RIGHT: Actions */}
         <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-            <Eye className="h-4 w-4" strokeWidth={1.5} />
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Preview</span>
           </Button>
           {meta.isTemplate && (
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-              <Copy className="h-4 w-4" strokeWidth={1.5} />
+            <Button variant="outline" className="flex-1 sm:flex-none h-9">
+              <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
               <span className="hidden sm:inline">Duplicate</span>
             </Button>
           )}
-          <Button size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-            <Save className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Save</span><span className="inline sm:hidden">Template</span>
+          <Button className="flex-1 sm:flex-none h-9">
+            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Save</span>
+            <span className="inline sm:hidden">Template</span>
           </Button>
         </div>
       </div>
@@ -421,7 +425,7 @@ export default function ContractBuilderPage() {
 
         {/* Editor Area */}
         <main className="flex-1 overflow-y-auto bg-zinc-50/30">
-          <div className="mx-auto max-w-4xl p-8 py-12">
+          <div className="mx-auto max-w-4xl p-4 py-8 sm:p-8 sm:py-12">
 
             {activeTab === "editor" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -437,9 +441,9 @@ export default function ContractBuilderPage() {
                 </div>
 
                 {/* Clause Locking Banner */}
-                <div className="mb-8 flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="mb-8 flex flex-wrap sm:flex-nowrap items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-zinc-900">Clause Locking</h4>
                     <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
                       Use the lock icon next to each clause to control which sections can be edited in proposals.{" "}
@@ -493,11 +497,11 @@ export default function ContractBuilderPage() {
                     <Surface className="p-6 border bg-white flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className="bg-zinc-50 text-zinc-600">Primary Client</Badge>
-                        <Lock className="h-3 w-3 text-zinc-400" />
+                        <Lock className="h-3 w-3 text-zinc-400 shrink-0" />
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-zinc-900">{"{{client.name}}"}</div>
-                        <div className="text-xs text-zinc-500 mt-1">{"{{client.email}}"}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-zinc-900 truncate">{"{{client.name}}"}</div>
+                        <div className="text-xs text-zinc-500 mt-1 truncate">{"{{client.email}}"}</div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-zinc-100">
                         <p className="text-xs text-zinc-500 flex items-center gap-1.5">
@@ -552,19 +556,19 @@ export default function ContractBuilderPage() {
                 <Surface className="p-8">
                   <H3 className="text-base mb-6">Default Automations</H3>
                   <div className="space-y-4 max-w-2xl">
-                    <div className="flex items-center justify-between border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
-                      <div>
+                    <div className="flex items-start sm:items-center justify-between gap-3 border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-900">Auto-Reminders</p>
                         <p className="text-xs text-zinc-500 mt-0.5">Send automatic reminders if unsigned</p>
                       </div>
-                      <Badge variant="outline" className="bg-white">3 days before expiry</Badge>
+                      <Badge variant="outline" className="bg-white shrink-0 whitespace-nowrap">3 days before expiry</Badge>
                     </div>
-                    <div className="flex items-center justify-between border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
-                      <div>
+                    <div className="flex items-start sm:items-center justify-between gap-3 border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-900">Post-Signature Action</p>
                         <p className="text-xs text-zinc-500 mt-0.5">What happens after all parties sign</p>
                       </div>
-                      <Button variant="outline" size="sm" className="h-7 text-xs bg-white">
+                      <Button variant="outline" size="sm" className="h-7 text-xs bg-white shrink-0">
                         Configure Actions
                       </Button>
                     </div>
