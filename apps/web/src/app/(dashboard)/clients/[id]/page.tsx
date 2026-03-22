@@ -304,16 +304,16 @@ export default function ClientDetailPage() {
             <div className="h-12 w-12 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
               <User className="h-6 w-6 text-zinc-500" strokeWidth={1.5} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <H1 className="text-2xl">{displayName}</H1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <H1 className="text-2xl truncate">{displayName}</H1>
                 {client.enrichment.confidence >= 90 && (
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex-shrink-0">
                     <Bot className="h-3 w-3" /> Enriched
                   </span>
                 )}
               </div>
-              <Muted>{displayCompany} · Client since {client.createdAt}</Muted>
+              <Muted className="truncate block">{displayCompany} · Client since {client.createdAt}</Muted>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Health Score</Muted>
             <Heart className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.healthScore}</div>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.healthScore}</div>
           <div className="h-[3px] w-full bg-zinc-100 mt-3 rounded-full overflow-hidden">
             <div className="h-full bg-zinc-900 rounded-full" style={{ width: `${client.healthScore}%` }} />
           </div>
@@ -351,8 +351,8 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Lifetime Revenue</Muted>
             <DollarSign className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.revenueDisplay}</div>
-          <Muted className="text-[10px] mt-1">{client.activeProjects} active · {client.completedProjects} completed</Muted>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.revenueDisplay}</div>
+          <Muted className="text-[10px] mt-1 break-words">{client.activeProjects} active · {client.completedProjects} completed</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -360,8 +360,8 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Invoices</Muted>
             <CreditCard className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.invoices.length}</div>
-          <Muted className="text-[10px] mt-1">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.invoices.length}</div>
+          <Muted className="text-[10px] mt-1 break-words">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -369,7 +369,7 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Projects</Muted>
             <Briefcase className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.projects.length}</div>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.projects.length}</div>
           <Muted className="text-[10px] mt-1">Lifetime engagements</Muted>
         </Surface>
       </div>
@@ -459,12 +459,12 @@ export default function ClientDetailPage() {
                 ) : (
                   client.projects.map((project, i) => (
                     <div key={i} className="p-5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-zinc-900 tracking-tight">{project.name}</div>
-                          <Muted className="text-xs">{project.value}</Muted>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-zinc-900 tracking-tight truncate">{project.name}</div>
+                          <Muted className="text-xs truncate block">{project.value}</Muted>
                         </div>
-                        <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium">
+                        <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium flex-shrink-0">
                           {project.status}
                         </Badge>
                       </div>
@@ -487,12 +487,12 @@ export default function ClientDetailPage() {
               </div>
               <Surface className="divide-y divide-zinc-100">
                 {client.customFields.map((field, i) => (
-                  <div key={i} className="px-5 py-3 flex items-center justify-between group">
-                    <div>
-                      <Muted className="text-[10px] uppercase tracking-widest font-bold">{field.label}</Muted>
-                      <P className="text-sm font-medium mt-0.5">{field.value}</P>
+                  <div key={i} className="px-5 py-3 flex items-center justify-between group gap-4">
+                    <div className="min-w-0">
+                      <Muted className="text-[10px] uppercase tracking-widest font-bold truncate block">{field.label}</Muted>
+                      <P className="text-sm font-medium mt-0.5 break-words">{field.value}</P>
                     </div>
-                    <PenLine className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <PenLine className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
                 ))}
               </Surface>
@@ -542,9 +542,9 @@ export default function ClientDetailPage() {
                             </span>
                           )}
                         </div>
-                        <Muted className="text-[10px] uppercase tracking-widest">{contact.role}</Muted>
-                        <div className="flex items-center gap-1 text-[10px] text-zinc-400">
-                          <Mail className="h-2.5 w-2.5" /> {contact.email}
+                        <Muted className="text-[10px] uppercase tracking-widest truncate block">{contact.role}</Muted>
+                        <div className="flex items-center gap-1 text-[10px] text-zinc-400 min-w-0">
+                          <Mail className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{contact.email}</span>
                         </div>
                       </div>
                     </div>
@@ -584,9 +584,9 @@ export default function ClientDetailPage() {
                   { label: "Pending", value: `${pendingInvoices.length} ($${pendingInvoices.reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0).toLocaleString()})` },
                   { label: "Overdue", value: `${overdueInvoices.length} ($${overdueInvoices.reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0).toLocaleString()})` },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <Muted className="text-[10px] uppercase tracking-widest">{item.label}</Muted>
-                    <P className="text-sm font-medium">{item.value}</P>
+                  <div key={item.label} className="flex items-center justify-between gap-4">
+                    <Muted className="text-[10px] uppercase tracking-widest truncate">{item.label}</Muted>
+                    <P className="text-sm font-medium truncate">{item.value}</P>
                   </div>
                 ))}
               </div>
@@ -657,8 +657,8 @@ export default function ClientDetailPage() {
                       <td className="px-6 py-4">
                         <P className="text-sm font-semibold text-zinc-900">{inv.number}</P>
                       </td>
-                      <td className="px-6 py-4">
-                        <P className="text-sm text-zinc-600">{inv.project}</P>
+                      <td className="px-6 py-4 max-w-[200px]">
+                        <P className="text-sm text-zinc-600 truncate">{inv.project}</P>
                       </td>
                       <td className="px-6 py-4">
                         <P className="text-sm font-medium text-zinc-900">{inv.amount}</P>
@@ -703,12 +703,12 @@ export default function ClientDetailPage() {
                 ) : (
                   client.documents.map((doc) => (
                     <tr key={doc.id} className="hover:bg-zinc-50/50 transition-colors cursor-pointer">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-6 py-4 max-w-[250px]">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                             <FileText className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                           </div>
-                          <P className="text-sm font-semibold text-zinc-900">{doc.name}</P>
+                          <P className="text-sm font-semibold text-zinc-900 truncate">{doc.name}</P>
                         </div>
                       </td>
                       <td className="px-6 py-4">
