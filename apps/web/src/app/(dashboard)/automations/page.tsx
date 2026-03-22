@@ -114,9 +114,9 @@ export default function AutomationsPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div>
-          <H1>Automations</H1>
-          <Muted>Put your business on autopilot. Set rules once, run forever.</Muted>
+        <div className="min-w-0">
+          <H1 className="truncate">Automations</H1>
+          <Muted className="truncate">Put your business on autopilot. Set rules once, run forever.</Muted>
         </div>
         <Button className="gap-2 font-semibold px-5 w-full sm:w-auto">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -136,7 +136,7 @@ export default function AutomationsPage() {
               <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">{m.label}</Muted>
               <m.icon className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
             </div>
-            <div className="text-3xl font-bold tracking-tighter text-zinc-900">{m.value}</div>
+            <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{m.value}</div>
           </Surface>
         ))}
       </div>
@@ -167,7 +167,7 @@ export default function AutomationsPage() {
                       {automation.name}
                     </span>
                     {automation.runs > 0 && (
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex-shrink-0">
                         {automation.runs} runs
                       </span>
                     )}
@@ -219,8 +219,8 @@ export default function AutomationsPage() {
               <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center">
                 <Zap className="h-4 w-4 text-zinc-400 group-hover:text-zinc-700 transition-colors" strokeWidth={1.5} />
               </div>
-              <div className="space-y-1">
-                <P className="text-sm font-semibold text-zinc-900 leading-snug">{tpl.name}</P>
+              <div className="space-y-1 min-w-0">
+                <P className="text-sm font-semibold text-zinc-900 leading-snug truncate">{tpl.name}</P>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Badge variant="outline" className="border-zinc-200 text-zinc-400 bg-transparent text-[9px] font-bold uppercase">
                     {tpl.trigger}

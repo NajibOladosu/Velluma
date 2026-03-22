@@ -280,13 +280,13 @@ function PipelineMetrics({ stages }: { stages: PipelineStage[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
       {metrics.map((m) => (
-        <Surface key={m.label} className="p-5">
-          <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">{m.label}</Muted>
-            <m.icon className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+        <Surface key={m.label} className="p-5 flex flex-col items-start min-w-0">
+          <div className="flex items-center justify-between pb-2 w-full gap-2">
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">{m.label}</Muted>
+            <m.icon className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{m.value}</div>
-          <Muted className="text-[10px] mt-1">{m.sub}</Muted>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>{m.value}</div>
+          <Muted className="text-[10px] mt-1 truncate max-w-full">{m.sub}</Muted>
         </Surface>
       ))}
     </div>
@@ -304,10 +304,10 @@ function AIPriorityBanner({ stages }: { stages: PipelineStage[] }) {
         <Flame className="h-4 w-4 text-white" strokeWidth={1.5} />
       </div>
       <div className="flex-1 min-w-0">
-        <P className="text-sm font-semibold text-zinc-900">
+        <P className="text-sm font-semibold text-zinc-900 truncate">
           {hotLeads.length} Priority Lead{hotLeads.length > 1 ? "s" : ""} Detected
         </P>
-        <Muted className="text-[10px] uppercase tracking-widest">
+        <Muted className="text-[10px] uppercase tracking-widest truncate block">
           AI flagged {hotLeads.map((l) => l.name).join(", ")} as high-value prospects likely to convert.
         </Muted>
       </div>
@@ -338,13 +338,13 @@ function LeadCardContent({ lead, onSelect }: { lead: Lead; onSelect: (lead: Lead
   return (
     <div className="space-y-3" onClick={() => onSelect(lead)}>
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="h-7 w-7 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
             <User className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-zinc-900 tracking-tight truncate">{lead.name}</div>
-            <Muted className="text-[10px] uppercase tracking-widest">{lead.company}</Muted>
+            <Muted className="text-[10px] uppercase tracking-widest truncate block">{lead.company}</Muted>
           </div>
         </div>
         {lead.aiPriority && (
@@ -516,7 +516,7 @@ function LeadDetailDrawer({ lead, stages, onClose, onMoveStage }: {
           </div>
           <div className="flex-1 min-w-0">
             <H3 className="text-lg truncate">{lead.name}</H3>
-            <Muted>{lead.company}</Muted>
+            <Muted className="truncate block">{lead.company}</Muted>
           </div>
           {lead.aiPriority && (
             <span className={cn(
@@ -595,9 +595,9 @@ function LeadDetailDrawer({ lead, stages, onClose, onMoveStage }: {
               { icon: Phone, value: lead.phone },
               { icon: Globe, value: lead.website },
             ].map((item) => (
-              <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600">
+              <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600 min-w-0">
                 <item.icon className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
-                {item.value}
+                <span className="truncate">{item.value}</span>
               </div>
             ))}
           </div>
@@ -614,13 +614,13 @@ function LeadDetailDrawer({ lead, stages, onClose, onMoveStage }: {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Muted className="text-[10px]">Company Size</Muted>
-              <P className="text-sm font-medium">{lead.enrichment.companySize}</P>
+            <div className="space-y-1 min-w-0">
+              <Muted className="text-[10px] truncate">Company Size</Muted>
+              <P className="text-sm font-medium truncate">{lead.enrichment.companySize}</P>
             </div>
-            <div className="space-y-1">
-              <Muted className="text-[10px]">Industry</Muted>
-              <P className="text-sm font-medium">{lead.enrichment.industry}</P>
+            <div className="space-y-1 min-w-0">
+              <Muted className="text-[10px] truncate">Industry</Muted>
+              <P className="text-sm font-medium truncate">{lead.enrichment.industry}</P>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -842,10 +842,10 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
             <tr className="border-b border-zinc-100 bg-zinc-50/50">
               <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Lead</th>
               <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Value</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Stage</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Priority</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Tags</th>
-              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Last Action</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden sm:table-cell">Stage</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden md:table-cell">Priority</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 hidden lg:table-cell">Tags</th>
+              <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right hidden sm:table-cell">Last Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -858,27 +858,27 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
             ) : (
               filtered.map((lead) => (
                 <tr key={lead.id} className="group hover:bg-zinc-50/50 transition-colors cursor-pointer" onClick={() => onSelectLead(lead)}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                  <td className="px-6 py-4 max-w-[150px] sm:max-w-xs w-full">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                         <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-zinc-900 tracking-tight">{lead.name}</span>
-                          {lead.aiPriority === "hot" && <Flame className="h-3 w-3 text-zinc-900" />}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-zinc-900 tracking-tight truncate block">{lead.name}</span>
+                          {lead.aiPriority === "hot" && <Flame className="h-3 w-3 text-zinc-900 shrink-0" />}
                         </div>
-                        <div className="text-xs text-zinc-500">{lead.company}</div>
+                        <div className="text-xs text-zinc-500 truncate">{lead.company}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-zinc-900">{lead.value}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden sm:table-cell">
                     <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium">
                       {lead.stage}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden md:table-cell">
                     <div className="flex items-center gap-1.5">
                       <div className={cn(
                         "h-2 w-2 rounded-full",
@@ -887,7 +887,7 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
                       <span className="text-xs text-zinc-600 capitalize">{lead.priority}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {lead.tags.slice(0, 2).map((tag) => (
                         <TagBadge key={tag} tag={tag} />
@@ -897,7 +897,7 @@ function ListView({ stages, searchQuery, priorityFilter, tagFilter, onSelectLead
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right hidden sm:table-cell">
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-xs text-zinc-400">{lead.lastAction}</span>
                       <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -976,16 +976,17 @@ export default function PipelinePage() {
     <>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <H1>Pipeline</H1>
-            <Muted>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+          <div className="min-w-0">
+            <H1 className="truncate">Pipeline</H1>
+            <Muted className="truncate">
               {stages.flatMap((s) => s.leads).length} leads across {stages.length} stages
             </Muted>
           </div>
-          <Button className="font-semibold px-5 gap-2" onClick={() => setAddLeadOpen(true)}>
-            <Plus className="h-4 w-4" strokeWidth={1.5} />
-            Add Lead
+          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto" onClick={() => setAddLeadOpen(true)}>
+            <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Add Lead</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
 

@@ -313,42 +313,47 @@ export default function ProposalBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div className="flex items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
           <Link
             href="/proposals"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Proposals</span>
+            Back to Proposals
           </Link>
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-xl">{proposal.title}</H1>
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className={cn("bg-transparent", statusConfig[proposal.status].className)}
-                >
-                  {statusConfig[proposal.status].label}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
-              <Link
-                href={`/clients/${proposal.clientId}`}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
-              >
-                <Building className="h-3 w-3" />
-                {proposal.client}
-                <ExternalLink className="h-2.5 w-2.5" />
-              </Link>
-              <span className="text-zinc-300 hidden sm:inline">·</span>
-              <Muted className="text-xs">Created {proposal.createdAt}</Muted>
-            </div>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {proposal.title}
+            </H1>
+            <Badge
+              variant="outline"
+              className={cn("flex-shrink-0 bg-transparent shrink-0", statusConfig[proposal.status].className)}
+            >
+              {statusConfig[proposal.status].label}
+            </Badge>
+          </div>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
+            <Link
+              href={`/clients/${proposal.clientId}`}
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
+            >
+              <Building className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{proposal.client}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </Link>
+            <span className="flex-shrink-0 text-zinc-300">•</span>
+            <span className="whitespace-nowrap">Created {proposal.createdAt}</span>
           </div>
         </div>
+
+        {/* RIGHT: Actions */}
         <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none h-9">
             <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
@@ -367,7 +372,7 @@ export default function ProposalBuilderPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_280px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_280px] gap-6">
         {/* ══ LEFT: Section Navigation ══════════ */}
         <div className="space-y-2">
           <Muted className="text-[10px] uppercase tracking-widest font-bold px-3 mb-3">
@@ -416,31 +421,31 @@ export default function ProposalBuilderPage() {
               <Separator />
               <div className="space-y-1.5">
                 {selectedTier && (
-                  <div className="flex justify-between text-xs text-zinc-600">
-                    <span className="capitalize">{selectedTier} Package</span>
-                    <span>${selectedTierPrice.toLocaleString()}</span>
+                  <div className="flex justify-between text-xs text-zinc-600 gap-2">
+                    <span className="capitalize truncate min-w-0">{selectedTier} Package</span>
+                    <span className="shrink-0">${selectedTierPrice.toLocaleString()}</span>
                   </div>
                 )}
                 {addOns
                   .filter((a) => a.enabled)
                   .map((a) => (
-                    <div key={a.id} className="flex justify-between text-xs text-zinc-600">
-                      <span>{a.label}</span>
-                      <span>+${a.price.toLocaleString()}</span>
+                    <div key={a.id} className="flex justify-between text-xs text-zinc-600 gap-2">
+                      <span className="truncate min-w-0">{a.label}</span>
+                      <span className="shrink-0">+${a.price.toLocaleString()}</span>
                     </div>
                   ))}
                 <Separator />
-                <div className="flex justify-between text-sm font-bold text-zinc-900">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-bold text-zinc-900 gap-2">
+                  <span className="truncate min-w-0">Subtotal</span>
+                  <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Deposit ({proposal.depositPercent}%)</span>
-                  <span>${deposit.toLocaleString()}</span>
+                <div className="flex justify-between text-xs text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Balance Due</span>
-                  <span>${balance.toLocaleString()}</span>
+                <div className="flex justify-between text-xs text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Balance Due</span>
+                  <span className="shrink-0">${balance.toLocaleString()}</span>
                 </div>
               </div>
             </Surface>
@@ -464,10 +469,10 @@ export default function ProposalBuilderPage() {
                 </div>
                 <div className="p-8 space-y-6">
                   <div className="space-y-2">
-                    <H2 className="text-3xl font-bold tracking-tight">
+                    <H2 className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold tracking-tight truncate">
                       {proposal.title}
                     </H2>
-                    <Muted>{proposal.client}</Muted>
+                    <Muted className="truncate">{proposal.client}</Muted>
                   </div>
                   <Separator />
                   <div className="space-y-4">
@@ -513,9 +518,9 @@ export default function ProposalBuilderPage() {
                     { token: "{{project.startDate}}", value: "Mar 15, 2026" },
                     { token: "{{project.endDate}}", value: "May 30, 2026" },
                   ].map((field) => (
-                    <div key={field.token} className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                      <Muted className="text-[10px] font-mono">{field.token}</Muted>
-                      <div className="text-sm font-medium text-zinc-900 mt-0.5">
+                    <div key={field.token} className="rounded-md border border-zinc-200 bg-zinc-50 p-3 min-w-0 flex flex-col">
+                      <Muted className="text-[10px] font-mono truncate">{field.token}</Muted>
+                      <div className="text-sm font-medium text-zinc-900 mt-0.5 truncate">
                         {field.value}
                       </div>
                     </div>
@@ -626,7 +631,7 @@ export default function ProposalBuilderPage() {
                           : "border-zinc-200 hover:border-zinc-300"
                       )}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div
                           className={cn(
                             "h-5 w-5 rounded border flex items-center justify-center",
@@ -639,7 +644,7 @@ export default function ProposalBuilderPage() {
                             <Check className="h-3 w-3 text-white" strokeWidth={3} />
                           )}
                         </div>
-                        <span className="text-sm font-medium text-zinc-900">
+                        <span className="text-sm font-medium text-zinc-900 truncate min-w-0">
                           {addon.label}
                         </span>
                       </div>
@@ -657,13 +662,13 @@ export default function ProposalBuilderPage() {
                   Proposal Total
                 </Muted>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold text-zinc-900">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toLocaleString()}</span>
+                <div className="flex justify-between text-lg font-bold text-zinc-900 gap-2">
+                  <span className="truncate min-w-0">Subtotal</span>
+                  <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm text-zinc-500">
-                  <span>Deposit ({proposal.depositPercent}%)</span>
-                  <span>${deposit.toLocaleString()}</span>
+                <div className="flex justify-between text-sm text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
               </Surface>
             </>
@@ -695,7 +700,7 @@ export default function ProposalBuilderPage() {
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
                               {t.type === "standard" ? (
                                 <Shield className="h-3 w-3 text-zinc-700" />
@@ -795,9 +800,9 @@ export default function ProposalBuilderPage() {
                         )}
                       >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
-                          <div className="flex items-center gap-2">
-                            <Lock className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
-                            <span className="text-sm font-semibold text-zinc-900">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Lock className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
+                            <span className="text-sm font-semibold text-zinc-900 truncate">
                               {clause.title}
                             </span>
                             <Badge variant="outline" className="text-[9px] border-zinc-300 text-zinc-500">

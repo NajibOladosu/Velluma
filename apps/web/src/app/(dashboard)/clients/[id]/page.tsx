@@ -293,43 +293,65 @@ export default function ClientDetailPage() {
 
   return (
     <div className="space-y-8">
-      {/* Back Link + Header */}
-      <div>
-        <Link href="/clients" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-900 transition-colors mb-4">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Clients
-        </Link>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
-              <User className="h-6 w-6 text-zinc-500" strokeWidth={1.5} />
+      {/* ── Header ─────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
+          <Link
+            href="/clients"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Link>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
+              <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <H1 className="text-2xl">{displayName}</H1>
-                {client.enrichment.confidence >= 90 && (
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
-                    <Bot className="h-3 w-3" /> Enriched
-                  </span>
-                )}
-              </div>
-              <Muted>{displayCompany} · Client since {client.createdAt}</Muted>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {displayName}
+            </H1>
+            {client.enrichment.confidence >= 90 && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex-shrink-0">
+                <Bot className="h-3 w-3" /> Enriched
+              </span>
+            )}
+            <Badge
+              variant="outline"
+              className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200 capitalize"
+            >
               {statusLabel[client.status] ?? client.status}
             </Badge>
-            <Button variant="outline" size="sm" className="border-zinc-200 gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Send Email
+          </div>
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
+            <span className="whitespace-nowrap">{displayCompany}</span>
+            <span className="text-zinc-300">•</span>
+            <span className="whitespace-nowrap">Client since {client.createdAt}</span>
+          </div>
+        </div>
+
+        {/* RIGHT: Actions */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto flex-1 h-9">
+              <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Send Email</span>
             </Button>
-            <Button variant="outline" size="sm" className="border-zinc-200 gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> Schedule
-            </Button>
-            <Button size="sm" className="gap-1.5 font-semibold">
-              <Plus className="h-3.5 w-3.5" /> New Project
+            <Button variant="outline" className="w-full sm:w-auto flex-1 h-9">
+              <Calendar className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Schedule</span>
             </Button>
           </div>
+          <Button className="w-full sm:w-auto h-9">
+            <Plus className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">New Project</span>
+            <span className="inline sm:hidden">Project</span>
+          </Button>
         </div>
       </div>
 
@@ -340,7 +362,7 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Health Score</Muted>
             <Heart className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.healthScore}</div>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.healthScore}</div>
           <div className="h-[3px] w-full bg-zinc-100 mt-3 rounded-full overflow-hidden">
             <div className="h-full bg-zinc-900 rounded-full" style={{ width: `${client.healthScore}%` }} />
           </div>
@@ -351,8 +373,8 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Lifetime Revenue</Muted>
             <DollarSign className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.revenueDisplay}</div>
-          <Muted className="text-[10px] mt-1">{client.activeProjects} active · {client.completedProjects} completed</Muted>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.revenueDisplay}</div>
+          <Muted className="text-[10px] mt-1 truncate">{client.activeProjects} active · {client.completedProjects} completed</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -360,8 +382,8 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Invoices</Muted>
             <CreditCard className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.invoices.length}</div>
-          <Muted className="text-[10px] mt-1">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.invoices.length}</div>
+          <Muted className="text-[10px] mt-1 truncate">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -369,32 +391,34 @@ export default function ClientDetailPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Projects</Muted>
             <Briefcase className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{client.projects.length}</div>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.projects.length}</div>
           <Muted className="text-[10px] mt-1">Lifetime engagements</Muted>
         </Surface>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-zinc-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={cn(
-              "px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
-              activeTab === tab.id
-                ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-400 hover:text-zinc-600"
-            )}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-            {tab.count !== undefined && (
-              <span className={cn("ml-1 text-[10px]", activeTab === tab.id ? "text-zinc-900" : "text-zinc-400")}>
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={cn(
+                "px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
+                activeTab === tab.id
+                  ? "border-zinc-900 text-zinc-900"
+                  : "border-transparent text-zinc-400 hover:text-zinc-600"
+              )}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={cn("ml-1 text-[10px]", activeTab === tab.id ? "text-zinc-900" : "text-zinc-400")}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ─── Overview Tab ─── */}
@@ -420,7 +444,7 @@ export default function ClientDetailPage() {
                   <P className="text-sm font-medium">{client.enrichment.industry}</P>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 {client.enrichment.linkedin && (
                   <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
                     <Linkedin className="h-3.5 w-3.5" strokeWidth={1.5} /> LinkedIn
@@ -440,9 +464,9 @@ export default function ClientDetailPage() {
                   { icon: Phone, value: client.phone },
                   { icon: Globe, value: client.website },
                 ].map((item) => (
-                  <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600">
+                  <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600 min-w-0">
                     <item.icon className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
-                    {item.value}
+                    <span className="truncate">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -459,12 +483,12 @@ export default function ClientDetailPage() {
                 ) : (
                   client.projects.map((project, i) => (
                     <div key={i} className="p-5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-zinc-900 tracking-tight">{project.name}</div>
-                          <Muted className="text-xs">{project.value}</Muted>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-zinc-900 tracking-tight truncate">{project.name}</div>
+                          <Muted className="text-xs truncate block">{project.value}</Muted>
                         </div>
-                        <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium">
+                        <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium flex-shrink-0">
                           {project.status}
                         </Badge>
                       </div>
@@ -487,12 +511,12 @@ export default function ClientDetailPage() {
               </div>
               <Surface className="divide-y divide-zinc-100">
                 {client.customFields.map((field, i) => (
-                  <div key={i} className="px-5 py-3 flex items-center justify-between group">
-                    <div>
-                      <Muted className="text-[10px] uppercase tracking-widest font-bold">{field.label}</Muted>
-                      <P className="text-sm font-medium mt-0.5">{field.value}</P>
+                  <div key={i} className="px-5 py-3 flex items-center justify-between group gap-4">
+                    <div className="min-w-0">
+                      <Muted className="text-[10px] uppercase tracking-widest font-bold truncate block">{field.label}</Muted>
+                      <P className="text-sm font-medium mt-0.5 truncate">{field.value}</P>
                     </div>
-                    <PenLine className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <PenLine className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
                 ))}
               </Surface>
@@ -537,14 +561,14 @@ export default function ClientDetailPage() {
                         <div className="flex items-center gap-2">
                           <P className="text-sm font-medium truncate">{contact.name}</P>
                           {contact.portalAccess && (
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-0.5 shrink-0">
                               <Eye className="h-2.5 w-2.5" /> Portal
                             </span>
                           )}
                         </div>
-                        <Muted className="text-[10px] uppercase tracking-widest">{contact.role}</Muted>
-                        <div className="flex items-center gap-1 text-[10px] text-zinc-400">
-                          <Mail className="h-2.5 w-2.5" /> {contact.email}
+                        <Muted className="text-[10px] uppercase tracking-widest truncate block">{contact.role}</Muted>
+                        <div className="flex items-center gap-1 text-[10px] text-zinc-400 min-w-0">
+                          <Mail className="h-2.5 w-2.5 flex-shrink-0" /> <span className="truncate">{contact.email}</span>
                         </div>
                       </div>
                     </div>
@@ -584,9 +608,9 @@ export default function ClientDetailPage() {
                   { label: "Pending", value: `${pendingInvoices.length} ($${pendingInvoices.reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0).toLocaleString()})` },
                   { label: "Overdue", value: `${overdueInvoices.length} ($${overdueInvoices.reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0).toLocaleString()})` },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <Muted className="text-[10px] uppercase tracking-widest">{item.label}</Muted>
-                    <P className="text-sm font-medium">{item.value}</P>
+                  <div key={item.label} className="flex items-center justify-between gap-4">
+                    <Muted className="text-[10px] uppercase tracking-widest min-w-0 truncate">{item.label}</Muted>
+                    <P className="text-sm font-medium shrink-0 whitespace-nowrap">{item.value}</P>
                   </div>
                 ))}
               </div>
@@ -616,7 +640,7 @@ export default function ClientDetailPage() {
                       <Icon className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0 space-y-0.5">
-                      <P className="text-sm text-zinc-800 leading-snug">{event.action}</P>
+                      <P className="text-sm text-zinc-800 leading-snug truncate">{event.action}</P>
                       <div className="flex items-center gap-2">
                         <Muted className="text-[10px] uppercase tracking-widest">{event.time}</Muted>
                         <span className="text-[10px] text-zinc-300 uppercase tracking-widest capitalize">{event.type}</span>
@@ -657,19 +681,19 @@ export default function ClientDetailPage() {
                       <td className="px-6 py-4">
                         <P className="text-sm font-semibold text-zinc-900">{inv.number}</P>
                       </td>
-                      <td className="px-6 py-4">
-                        <P className="text-sm text-zinc-600">{inv.project}</P>
+                      <td className="px-6 py-4 max-w-[200px]">
+                        <P className="text-sm text-zinc-600 truncate">{inv.project}</P>
                       </td>
                       <td className="px-6 py-4">
-                        <P className="text-sm font-medium text-zinc-900">{inv.amount}</P>
+                        <P className="text-sm font-medium text-zinc-900 whitespace-nowrap">{inv.amount}</P>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className={cn("border-zinc-200 bg-transparent font-medium capitalize", invoiceStatusStyles[inv.status])}>
+                        <Badge variant="outline" className={cn("border-zinc-200 bg-transparent font-medium capitalize flex-shrink-0", invoiceStatusStyles[inv.status])}>
                           {inv.status}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Muted className="text-xs">{inv.date}</Muted>
+                        <Muted className="text-xs whitespace-nowrap">{inv.date}</Muted>
                       </td>
                     </tr>
                   ))
@@ -703,12 +727,12 @@ export default function ClientDetailPage() {
                 ) : (
                   client.documents.map((doc) => (
                     <tr key={doc.id} className="hover:bg-zinc-50/50 transition-colors cursor-pointer">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-6 py-4 max-w-[250px]">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                             <FileText className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                           </div>
-                          <P className="text-sm font-semibold text-zinc-900">{doc.name}</P>
+                          <P className="text-sm font-semibold text-zinc-900 truncate">{doc.name}</P>
                         </div>
                       </td>
                       <td className="px-6 py-4">
