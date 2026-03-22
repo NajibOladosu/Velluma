@@ -275,10 +275,10 @@ export default function ContractBuilderPage() {
             <span className="hidden sm:inline">Contracts</span>
           </Link>
           <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-xl">{contractName}</H1>
-              <div className="flex items-center gap-2">
+              <H1 className="text-xl truncate">{contractName}</H1>
+              <div className="flex items-center gap-2 shrink-0">
                 {/* Template type badge */}
                 {meta.isTemplate && (
                   <Badge
@@ -308,11 +308,11 @@ export default function ContractBuilderPage() {
                 <>
                   <Link
                     href={`/clients/${meta.clientId}`}
-                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors max-w-[200px]"
                   >
-                    <Building className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.client}
-                    <ExternalLink className="h-2.5 w-2.5" />
+                    <Building className="h-3 w-3 shrink-0" strokeWidth={1.5} />
+                    <span className="truncate">{meta.client}</span>
+                    <ExternalLink className="h-2.5 w-2.5 shrink-0" />
                   </Link>
                   <span className="text-zinc-300 hidden sm:inline">·</span>
                 </>
@@ -493,11 +493,11 @@ export default function ContractBuilderPage() {
                     <Surface className="p-6 border bg-white flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className="bg-zinc-50 text-zinc-600">Primary Client</Badge>
-                        <Lock className="h-3 w-3 text-zinc-400" />
+                        <Lock className="h-3 w-3 text-zinc-400 shrink-0" />
                       </div>
-                      <div>
-                        <div className="text-sm font-semibold text-zinc-900">{"{{client.name}}"}</div>
-                        <div className="text-xs text-zinc-500 mt-1">{"{{client.email}}"}</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-zinc-900 truncate">{"{{client.name}}"}</div>
+                        <div className="text-xs text-zinc-500 mt-1 truncate">{"{{client.email}}"}</div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-zinc-100">
                         <p className="text-xs text-zinc-500 flex items-center gap-1.5">

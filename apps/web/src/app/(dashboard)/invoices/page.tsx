@@ -71,11 +71,11 @@ export default function InvoicesPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div>
-          <H1>Invoices</H1>
-          <Muted>Payments overview and invoice management.</Muted>
+        <div className="min-w-0">
+          <H1 className="truncate">Invoices</H1>
+          <Muted className="truncate block">Payments overview and invoice management.</Muted>
         </div>
-        <Button className="font-semibold px-5 gap-2 w-full sm:w-auto">
+        <Button className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
           New Invoice
         </Button>
@@ -83,22 +83,22 @@ export default function InvoicesPage() {
 
       {/* Payment Summary Cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Paid</Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.paid.toLocaleString()}</div>
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Paid</Muted>
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">${totals.paid.toLocaleString()}</div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Processing</Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.processing.toLocaleString()}</div>
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Processing</Muted>
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">${totals.processing.toLocaleString()}</div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Upcoming</Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.upcoming.toLocaleString()}</div>
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Upcoming</Muted>
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">${totals.upcoming.toLocaleString()}</div>
         </Surface>
-        <Surface className="p-5">
-          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Overdue</Muted>
-          <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">${totals.overdue.toLocaleString()}</div>
-          {totals.overdue > 0 && <div className="h-1.5 w-1.5 rounded-full bg-zinc-900 mt-2" />}
+        <Surface className="p-5 flex flex-col min-w-0">
+          <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Overdue</Muted>
+          <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">${totals.overdue.toLocaleString()}</div>
+          {totals.overdue > 0 && <div className="h-1.5 w-1.5 rounded-full bg-zinc-900 mt-2 shrink-0" />}
         </Surface>
       </div>
 
@@ -149,19 +149,19 @@ export default function InvoicesPage() {
               {filtered.map((invoice) => (
                 <tr key={invoice.id} className="group hover:bg-zinc-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-zinc-900 tracking-tight">{invoice.number}</div>
-                    <Muted className="text-[10px]">Sent {invoice.sentDate}</Muted>
+                    <div className="font-semibold text-zinc-900 tracking-tight truncate max-w-[150px] sm:max-w-[200px]">{invoice.number}</div>
+                    <Muted className="text-[10px] truncate max-w-[150px] sm:max-w-[200px] block">Sent {invoice.sentDate}</Muted>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-600">{invoice.client}</td>
-                  <td className="px-6 py-4 font-medium text-zinc-900">{invoice.amount}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-600 truncate max-w-[120px] sm:max-w-[150px]">{invoice.client}</td>
+                  <td className="px-6 py-4 font-medium text-zinc-900 truncate max-w-[100px] sm:max-w-[120px]">{invoice.amount}</td>
                   <td className="px-6 py-4">
-                    <Badge variant="outline" className={cn("border-zinc-200 bg-transparent", statusStyles[invoice.status])}>
+                    <Badge variant="outline" className={cn("border-zinc-200 bg-transparent shrink-0", statusStyles[invoice.status])}>
                       {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-500">{invoice.dueDate}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-500 whitespace-nowrap">{invoice.dueDate}</td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       {invoice.status === "overdue" && (
                         <Button variant="outline" size="sm" className="h-7 text-[10px] px-2.5 border-zinc-200">
                           <Send className="h-3 w-3 mr-1" />

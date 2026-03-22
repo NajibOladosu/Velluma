@@ -299,8 +299,8 @@ export default function ClientDetailPage() {
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Clients
         </Link>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="h-12 w-12 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
               <User className="h-6 w-6 text-zinc-500" strokeWidth={1.5} />
             </div>
@@ -316,7 +316,7 @@ export default function ClientDetailPage() {
               <Muted className="truncate block">{displayCompany} · Client since {client.createdAt}</Muted>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize">
               {statusLabel[client.status] ?? client.status}
             </Badge>
@@ -375,26 +375,28 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-zinc-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={cn(
-              "px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px",
-              activeTab === tab.id
-                ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-400 hover:text-zinc-600"
-            )}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-            {tab.count !== undefined && (
-              <span className={cn("ml-1 text-[10px]", activeTab === tab.id ? "text-zinc-900" : "text-zinc-400")}>
-                {tab.count}
-              </span>
-            )}
-          </button>
-        ))}
+      <div className="overflow-x-auto">
+        <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={cn(
+                "px-4 py-2.5 text-xs font-medium transition-colors border-b-2 -mb-px whitespace-nowrap",
+                activeTab === tab.id
+                  ? "border-zinc-900 text-zinc-900"
+                  : "border-transparent text-zinc-400 hover:text-zinc-600"
+              )}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={cn("ml-1 text-[10px]", activeTab === tab.id ? "text-zinc-900" : "text-zinc-400")}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ─── Overview Tab ─── */}
@@ -420,7 +422,7 @@ export default function ClientDetailPage() {
                   <P className="text-sm font-medium">{client.enrichment.industry}</P>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 {client.enrichment.linkedin && (
                   <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
                     <Linkedin className="h-3.5 w-3.5" strokeWidth={1.5} /> LinkedIn
@@ -440,9 +442,9 @@ export default function ClientDetailPage() {
                   { icon: Phone, value: client.phone },
                   { icon: Globe, value: client.website },
                 ].map((item) => (
-                  <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600">
+                  <div key={item.value} className="flex items-center gap-2 text-sm text-zinc-600 min-w-0">
                     <item.icon className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
-                    {item.value}
+                    <span className="truncate">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -537,7 +539,7 @@ export default function ClientDetailPage() {
                         <div className="flex items-center gap-2">
                           <P className="text-sm font-medium truncate">{contact.name}</P>
                           {contact.portalAccess && (
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-0.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-0.5 shrink-0">
                               <Eye className="h-2.5 w-2.5" /> Portal
                             </span>
                           )}
@@ -616,7 +618,7 @@ export default function ClientDetailPage() {
                       <Icon className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0 space-y-0.5">
-                      <P className="text-sm text-zinc-800 leading-snug">{event.action}</P>
+                      <P className="text-sm text-zinc-800 leading-snug break-words">{event.action}</P>
                       <div className="flex items-center gap-2">
                         <Muted className="text-[10px] uppercase tracking-widest">{event.time}</Muted>
                         <span className="text-[10px] text-zinc-300 uppercase tracking-widest capitalize">{event.type}</span>
@@ -661,15 +663,15 @@ export default function ClientDetailPage() {
                         <P className="text-sm text-zinc-600 truncate">{inv.project}</P>
                       </td>
                       <td className="px-6 py-4">
-                        <P className="text-sm font-medium text-zinc-900">{inv.amount}</P>
+                        <P className="text-sm font-medium text-zinc-900 whitespace-nowrap">{inv.amount}</P>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className={cn("border-zinc-200 bg-transparent font-medium capitalize", invoiceStatusStyles[inv.status])}>
+                        <Badge variant="outline" className={cn("border-zinc-200 bg-transparent font-medium capitalize flex-shrink-0", invoiceStatusStyles[inv.status])}>
                           {inv.status}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Muted className="text-xs">{inv.date}</Muted>
+                        <Muted className="text-xs whitespace-nowrap">{inv.date}</Muted>
                       </td>
                     </tr>
                   ))

@@ -53,19 +53,21 @@ export default function ExpensesPage() {
     return (
         <div className="space-y-8">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <H1>Expense Hub</H1>
-                    <Muted>Track your overhead and prepare for tax season with clinical precision.</Muted>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+                <div className="min-w-0">
+                    <H1 className="truncate">Expense Hub</H1>
+                    <Muted className="break-words">Track your overhead and prepare for tax season with clinical precision.</Muted>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline">
-                        <Download className="h-4 w-4 mr-2" />
-                        Export CSV
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <Button variant="outline" className="flex-1 sm:flex-none shrink-0">
+                        <Download className="h-4 w-4 sm:mr-2 shrink-0" />
+                        <span className="hidden sm:inline">Export CSV</span>
+                        <span className="sm:hidden">Export</span>
                     </Button>
-                    <Button variant="blue">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Expense
+                    <Button variant="blue" className="flex-1 sm:flex-none shrink-0">
+                        <Plus className="h-4 w-4 sm:mr-2 shrink-0" />
+                        <span className="hidden sm:inline">Add Expense</span>
+                        <span className="sm:hidden">Add</span>
                     </Button>
                 </div>
             </div>
@@ -74,14 +76,14 @@ export default function ExpensesPage() {
                 {/* Main Table */}
                 <div className="lg:col-span-3 space-y-4">
                     <Surface className="p-0 overflow-hidden">
-                        <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/30">
-                            <div className="relative max-w-xs w-full">
+                        <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between bg-zinc-50/30 gap-4 sm:gap-0">
+                            <div className="relative w-full sm:max-w-xs">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                                <Input placeholder="Filter expenses..." className="pl-9 h-9" />
+                                <Input placeholder="Filter expenses..." className="pl-9 h-9 w-full" />
                             </div>
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="sm" className="h-8">Date Range</Button>
-                                <Button variant="outline" size="sm" className="h-8">Category</Button>
+                            <div className="flex gap-2 w-full sm:w-auto shrink-0">
+                                <Button variant="outline" size="sm" className="h-8 flex-1 sm:flex-none">Date Range</Button>
+                                <Button variant="outline" size="sm" className="h-8 flex-1 sm:flex-none">Category</Button>
                             </div>
                         </div>
                         <DataTable columns={columns} data={expensesData} />
@@ -103,18 +105,18 @@ export default function ExpensesPage() {
                     <Surface className="p-6 space-y-4">
                         <H3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Quick Summary</H3>
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-600">Total Billed</span>
-                                <span className="text-sm font-semibold text-zinc-900">$2,624.00</span>
+                            <div className="flex items-center justify-between gap-4">
+                                <span className="text-sm text-zinc-600 truncate">Total Billed</span>
+                                <span className="text-sm font-semibold text-zinc-900 shrink-0">$2,624.00</span>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-600">Pending Reimbursements</span>
-                                <span className="text-sm font-semibold text-zinc-900">$54.99</span>
+                            <div className="flex items-center justify-between gap-4">
+                                <span className="text-sm text-zinc-600 truncate">Pending Reimbursements</span>
+                                <span className="text-sm font-semibold text-zinc-900 shrink-0">$54.99</span>
                             </div>
                             <Separator />
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-zinc-600">Estimated Tax Write-off</span>
-                                <span className="text-sm font-semibold text-blue-600">$787.20</span>
+                            <div className="flex items-center justify-between gap-4">
+                                <span className="text-sm text-zinc-600 truncate">Estimated Tax Write-off</span>
+                                <span className="text-sm font-semibold text-blue-600 shrink-0">$787.20</span>
                             </div>
                         </div>
                     </Surface>

@@ -322,14 +322,14 @@ export default function ProposalBuilderPage() {
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Proposals</span>
           </Link>
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div>
+          <Separator orientation="vertical" className="h-6 hidden sm:block shrink-0" />
+          <div className="min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-xl">{proposal.title}</H1>
-              <div className="flex items-center gap-2">
+              <H1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] truncate">{proposal.title}</H1>
+              <div className="flex items-center gap-2 shrink-0">
                 <Badge
                   variant="outline"
-                  className={cn("bg-transparent", statusConfig[proposal.status].className)}
+                  className={cn("bg-transparent shrink-0", statusConfig[proposal.status].className)}
                 >
                   {statusConfig[proposal.status].label}
                 </Badge>
@@ -338,11 +338,11 @@ export default function ProposalBuilderPage() {
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
               <Link
                 href={`/clients/${proposal.clientId}`}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors truncate max-w-[150px]"
               >
-                <Building className="h-3 w-3" />
-                {proposal.client}
-                <ExternalLink className="h-2.5 w-2.5" />
+                <Building className="h-3 w-3 shrink-0" />
+                <span className="truncate">{proposal.client}</span>
+                <ExternalLink className="h-2.5 w-2.5 shrink-0" />
               </Link>
               <span className="text-zinc-300 hidden sm:inline">·</span>
               <Muted className="text-xs">Created {proposal.createdAt}</Muted>
@@ -416,31 +416,31 @@ export default function ProposalBuilderPage() {
               <Separator />
               <div className="space-y-1.5">
                 {selectedTier && (
-                  <div className="flex justify-between text-xs text-zinc-600">
-                    <span className="capitalize">{selectedTier} Package</span>
-                    <span>${selectedTierPrice.toLocaleString()}</span>
+                  <div className="flex justify-between text-xs text-zinc-600 gap-2">
+                    <span className="capitalize truncate min-w-0">{selectedTier} Package</span>
+                    <span className="shrink-0">${selectedTierPrice.toLocaleString()}</span>
                   </div>
                 )}
                 {addOns
                   .filter((a) => a.enabled)
                   .map((a) => (
-                    <div key={a.id} className="flex justify-between text-xs text-zinc-600">
-                      <span>{a.label}</span>
-                      <span>+${a.price.toLocaleString()}</span>
+                    <div key={a.id} className="flex justify-between text-xs text-zinc-600 gap-2">
+                      <span className="truncate min-w-0">{a.label}</span>
+                      <span className="shrink-0">+${a.price.toLocaleString()}</span>
                     </div>
                   ))}
                 <Separator />
-                <div className="flex justify-between text-sm font-bold text-zinc-900">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toLocaleString()}</span>
+                <div className="flex justify-between text-sm font-bold text-zinc-900 gap-2">
+                  <span className="truncate min-w-0">Subtotal</span>
+                  <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Deposit ({proposal.depositPercent}%)</span>
-                  <span>${deposit.toLocaleString()}</span>
+                <div className="flex justify-between text-xs text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>Balance Due</span>
-                  <span>${balance.toLocaleString()}</span>
+                <div className="flex justify-between text-xs text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Balance Due</span>
+                  <span className="shrink-0">${balance.toLocaleString()}</span>
                 </div>
               </div>
             </Surface>
@@ -464,10 +464,10 @@ export default function ProposalBuilderPage() {
                 </div>
                 <div className="p-8 space-y-6">
                   <div className="space-y-2">
-                    <H2 className="text-3xl font-bold tracking-tight">
+                    <H2 className="text-[clamp(1.5rem,3vw,1.875rem)] font-bold tracking-tight break-words">
                       {proposal.title}
                     </H2>
-                    <Muted>{proposal.client}</Muted>
+                    <Muted className="truncate">{proposal.client}</Muted>
                   </div>
                   <Separator />
                   <div className="space-y-4">
@@ -513,9 +513,9 @@ export default function ProposalBuilderPage() {
                     { token: "{{project.startDate}}", value: "Mar 15, 2026" },
                     { token: "{{project.endDate}}", value: "May 30, 2026" },
                   ].map((field) => (
-                    <div key={field.token} className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                      <Muted className="text-[10px] font-mono">{field.token}</Muted>
-                      <div className="text-sm font-medium text-zinc-900 mt-0.5">
+                    <div key={field.token} className="rounded-md border border-zinc-200 bg-zinc-50 p-3 min-w-0 flex flex-col">
+                      <Muted className="text-[10px] font-mono truncate">{field.token}</Muted>
+                      <div className="text-sm font-medium text-zinc-900 mt-0.5 truncate">
                         {field.value}
                       </div>
                     </div>
@@ -657,13 +657,13 @@ export default function ProposalBuilderPage() {
                   Proposal Total
                 </Muted>
                 <Separator />
-                <div className="flex justify-between text-lg font-bold text-zinc-900">
-                  <span>Subtotal</span>
-                  <span>${subtotal.toLocaleString()}</span>
+                <div className="flex justify-between text-lg font-bold text-zinc-900 gap-2">
+                  <span className="truncate min-w-0">Subtotal</span>
+                  <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm text-zinc-500">
-                  <span>Deposit ({proposal.depositPercent}%)</span>
-                  <span>${deposit.toLocaleString()}</span>
+                <div className="flex justify-between text-sm text-zinc-500 gap-2">
+                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
               </Surface>
             </>

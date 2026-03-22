@@ -79,13 +79,13 @@ function ClientMetrics({ clients }: { clients: ClientRow[] }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
       {metrics.map((m) => (
-        <Surface key={m.label} className="p-5">
+        <Surface key={m.label} className="p-5 flex flex-col min-w-0">
           <div className="flex items-center justify-between pb-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">{m.label}</Muted>
-            <m.icon className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">{m.label}</Muted>
+            <m.icon className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900">{m.value}</div>
-          <Muted className="text-[10px] mt-1">{m.sub}</Muted>
+          <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{m.value}</div>
+          <Muted className="text-[10px] mt-1 truncate block">{m.sub}</Muted>
         </Surface>
       ))}
     </div>
@@ -230,13 +230,13 @@ export default function ClientsPage() {
       <div className="space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <H1>Clients</H1>
-            <Muted>
+          <div className="min-w-0">
+            <H1 className="truncate">Clients</H1>
+            <Muted className="truncate block">
               {isLoading ? "Loading…" : `${clients.length} contacts in your rolodex.`}
             </Muted>
           </div>
-          <Button className="font-semibold px-5 gap-2" onClick={() => setAddClientOpen(true)}>
+          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0" onClick={() => setAddClientOpen(true)}>
             <Plus className="h-4 w-4" strokeWidth={1.5} />
             Add Client
           </Button>
@@ -249,9 +249,9 @@ export default function ClientsPage() {
         {isError && (
           <div className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-zinc-500" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-zinc-900">Failed to load clients</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{(error as Error)?.message}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-zinc-900 truncate">Failed to load clients</p>
+              <p className="text-xs text-zinc-500 mt-0.5 break-words">{(error as Error)?.message}</p>
             </div>
             <Button variant="outline" size="sm" className="h-7 text-xs border-zinc-200" onClick={() => refetch()}>
               Retry
@@ -416,36 +416,36 @@ export default function ClientsPage() {
                     return (
                       <Link key={client.id} href={`/clients/${client.id}`} className="contents">
                         <tr className="group hover:bg-zinc-50/50 transition-colors cursor-pointer">
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
+                          <td className="px-4 py-4 max-w-[200px]">
+                            <div className="flex items-center gap-3 min-w-0">
                               <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                                 <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                               </div>
-                              <div>
-                                <span className="font-semibold text-zinc-900 tracking-tight">{client.name}</span>
+                              <div className="min-w-0">
+                                <span className="font-semibold text-zinc-900 tracking-tight truncate block max-w-[150px] sm:max-w-[200px]">{client.name}</span>
                                 {client.company_name && (
-                                  <div className="text-xs text-zinc-500">{client.company_name}</div>
+                                  <div className="text-xs text-zinc-500 truncate block max-w-[150px] sm:max-w-[200px]">{client.company_name}</div>
                                 )}
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize">
+                            <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize shrink-0">
                               {statusLabel[status] ?? status}
                             </Badge>
                           </td>
                           <td className="px-4 py-4 hidden sm:table-cell">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-zinc-900 text-sm">{client.health_score ?? "—"}</span>
+                              <span className="font-medium text-zinc-900 text-sm shrink-0">{client.health_score ?? "—"}</span>
                               {client.health_score != null && (
-                                <div className="w-12 h-[3px] bg-zinc-100 rounded-full overflow-hidden">
+                                <div className="w-12 h-[3px] bg-zinc-100 rounded-full overflow-hidden shrink-0">
                                   <div className="h-full bg-zinc-900 rounded-full" style={{ width: `${client.health_score}%` }} />
                                 </div>
                               )}
                             </div>
                           </td>
                           <td className="px-4 py-4 hidden md:table-cell">
-                            <div className="font-medium text-zinc-900">{formatRevenue(client)}</div>
+                            <div className="font-medium text-zinc-900 truncate">{formatRevenue(client)}</div>
                           </td>
                           <td className="px-4 py-4 hidden lg:table-cell">
                             <div className="flex flex-wrap gap-1">
@@ -461,10 +461,10 @@ export default function ClientsPage() {
                           </td>
                           <td className="px-4 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <span className="text-xs text-zinc-400">
+                              <span className="text-xs text-zinc-400 shrink-0 whitespace-nowrap">
                                 {new Date(client.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                               </span>
-                              <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0" />
                             </div>
                           </td>
                         </tr>
