@@ -285,7 +285,7 @@ function PipelineMetrics({ stages }: { stages: PipelineStage[] }) {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">{m.label}</Muted>
             <m.icon className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="font-bold tracking-tighter text-zinc-900 break-words max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>{m.value}</div>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>{m.value}</div>
           <Muted className="text-[10px] mt-1 truncate max-w-full">{m.sub}</Muted>
         </Surface>
       ))}

@@ -197,7 +197,7 @@ export default function ContractsDirectoryPage() {
                   <h4 className="font-semibold text-zinc-900 text-base mb-1 tracking-tight group-hover:underline cursor-pointer truncate">
                     <Link href={`/contracts/${template.id}`}>{template.name}</Link>
                   </h4>
-                  <p className="text-sm text-zinc-500 leading-relaxed flex-1 line-clamp-2 break-words">
+                  <p className="text-sm text-zinc-500 leading-relaxed flex-1 line-clamp-2">
                     {template.description}
                   </p>
                 </div>

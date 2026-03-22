@@ -59,7 +59,7 @@ export default function ProfitabilityPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Net Income (YTD)</Muted>
             <TrendingUp className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="font-bold tracking-tighter text-zinc-900 break-words max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$108,200</div>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$108,200</div>
           <Muted className="text-[10px] mt-1 truncate max-w-full">Revenue minus expenses</Muted>
         </Surface>
         <Surface className="p-6 flex flex-col min-w-0">
@@ -67,7 +67,7 @@ export default function ProfitabilityPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Total Expenses (YTD)</Muted>
             <Receipt className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="font-bold tracking-tighter text-zinc-900 break-words max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>${totalExpenses.toLocaleString()}</div>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>${totalExpenses.toLocaleString()}</div>
           <Muted className="text-[10px] mt-1 truncate max-w-full">{expenseCategories.reduce((s, e) => s + e.transactions, 0)} transactions</Muted>
         </Surface>
         <Surface className="p-6 flex flex-col min-w-0">
@@ -75,7 +75,7 @@ export default function ProfitabilityPage() {
             <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Tax Set Aside</Muted>
             <PiggyBank className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
-          <div className="font-bold tracking-tighter text-zinc-900 break-words max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$37,664</div>
+          <div className="font-bold tracking-tighter text-zinc-900 truncate max-w-full" style={{ fontSize: "clamp(1.5rem, 4vw, 1.875rem)" }}>$37,664</div>
           <Muted className="text-[10px] mt-1 truncate max-w-full">30.3% of net income</Muted>
         </Surface>
       </div>

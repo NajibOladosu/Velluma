@@ -352,7 +352,7 @@ export default function ClientDetailPage() {
             <DollarSign className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
           <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.revenueDisplay}</div>
-          <Muted className="text-[10px] mt-1 break-words">{client.activeProjects} active · {client.completedProjects} completed</Muted>
+          <Muted className="text-[10px] mt-1 truncate">{client.activeProjects} active · {client.completedProjects} completed</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -361,7 +361,7 @@ export default function ClientDetailPage() {
             <CreditCard className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
           </div>
           <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{client.invoices.length}</div>
-          <Muted className="text-[10px] mt-1 break-words">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
+          <Muted className="text-[10px] mt-1 truncate">{paidInvoices.length} paid · {pendingInvoices.length} pending · {overdueInvoices.length} overdue</Muted>
         </Surface>
 
         <Surface className="p-5">
@@ -492,7 +492,7 @@ export default function ClientDetailPage() {
                   <div key={i} className="px-5 py-3 flex items-center justify-between group gap-4">
                     <div className="min-w-0">
                       <Muted className="text-[10px] uppercase tracking-widest font-bold truncate block">{field.label}</Muted>
-                      <P className="text-sm font-medium mt-0.5 break-words">{field.value}</P>
+                      <P className="text-sm font-medium mt-0.5 truncate">{field.value}</P>
                     </div>
                     <PenLine className="h-3.5 w-3.5 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                   </div>
@@ -618,7 +618,7 @@ export default function ClientDetailPage() {
                       <Icon className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0 space-y-0.5">
-                      <P className="text-sm text-zinc-800 leading-snug break-words">{event.action}</P>
+                      <P className="text-sm text-zinc-800 leading-snug truncate">{event.action}</P>
                       <div className="flex items-center gap-2">
                         <Muted className="text-[10px] uppercase tracking-widest">{event.time}</Muted>
                         <span className="text-[10px] text-zinc-300 uppercase tracking-widest capitalize">{event.type}</span>

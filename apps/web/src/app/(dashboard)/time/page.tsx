@@ -75,7 +75,7 @@ export default function TimePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
           <H1 className="truncate">Time Tracker</H1>
-          <Muted className="break-words">Log billable hours with precision. Every minute is money.</Muted>
+          <Muted className="truncate">Log billable hours with precision. Every minute is money.</Muted>
         </div>
         <Button className="gap-2 font-semibold px-5 w-full sm:w-auto shrink-0" variant="outline">
           <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -145,7 +145,7 @@ export default function TimePage() {
               <m.icon className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
             </div>
             <div className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter text-zinc-900 truncate">{m.value}</div>
-            <Muted className="text-[10px] mt-1 break-words line-clamp-2">{m.sub}</Muted>
+            <Muted className="text-[10px] mt-1 line-clamp-2">{m.sub}</Muted>
           </Surface>
         ))}
       </div>
