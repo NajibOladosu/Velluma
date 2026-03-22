@@ -293,43 +293,65 @@ export default function ClientDetailPage() {
 
   return (
     <div className="space-y-8">
-      {/* Back Link + Header */}
-      <div>
-        <Link href="/clients" className="flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-900 transition-colors mb-4">
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Clients
-        </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="h-12 w-12 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
-              <User className="h-6 w-6 text-zinc-500" strokeWidth={1.5} />
+      {/* ── Header ─────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
+          <Link
+            href="/clients"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Link>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
+              <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <H1 className="text-2xl truncate">{displayName}</H1>
-                {client.enrichment.confidence >= 90 && (
-                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex-shrink-0">
-                    <Bot className="h-3 w-3" /> Enriched
-                  </span>
-                )}
-              </div>
-              <Muted className="truncate block">{displayCompany} · Client since {client.createdAt}</Muted>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium capitalize">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {displayName}
+            </H1>
+            {client.enrichment.confidence >= 90 && (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex-shrink-0">
+                <Bot className="h-3 w-3" /> Enriched
+              </span>
+            )}
+            <Badge
+              variant="outline"
+              className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200 capitalize"
+            >
               {statusLabel[client.status] ?? client.status}
             </Badge>
-            <Button variant="outline" size="sm" className="border-zinc-200 gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Send Email
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+            <span className="truncate min-w-0 flex-shrink-0">{displayCompany}</span>
+            <span className="flex-shrink-0 text-zinc-300">•</span>
+            <span className="truncate min-w-0 flex-shrink-0">Client since {client.createdAt}</span>
+          </div>
+        </div>
+
+        {/* RIGHT: Actions */}
+        <div className="flex flex-col sm:flex-row items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto flex-1 h-9">
+              <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Send Email</span>
             </Button>
-            <Button variant="outline" size="sm" className="border-zinc-200 gap-1.5">
-              <Calendar className="h-3.5 w-3.5" /> Schedule
-            </Button>
-            <Button size="sm" className="gap-1.5 font-semibold">
-              <Plus className="h-3.5 w-3.5" /> New Project
+            <Button variant="outline" className="w-full sm:w-auto flex-1 h-9">
+              <Calendar className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Schedule</span>
             </Button>
           </div>
+          <Button className="w-full sm:w-auto h-9">
+            <Plus className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">New Project</span>
+            <span className="inline sm:hidden">Project</span>
+          </Button>
         </div>
       </div>
 

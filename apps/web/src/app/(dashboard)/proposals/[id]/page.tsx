@@ -313,42 +313,47 @@ export default function ProposalBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div className="flex items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
           <Link
             href="/proposals"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Proposals</span>
+            Back to Proposals
           </Link>
-          <Separator orientation="vertical" className="h-6 hidden sm:block shrink-0" />
-          <div className="min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] truncate">{proposal.title}</H1>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge
-                  variant="outline"
-                  className={cn("bg-transparent shrink-0", statusConfig[proposal.status].className)}
-                >
-                  {statusConfig[proposal.status].label}
-                </Badge>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
-              <Link
-                href={`/clients/${proposal.clientId}`}
-                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors truncate max-w-[150px]"
-              >
-                <Building className="h-3 w-3 shrink-0" />
-                <span className="truncate">{proposal.client}</span>
-                <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-              </Link>
-              <span className="text-zinc-300 hidden sm:inline">·</span>
-              <Muted className="text-xs">Created {proposal.createdAt}</Muted>
-            </div>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {proposal.title}
+            </H1>
+            <Badge
+              variant="outline"
+              className={cn("flex-shrink-0 bg-transparent shrink-0", statusConfig[proposal.status].className)}
+            >
+              {statusConfig[proposal.status].label}
+            </Badge>
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+            <Link
+              href={`/clients/${proposal.clientId}`}
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+            >
+              <Building className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{proposal.client}</span>
+              <ExternalLink className="h-3 w-3 shrink-0" />
+            </Link>
+            <span className="flex-shrink-0 text-zinc-300">•</span>
+            <span className="truncate min-w-0 flex-shrink-0">Created {proposal.createdAt}</span>
           </div>
         </div>
+
+        {/* RIGHT: Actions */}
         <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none h-9">
             <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
