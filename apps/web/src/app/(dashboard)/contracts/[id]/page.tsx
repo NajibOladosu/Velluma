@@ -265,95 +265,99 @@ export default function ContractBuilderPage() {
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-        <div className="flex items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
+        {/* LEFT: back link + title + badge + meta */}
+        <div className="flex flex-col min-w-0 flex-1 w-full">
+          {/* Back link */}
           <Link
             href="/contracts"
-            className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 transition-colors mt-1 sm:mt-0"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Contracts</span>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Contracts
           </Link>
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
-          <div className="min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-              <H1 className="text-xl truncate">{contractName}</H1>
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Template type badge */}
-                {meta.isTemplate && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "bg-transparent text-zinc-500 border-zinc-200",
-                      meta.type === "standard" && "text-zinc-700"
-                    )}
-                  >
-                    {meta.type === "standard" ? "Standard" : "Custom"} Template
-                  </Badge>
+
+          {/* Title + badge inline */}
+          <div className="flex items-center gap-2 min-w-0 mb-1">
+            <H1 className="text-2xl font-medium truncate min-w-0">
+              {contractName}
+            </H1>
+            {/* Template type badge */}
+            {meta.isTemplate && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "flex-shrink-0 bg-transparent text-zinc-500 border-zinc-200",
+                  meta.type === "standard" && "text-zinc-700"
                 )}
-                {/* Status badge for active contracts */}
-                {!meta.isTemplate && meta.status && (
-                  <Badge
-                    variant="outline"
-                    className={cn("bg-transparent", statusConfig[meta.status]?.className)}
-                  >
-                    {statusConfig[meta.status]?.label}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-0.5">
-              {/* Active contract — link to client */}
-              {!meta.isTemplate && meta.client && (
-                <>
-                  <Link
-                    href={`/clients/${meta.clientId}`}
-                    className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors max-w-[200px]"
-                  >
-                    <Building className="h-3 w-3 shrink-0" strokeWidth={1.5} />
-                    <span className="truncate">{meta.client}</span>
-                    <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-                  </Link>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                </>
-              )}
-              {/* Template — usage count */}
-              {meta.isTemplate && meta.usageCount !== undefined && (
-                <>
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <ReceiptText className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.usageCount} uses
-                  </span>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <Lock className="h-3 w-3" strokeWidth={1.5} />
-                    {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
-                  </span>
-                  <span className="text-zinc-300 hidden sm:inline">·</span>
-                </>
-              )}
-              <Muted className="text-xs">
-                {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
-              </Muted>
-            </div>
+              >
+                {meta.type === "standard" ? "Standard" : "Custom"} Template
+              </Badge>
+            )}
+            {/* Status badge for active contracts */}
+            {!meta.isTemplate && meta.status && (
+              <Badge
+                variant="outline"
+                className={cn("flex-shrink-0 bg-transparent", statusConfig[meta.status]?.className)}
+              >
+                {statusConfig[meta.status]?.label}
+              </Badge>
+            )}
+          </div>
+
+          {/* Meta row */}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+            {/* Active contract — link to client */}
+            {!meta.isTemplate && meta.client && (
+              <>
+                <Link
+                  href={`/clients/${meta.clientId}`}
+                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+                >
+                  <Building className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{meta.client}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </Link>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+              </>
+            )}
+            {/* Template — usage count */}
+            {meta.isTemplate && meta.usageCount !== undefined && (
+              <>
+                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
+                  <ReceiptText className="h-3 w-3 shrink-0" />
+                  {meta.usageCount} uses
+                </span>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
+                  <Lock className="h-3 w-3 shrink-0" />
+                  {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
+                </span>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+              </>
+            )}
+            <span className="truncate min-w-0 flex-shrink-0">
+              {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
+            </span>
           </div>
         </div>
 
-        {/* CTA buttons */}
+        {/* RIGHT: Actions */}
         <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-            <Eye className="h-4 w-4" strokeWidth={1.5} />
+          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Preview</span>
           </Button>
           {meta.isTemplate && (
-            <Button variant="outline" size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-              <Copy className="h-4 w-4" strokeWidth={1.5} />
+            <Button variant="outline" className="flex-1 sm:flex-none h-9">
+              <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
               <span className="hidden sm:inline">Duplicate</span>
             </Button>
           )}
-          <Button size="sm" className="h-9 gap-1.5 flex-1 sm:flex-none">
-            <Save className="h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Save</span><span className="inline sm:hidden">Template</span>
+          <Button className="flex-1 sm:flex-none h-9">
+            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            <span className="hidden sm:inline">Save</span>
+            <span className="inline sm:hidden">Template</span>
           </Button>
         </div>
       </div>
