@@ -106,7 +106,7 @@ function ClauseBlock({
   return (
     <Surface
       className={cn(
-        "p-8 relative transition-colors",
+        "p-4 sm:p-8 relative transition-colors",
         locked && !clause.alwaysEditable
           ? "border-l-4 border-l-zinc-300"
           : "border-l-4 border-l-zinc-900"
@@ -425,7 +425,7 @@ export default function ContractBuilderPage() {
 
         {/* Editor Area */}
         <main className="flex-1 overflow-y-auto bg-zinc-50/30">
-          <div className="mx-auto max-w-4xl p-8 py-12">
+          <div className="mx-auto max-w-4xl p-4 py-8 sm:p-8 sm:py-12">
 
             {activeTab === "editor" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -441,9 +441,9 @@ export default function ContractBuilderPage() {
                 </div>
 
                 {/* Clause Locking Banner */}
-                <div className="mb-8 flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="mb-8 flex flex-wrap sm:flex-nowrap items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-zinc-900">Clause Locking</h4>
                     <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
                       Use the lock icon next to each clause to control which sections can be edited in proposals.{" "}
@@ -556,19 +556,19 @@ export default function ContractBuilderPage() {
                 <Surface className="p-8">
                   <H3 className="text-base mb-6">Default Automations</H3>
                   <div className="space-y-4 max-w-2xl">
-                    <div className="flex items-center justify-between border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
-                      <div>
+                    <div className="flex items-start sm:items-center justify-between gap-3 border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-900">Auto-Reminders</p>
                         <p className="text-xs text-zinc-500 mt-0.5">Send automatic reminders if unsigned</p>
                       </div>
-                      <Badge variant="outline" className="bg-white">3 days before expiry</Badge>
+                      <Badge variant="outline" className="bg-white shrink-0 whitespace-nowrap">3 days before expiry</Badge>
                     </div>
-                    <div className="flex items-center justify-between border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
-                      <div>
+                    <div className="flex items-start sm:items-center justify-between gap-3 border border-zinc-200 p-4 rounded-lg bg-zinc-50/50 hover:bg-zinc-50 transition-colors">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-900">Post-Signature Action</p>
                         <p className="text-xs text-zinc-500 mt-0.5">What happens after all parties sign</p>
                       </div>
-                      <Button variant="outline" size="sm" className="h-7 text-xs bg-white">
+                      <Button variant="outline" size="sm" className="h-7 text-xs bg-white shrink-0">
                         Configure Actions
                       </Button>
                     </div>
