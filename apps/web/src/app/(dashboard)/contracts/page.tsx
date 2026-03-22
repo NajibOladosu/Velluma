@@ -113,14 +113,14 @@ export default function ContractsDirectoryPage() {
       {/* ── Header ─────────────────────────────── */}
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <H1>Contracts & Legal</H1>
-            <Muted>
+          <div className="min-w-0">
+            <H1 className="truncate">Contracts & Legal</H1>
+            <Muted className="truncate block">
               Manage your legal templates and track active client agreements.
             </Muted>
           </div>
           <Button
-            className="font-semibold px-5 gap-2"
+            className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto shrink-0"
             onClick={() => setShowNewDrawer(true)}
           >
             <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -163,7 +163,7 @@ export default function ContractsDirectoryPage() {
         // ==========================================
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <H3>Your Templates</H3>
+            <H3 className="truncate">Your Templates</H3>
             <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
               <Input
@@ -194,10 +194,10 @@ export default function ContractsDirectoryPage() {
                       </Badge>
                     )}
                   </div>
-                  <h4 className="font-semibold text-zinc-900 text-base mb-1 tracking-tight group-hover:underline cursor-pointer">
+                  <h4 className="font-semibold text-zinc-900 text-base mb-1 tracking-tight group-hover:underline cursor-pointer truncate">
                     <Link href={`/contracts/${template.id}`}>{template.name}</Link>
                   </h4>
-                  <p className="text-sm text-zinc-500 leading-relaxed flex-1">
+                  <p className="text-sm text-zinc-500 leading-relaxed flex-1 line-clamp-2 break-words">
                     {template.description}
                   </p>
                 </div>
@@ -224,35 +224,35 @@ export default function ContractsDirectoryPage() {
         <div className="space-y-6">
           {/* Metrics Row */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Surface className="p-5">
-              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+            <Surface className="p-5 flex flex-col min-w-0">
+              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
                 Total Protected Value
               </Muted>
-              <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+              <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
                 ${metrics.totalProtected.toLocaleString()}
               </div>
             </Surface>
-            <Surface className="p-5">
-              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+            <Surface className="p-5 flex flex-col min-w-0">
+              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
                 Pending Signatures
               </Muted>
-              <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+              <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
                 {metrics.pending}
               </div>
             </Surface>
-            <Surface className="p-5">
-              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+            <Surface className="p-5 flex flex-col min-w-0">
+              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
                 Drafts
               </Muted>
-              <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+              <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
                 {metrics.drafts}
               </div>
             </Surface>
-            <Surface className="p-5">
-              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">
+            <Surface className="p-5 flex flex-col min-w-0">
+              <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">
                 Fully Executed
               </Muted>
-              <div className="text-2xl font-bold tracking-tighter text-zinc-900 mt-1">
+              <div className="text-[clamp(1.25rem,2.5vw,1.5rem)] font-bold tracking-tighter text-zinc-900 mt-1 truncate">
                 {metrics.signedCount}{" "}
                 <span className="text-sm font-normal text-zinc-500">
                   · ${metrics.signedValue.toLocaleString()}
@@ -340,11 +340,11 @@ export default function ContractsDirectoryPage() {
                                   strokeWidth={1.5}
                                 />
                               </div>
-                              <div>
-                                <div className="font-semibold text-zinc-900 tracking-tight text-sm group-hover:underline">
+                              <div className="min-w-0">
+                                <div className="font-semibold text-zinc-900 tracking-tight text-sm group-hover:underline truncate max-w-[150px] sm:max-w-[250px]">
                                   {contract.title}
                                 </div>
-                                <Muted className="text-[10px]">
+                                <Muted className="text-[10px] truncate max-w-[150px] sm:max-w-[250px] block">
                                   {contract.client} · {contract.template}
                                 </Muted>
                               </div>
@@ -355,7 +355,7 @@ export default function ContractsDirectoryPage() {
                           <Badge
                             variant="outline"
                             className={cn(
-                              "bg-transparent",
+                              "bg-transparent shrink-0",
                               statusConfig[contract.status].className
                             )}
                           >
@@ -363,7 +363,7 @@ export default function ContractsDirectoryPage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-4 font-medium text-zinc-900 align-top hidden sm:table-cell">
-                          {contract.value}
+                          <div className="truncate max-w-[100px]">{contract.value}</div>
                         </td>
                         <td className="px-4 py-4 align-top hidden md:table-cell">
                           <div className="space-y-2">
@@ -372,10 +372,10 @@ export default function ContractsDirectoryPage() {
                                 {signer.status === "signed" ? (
                                   <CheckCircle2 className="h-3.5 w-3.5 text-zinc-900" />
                                 ) : (
-                                  <Clock className="h-3.5 w-3.5 text-zinc-400" />
+                                  <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                                 )}
                                 <span className={cn(
-                                  "text-sm font-medium",
+                                  "text-sm font-medium truncate max-w-[120px]",
                                   signer.status === "signed" ? "text-zinc-900" : "text-zinc-500"
                                 )}>{signer.name}</span>
                                 <Muted className="text-[10px]">({signer.role})</Muted>
@@ -404,7 +404,7 @@ export default function ContractsDirectoryPage() {
                           </div>
                         </td>
                         <td className="px-4 py-4 text-right align-top">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             {contract.status === "draft" && (
                               <Button
                                 variant="outline"

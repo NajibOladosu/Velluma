@@ -28,33 +28,33 @@ export default function AnalyticsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {/* Core KPIs */}
-                <Surface className="p-6 space-y-2">
-                    <Muted className="text-[10px] uppercase tracking-widest font-bold">Gross Margin</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter">78%</H2>
-                    <div className="flex items-center gap-1 text-emerald-600">
-                        <ArrowUpRight className="h-3 w-3" />
-                        <span className="text-xs font-medium">+4% vs last month</span>
+                <Surface className="p-6 flex flex-col min-w-0 space-y-2">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Gross Margin</Muted>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">78%</H2>
+                    <div className="flex items-center gap-1 text-emerald-600 min-w-0">
+                        <ArrowUpRight className="h-3 w-3 shrink-0" />
+                        <span className="text-xs font-medium truncate">+4% vs last month</span>
                     </div>
                 </Surface>
 
-                <Surface className="p-6 space-y-2">
-                    <Muted className="text-[10px] uppercase tracking-widest font-bold">Billance Velocity</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter">4.2</H2>
-                    <P className="text-xs text-zinc-500 break-words">Days from invoice to payout.</P>
+                <Surface className="p-6 flex flex-col min-w-0 space-y-2">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Billance Velocity</Muted>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">4.2</H2>
+                    <P className="text-xs text-zinc-500 break-words max-w-full">Days from invoice to payout.</P>
                 </Surface>
 
-                <Surface className="p-6 space-y-2">
-                    <Muted className="text-[10px] uppercase tracking-widest font-bold">Burn Rate</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter">$1,850</H2>
+                <Surface className="p-6 flex flex-col min-w-0 space-y-2">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Burn Rate</Muted>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter break-words max-w-full">$1,850</H2>
                     <div className="flex items-center gap-1 text-zinc-500 min-w-0">
                         <span className="text-xs font-medium truncate">Monthly overhead</span>
                     </div>
                 </Surface>
 
-                <Surface className="p-6 space-y-2 bg-zinc-900 border-zinc-800">
-                    <Muted className="text-[10px] uppercase tracking-widest font-bold text-zinc-400">Projected Q2</Muted>
-                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] text-white font-bold tracking-tighter">$74,500</H2>
-                    <P className="text-xs text-zinc-500 italic break-words">Based on active escrow.</P>
+                <Surface className="p-6 flex flex-col min-w-0 space-y-2 bg-zinc-900 border-zinc-800">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold text-zinc-400 truncate">Projected Q2</Muted>
+                    <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] text-white font-bold tracking-tighter break-words max-w-full">$74,500</H2>
+                    <P className="text-xs text-zinc-500 italic break-words max-w-full">Based on active escrow.</P>
                 </Surface>
             </div>
 

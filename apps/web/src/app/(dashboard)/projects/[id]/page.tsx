@@ -87,8 +87,8 @@ function TaskCard({ task, onSelect }: { task: Task; onSelect: (task: Task) => vo
       className="p-4 space-y-3 cursor-pointer hover:border-zinc-300 transition-colors group"
       onClick={() => onSelect(task)}
     >
-      <div className="flex items-start justify-between">
-        <P className="text-sm font-medium text-zinc-900 leading-snug">{task.title}</P>
+      <div className="flex items-start justify-between gap-2">
+        <P className="text-sm font-medium text-zinc-900 leading-snug line-clamp-2">{task.title}</P>
         <MoreHorizontal className="h-4 w-4 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
       </div>
       <div className="flex items-center justify-between">
@@ -120,7 +120,7 @@ function TaskDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
         </div>
 
         <div className="space-y-6">
-          <H2 className="text-xl">{task.title}</H2>
+          <H2 className="text-xl break-words">{task.title}</H2>
 
           <Separator />
 
@@ -130,9 +130,9 @@ function TaskDrawer({ task, onClose }: { task: Task; onClose: () => void }) {
               <Muted className="text-[10px] uppercase tracking-widest font-bold">Assignee</Muted>
               <div className="flex items-center gap-2">
                 <div className="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center">
-                  <User className="h-3.5 w-3.5 text-zinc-500" strokeWidth={1.5} />
+                  <User className="h-3.5 w-3.5 text-zinc-500 shrink-0" strokeWidth={1.5} />
                 </div>
-                <span className="text-sm font-medium text-zinc-900">{task.assignee}</span>
+                <span className="text-sm font-medium text-zinc-900 truncate max-w-[140px]">{task.assignee}</span>
               </div>
             </div>
             <div className="space-y-1">
@@ -205,10 +205,10 @@ export default function ProjectDetailPage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Projects
           </Link>
-          <div className="flex items-center justify-between">
-            <div>
-              <H1 className="text-2xl">E-commerce Redesign</H1>
-              <Muted>Acme Corp · $18,500 · 65% complete</Muted>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <H1 className="text-[clamp(1.25rem,2.5vw,1.5rem)] truncate">E-commerce Redesign</H1>
+              <Muted className="truncate">Acme Corp · $18,500 · 65% complete</Muted>
             </div>
             <Button className="font-semibold px-5 gap-2">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -223,9 +223,9 @@ export default function ProjectDetailPage() {
             <div key={column.id} className="space-y-3">
               {/* Column Header */}
               <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <column.icon className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
-                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-900">
+                <div className="flex items-center gap-2 min-w-0">
+                  <column.icon className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
+                  <span className="text-xs font-bold uppercase tracking-widest text-zinc-900 truncate">
                     {column.title}
                   </span>
                   <span className="text-[10px] font-bold text-zinc-400">
