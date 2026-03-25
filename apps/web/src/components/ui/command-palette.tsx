@@ -69,6 +69,7 @@ export function CommandPalette() {
     const [query, setQuery] = React.useState("")
     const [selectedIndex, setSelectedIndex] = React.useState(0)
     const inputRef = React.useRef<HTMLInputElement>(null)
+    const listRef = React.useRef<HTMLDivElement>(null)
     const router = useRouter()
 
     const results = React.useMemo(() => filterItems(query), [query])
@@ -86,6 +87,16 @@ export function CommandPalette() {
     React.useEffect(() => {
         setSelectedIndex(0)
     }, [results.length])
+
+    // Scroll selected item into view
+    React.useEffect(() => {
+        const container = listRef.current
+        if (!container) return
+        const selected = container.querySelector(`[data-index="${selectedIndex}"]`) as HTMLElement | null
+        if (selected) {
+            selected.scrollIntoView({ block: "nearest" })
+        }
+    }, [selectedIndex])
 
     // Keyboard shortcuts
     React.useEffect(() => {
@@ -174,7 +185,7 @@ export function CommandPalette() {
                             </div>
                         </div>
 
-                        <div className="p-2 max-h-[300px] overflow-y-auto">
+                        <div ref={listRef} className="p-2 max-h-[300px] overflow-y-auto">
                             {results.length === 0 ? (
                                 <div className="px-3 py-8 text-center">
                                     <p className="text-sm text-zinc-400">No results found for &ldquo;{query}&rdquo;</p>
@@ -193,6 +204,7 @@ export function CommandPalette() {
                                                     return (
                                                         <button
                                                             key={item.href}
+                                                            data-index={globalIndex}
                                                             onClick={() => navigate(item.href)}
                                                             onMouseEnter={() => setSelectedIndex(globalIndex)}
                                                             className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
