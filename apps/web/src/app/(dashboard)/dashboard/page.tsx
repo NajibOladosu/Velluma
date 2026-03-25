@@ -21,10 +21,10 @@ import {
 } from "lucide-react";
 
 const quickActions = [
-  { label: "New Client", icon: UserPlus, href: "/clients/new" },
-  { label: "New Project", icon: FolderPlus, href: "/projects/new" },
-  { label: "New File", icon: FilePlus, href: "/proposals/new" },
-  { label: "New Meeting", icon: Video, href: "/meetings/new" },
+  { label: "New Client", icon: UserPlus, href: "/clients" },
+  { label: "New Project", icon: FolderPlus, href: "/projects" },
+  { label: "New File", icon: FilePlus, href: "/contracts" },
+  { label: "New Meeting", icon: Video, href: "/pipeline" },
 ];
 
 const notificationMetrics = [
