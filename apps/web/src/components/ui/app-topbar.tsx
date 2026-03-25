@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Bell, Menu, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
-import { Input } from "./input";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
+import { useAppStore } from "@/store/use-app-store";
 
 export function AppTopBar() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const { setCommandPaletteOpen } = useAppStore();
 
   return (
     <>
@@ -27,25 +28,28 @@ export function AppTopBar() {
 
         {/* Search bar — hidden on mobile, visible sm+ */}
         <div className="hidden sm:flex flex-1 justify-center">
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <Input
-              type="search"
-              readOnly
-              placeholder="Press ⌘K to search clients, invoices, or projects..."
-              className="pl-10 bg-zinc-50 border-zinc-200 focus:bg-white transition-all h-10 w-full cursor-pointer rounded-md text-sm font-normal"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setCommandPaletteOpen(true)}
+            className="relative w-full max-w-xl flex items-center h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-400 hover:bg-white hover:border-zinc-300 transition-all cursor-pointer"
+          >
+            <Search className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">Search clients, invoices, or projects...</span>
+            <kbd className="ml-auto hidden md:flex h-5 items-center gap-1 rounded border border-zinc-200 bg-white px-1.5 font-mono text-[10px] font-medium text-zinc-400 shrink-0">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </button>
         </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-2 ml-auto">
-          {/* Search icon on mobile — tap to open search */}
+          {/* Search icon on mobile — tap to open command palette */}
           <Button
             variant="ghost"
             size="icon"
             className="flex sm:hidden h-9 w-9 text-zinc-500 hover:text-zinc-900"
             aria-label="Search"
+            onClick={() => setCommandPaletteOpen(true)}
           >
             <Search className="h-5 w-5" strokeWidth={1.5} />
           </Button>
