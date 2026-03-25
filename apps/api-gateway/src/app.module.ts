@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { SupabaseModule } from 'supabase-lib';
+import { SupabaseAuthGuard } from './common/guards/supabase-auth.guard';
 import { IdentityModule } from './identity/identity.module';
 import { IdentityController } from './identity/identity.controller';
 import { DocumentModule } from './document/document.module';
@@ -30,6 +33,7 @@ import { AutomationController } from './automation/automation.controller';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    SupabaseModule,
     IdentityModule,
     DocumentModule,
     FinanceModule,
@@ -56,6 +60,12 @@ import { AutomationController } from './automation/automation.controller';
     NotificationController,
     AutomationController,
   ],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: SupabaseAuthGuard,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule {}

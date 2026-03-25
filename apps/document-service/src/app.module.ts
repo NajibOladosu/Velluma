@@ -14,4 +14,4 @@ import { ProposalModule } from './proposal/proposal.module';
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

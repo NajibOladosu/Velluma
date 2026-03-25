@@ -14,4 +14,4 @@ import { ResourceModule } from './resource/resource.module';
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

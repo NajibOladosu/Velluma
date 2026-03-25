@@ -4,22 +4,24 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { getMicroserviceConfig } from '../common/utils/microservice-config';
 
 @Module({
-    imports: [
-        ClientsModule.registerAsync([
-            {
-                name: 'IDENTITY_SERVICE',
-                imports: [ConfigModule],
-                useFactory: (configService: ConfigService) => getMicroserviceConfig(configService),
-                inject: [ConfigService],
-            },
-            {
-                name: 'DOCUMENT_SERVICE',
-                imports: [ConfigModule],
-                useFactory: (configService: ConfigService) => getMicroserviceConfig(configService),
-                inject: [ConfigService],
-            },
-        ]),
-    ],
-    exports: [ClientsModule],
+  imports: [
+    ClientsModule.registerAsync([
+      {
+        name: 'IDENTITY_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) =>
+          getMicroserviceConfig(configService),
+        inject: [ConfigService],
+      },
+      {
+        name: 'DOCUMENT_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) =>
+          getMicroserviceConfig(configService),
+        inject: [ConfigService],
+      },
+    ]),
+  ],
+  exports: [ClientsModule],
 })
-export class IdentityModule { }
+export class IdentityModule {}
