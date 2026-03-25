@@ -14,4 +14,4 @@ import { ProjectModule } from './project/project.module';
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

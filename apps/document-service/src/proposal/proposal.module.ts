@@ -3,8 +3,8 @@ import { ProposalController } from './proposal.controller';
 import { ProposalService } from './proposal.service';
 
 @Module({
-    controllers: [ProposalController],
-    providers: [ProposalService],
-    exports: [ProposalService],
+  controllers: [ProposalController],
+  providers: [ProposalService],
+  exports: [ProposalService],
 })
-export class ProposalModule { }
+export class ProposalModule {}
