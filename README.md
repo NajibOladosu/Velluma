@@ -199,7 +199,7 @@ draft → pending_signatures → pending_funding → active → pending_delivery
 
 ## Deployment
 
-- **Frontend**: Vercel
+- **Frontend**: TBD
 - **CI/CD**: GitHub Actions — lint + typecheck on PRs, Vercel deploy on push to `master`
 - **Backend services**: Dockerized via `docker-compose.yml` with shared Dockerfile template
 
