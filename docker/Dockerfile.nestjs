@@ -1,0 +1,35 @@
+# Generic NestJS microservice Dockerfile
+# Usage: docker build --build-arg SERVICE_NAME=contract-service -f docker/Dockerfile.nestjs .
+
+ARG SERVICE_NAME
+
+# Build stage
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+ARG SERVICE_NAME
+
+COPY package*.json ./
+COPY turbo.json ./
+COPY apps/${SERVICE_NAME}/package*.json ./apps/${SERVICE_NAME}/
+COPY packages/ ./packages/
+
+RUN npm install
+
+COPY apps/${SERVICE_NAME}/ ./apps/${SERVICE_NAME}/
+
+RUN npm run build --workspace=${SERVICE_NAME}
+
+# Production stage
+FROM node:22-alpine
+
+WORKDIR /app
+
+ARG SERVICE_NAME
+
+COPY --from=builder /app/apps/${SERVICE_NAME}/dist ./dist
+COPY --from=builder /app/apps/${SERVICE_NAME}/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+
+CMD ["node", "dist/main"]
