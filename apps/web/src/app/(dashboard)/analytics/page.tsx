@@ -38,7 +38,7 @@ export default function AnalyticsPage() {
                 </Surface>
 
                 <Surface className="p-6 flex flex-col min-w-0 space-y-2">
-                    <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Billance Velocity</Muted>
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold truncate">Billable Velocity</Muted>
                     <H2 className="text-[clamp(1.5rem,2.5vw,1.875rem)] font-bold tracking-tighter truncate max-w-full">4.2</H2>
                     <P className="text-xs text-zinc-500 truncate max-w-full">Days from invoice to payout.</P>
                 </Surface>
