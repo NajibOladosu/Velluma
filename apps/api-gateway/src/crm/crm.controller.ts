@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Inject, Param, Query } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { CreateClientDto } from './dto/create-client.dto';
 
 @Controller('crm')
 export class CrmController {
@@ -14,7 +15,7 @@ export class CrmController {
     }
 
     @Post('clients')
-    async createClient(@Body() data: any) {
+    async createClient(@Body() data: CreateClientDto) {
         return await firstValueFrom(
             this.client.send('create_client', data)
         );
