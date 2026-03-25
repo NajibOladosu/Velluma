@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Inject, Param, Put } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { CreateMilestoneDto } from './dto/create-milestone.dto';
 
 @Controller('projects')
 export class ProjectController {
@@ -14,7 +15,7 @@ export class ProjectController {
     }
 
     @Post('milestones')
-    async createMilestone(@Body() data: any) {
+    async createMilestone(@Body() data: CreateMilestoneDto) {
         return await firstValueFrom(
             this.client.send('create_milestone', data)
         );
