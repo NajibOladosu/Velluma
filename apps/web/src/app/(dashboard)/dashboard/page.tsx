@@ -46,15 +46,16 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {quickActions.map((action) => (
-            <Button
-              key={action.label}
-              variant="outline"
-              size="sm"
-              className="h-9 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 gap-2"
-            >
-              <action.icon className="h-4 w-4" strokeWidth={1.5} />
-              <span className="hidden lg:inline text-xs font-medium">{action.label}</span>
-            </Button>
+            <Link key={action.label} href={action.href}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 border-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 gap-2"
+              >
+                <action.icon className="h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden lg:inline text-xs font-medium">{action.label}</span>
+              </Button>
+            </Link>
           ))}
         </div>
       </div>
