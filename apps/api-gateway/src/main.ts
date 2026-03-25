@@ -7,7 +7,11 @@ async function bootstrap() {
   const logger = new Logger('ApiGateway');
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableCors();
 
