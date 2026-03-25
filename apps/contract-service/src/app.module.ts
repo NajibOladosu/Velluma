@@ -14,4 +14,4 @@ import { ContractModule } from './contract/contract.module';
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}

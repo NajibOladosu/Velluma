@@ -14,4 +14,4 @@ import { CrmModule } from './crm/crm.module';
   controllers: [],
   providers: [],
 })
-export class AppModule { }
+export class AppModule {}
