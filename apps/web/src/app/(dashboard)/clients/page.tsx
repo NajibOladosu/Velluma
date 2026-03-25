@@ -121,12 +121,16 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name) return;
-    await createClient.mutateAsync({
-      name: form.name,
-      email: form.email || undefined,
-      company_name: form.company || undefined,
-    });
-    onClose();
+    try {
+      await createClient.mutateAsync({
+        name: form.name,
+        email: form.email || undefined,
+        company_name: form.company || undefined,
+      });
+      onClose();
+    } catch {
+      // Error is captured by createClient.error and displayed in the form UI
+    }
   }
 
   return (
