@@ -19,6 +19,7 @@ import {
   CheckSquare,
   DollarSign,
 } from "lucide-react";
+import Link from "next/link";
 
 const quickActions = [
   { label: "New Client", icon: UserPlus, href: "/clients" },
