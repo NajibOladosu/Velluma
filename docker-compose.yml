@@ -1,5 +1,18 @@
 version: '3.8'
 
+x-nestjs-service: &nestjs-service
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.nestjs
+  environment: &service-env
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    SUPABASE_URL: ${SUPABASE_URL}
+    SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+  depends_on:
+    - redis
+
 services:
   redis:
     image: redis:7-alpine
@@ -18,22 +31,131 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - PORT=3001
+      <<: *service-env
+      PORT: 3001
     depends_on:
       - redis
+      - identity-service
+      - contract-service
+      - crm-service
+      - project-service
+      - invoice-payment-service
 
   identity-service:
+    <<: *nestjs-service
     build:
       context: .
       dockerfile: apps/identity-service/Dockerfile
     container_name: velluma-identity
+
+  contract-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: contract-service
+    container_name: velluma-contract
+
+  crm-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: crm-service
+    container_name: velluma-crm
+
+  invoice-payment-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: invoice-payment-service
+    container_name: velluma-invoice-payment
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    depends_on:
-      - redis
+      <<: *service-env
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+
+  project-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: project-service
+    container_name: velluma-project
+
+  document-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: document-service
+    container_name: velluma-document
+
+  notification-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: notification-service
+    container_name: velluma-notification
+    environment:
+      <<: *service-env
+      EMAIL_SERVER_HOST: ${EMAIL_SERVER_HOST}
+      EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT}
+      EMAIL_SERVER_USER: ${EMAIL_SERVER_USER}
+      EMAIL_SERVER_PASSWORD: ${EMAIL_SERVER_PASSWORD}
+
+  automation-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: automation-service
+    container_name: velluma-automation
+
+  budget-tracking-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: budget-tracking-service
+    container_name: velluma-budget
+
+  expense-bookkeeping-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: expense-bookkeeping-service
+    container_name: velluma-expense
+
+  time-tracking-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: time-tracking-service
+    container_name: velluma-time
+
+  resource-service:
+    <<: *nestjs-service
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nestjs
+      args:
+        SERVICE_NAME: resource-service
+    container_name: velluma-resource
 
 volumes:
   redis_data:
