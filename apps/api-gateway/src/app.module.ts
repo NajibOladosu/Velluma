@@ -68,4 +68,4 @@ import { AutomationController } from './automation/automation.controller';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

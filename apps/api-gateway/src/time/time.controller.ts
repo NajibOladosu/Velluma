@@ -1,30 +1,34 @@
-import { Controller, Get, Post, Body, Inject, Param, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Inject,
+  Param,
+  Put,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { StartTimerDto } from './dto/start-timer.dto';
 
 @Controller('time')
 export class TimeController {
-    constructor(@Inject('TIME_SERVICE') private client: ClientProxy) { }
+  constructor(@Inject('TIME_SERVICE') private client: ClientProxy) {}
 
-    @Post('timers/start')
-    async startTimer(@Body() data: StartTimerDto) {
-        return await firstValueFrom(
-            this.client.send('start_timer', data)
-        );
-    }
+  @Post('timers/start')
+  async startTimer(@Body() data: StartTimerDto) {
+    return await firstValueFrom(this.client.send('start_timer', data));
+  }
 
-    @Put('timers/:id/stop')
-    async stopTimer(@Param('id') id: string) {
-        return await firstValueFrom(
-            this.client.send('stop_timer', { timerId: id })
-        );
-    }
+  @Put('timers/:id/stop')
+  async stopTimer(@Param('id') id: string) {
+    return await firstValueFrom(
+      this.client.send('stop_timer', { timerId: id }),
+    );
+  }
 
-    @Get('project/:projectId/timers')
-    async listTimers(@Param('projectId') projectId: string) {
-        return await firstValueFrom(
-            this.client.send('list_timers', { projectId })
-        );
-    }
+  @Get('project/:projectId/timers')
+  async listTimers(@Param('projectId') projectId: string) {
+    return await firstValueFrom(this.client.send('list_timers', { projectId }));
+  }
 }
