@@ -166,6 +166,18 @@ export default function TimePage() {
                 </tr>
               </thead>
             <tbody className="divide-y divide-zinc-100">
+              {recentEntries.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+                      </div>
+                      <Muted className="text-sm">No time entries yet. Start the timer to log your first entry.</Muted>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {recentEntries.map((entry) => (
                 <tr key={entry.id} className="hover:bg-zinc-50/50 transition-colors group">
                   <td className="px-4 py-4 max-w-[150px] sm:max-w-[200px]">

@@ -13,6 +13,7 @@ import {
   Send,
   Download,
   MoreHorizontal,
+  FileText,
 } from "lucide-react";
 
 interface Invoice {
@@ -146,6 +147,18 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+                      </div>
+                      <Muted className="text-sm">No invoices match the current filter.</Muted>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {filtered.map((invoice) => (
                 <tr key={invoice.id} className="group hover:bg-zinc-50/50 transition-colors">
                   <td className="px-6 py-4">
