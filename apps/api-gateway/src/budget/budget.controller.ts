@@ -1,6 +1,6 @@
-import { Controller, Get, Body, Inject, Param } from '@nestjs/common';
+import { Controller, Get, Inject, Param } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { callMicroservice } from '../common/utils/microservice-config';
 
 @Controller('budget')
 export class BudgetController {
@@ -8,14 +8,14 @@ export class BudgetController {
 
   @Get('project/:projectId/profitability')
   async getProfitability(@Param('projectId') projectId: string) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('get_profitability', { projectId }),
     );
   }
 
   @Get('tenant/:tenantId/health')
   async getTenantHealth(@Param('tenantId') tenantId: string) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('get_tenant_health', { tenantId }),
     );
   }

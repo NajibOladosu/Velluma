@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Inject, Param } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { callMicroservice } from '../common/utils/microservice-config';
 import { AddDeliverableDto } from './dto/deliverable.dto';
 
 @Controller('resources')
@@ -9,12 +9,12 @@ export class ResourceController {
 
   @Post('deliverables')
   async addDeliverable(@Body() data: AddDeliverableDto) {
-    return await firstValueFrom(this.client.send('add_deliverable', data));
+    return callMicroservice(this.client.send('add_deliverable', data));
   }
 
   @Get('project/:projectId')
   async listResources(@Param('projectId') projectId: string) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('list_resources', { projectId }),
     );
   }

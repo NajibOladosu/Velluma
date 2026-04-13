@@ -1,14 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Inject,
-  Param,
-  Put,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject, Param, Put } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 
 @Controller('projects')
@@ -17,14 +9,12 @@ export class ProjectController {
 
   @Get(':id/kanban')
   async getKanban(@Param('id') id: string) {
-    return await firstValueFrom(
-      this.client.send('get_kanban', { projectId: id }),
-    );
+    return callMicroservice(this.client.send('get_kanban', { projectId: id }));
   }
 
   @Post('milestones')
   async createMilestone(@Body() data: CreateMilestoneDto) {
-    return await firstValueFrom(this.client.send('create_milestone', data));
+    return callMicroservice(this.client.send('create_milestone', data));
   }
 
   @Put('milestones/:id/status')
@@ -32,7 +22,7 @@ export class ProjectController {
     @Param('id') id: string,
     @Body() data: { status: string },
   ) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('update_milestone_status', {
         milestoneId: id,
         status: data.status,

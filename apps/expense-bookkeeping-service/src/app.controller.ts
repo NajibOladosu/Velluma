@@ -1,12 +1,3 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
-
-@Controller()
-export class AppController {
-  constructor(private readonly appService: AppService) {}
-
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
-  }
-}
+// This file is intentionally empty.
+// The expense-bookkeeping-service runs as a Redis microservice.
+// All message handlers live in src/expense/expense.controller.ts.

@@ -1,14 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Inject,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject, Param, Query } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateClientDto } from './dto/create-client.dto';
 
 @Controller('crm')
@@ -17,17 +9,17 @@ export class CrmController {
 
   @Get('clients')
   async listClients(@Query('tenantId') tenantId: string) {
-    return await firstValueFrom(this.client.send('list_clients', { tenantId }));
+    return callMicroservice(this.client.send('list_clients', { tenantId }));
   }
 
   @Post('clients')
   async createClient(@Body() data: CreateClientDto) {
-    return await firstValueFrom(this.client.send('create_client', data));
+    return callMicroservice(this.client.send('create_client', data));
   }
 
   @Get('clients/:id')
   async getClientDetails(@Param('id') id: string) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('get_client_details', { clientId: id }),
     );
   }
