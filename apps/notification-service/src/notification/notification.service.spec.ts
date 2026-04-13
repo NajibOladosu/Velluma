@@ -3,200 +3,267 @@ import { ConfigService } from '@nestjs/config';
 import { SupabaseService } from 'supabase-lib';
 import { NotificationService } from './notification.service';
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Supabase chain mock
-// ──────────────────────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+   ───────────────────────────────────────────────────────────────────────────── */
 
-function makeChain() {
-  const c: any = {};
-  ['select', 'insert', 'update', 'delete', 'eq', 'order', 'limit'].forEach(
-    (m) => (c[m] = jest.fn().mockReturnValue(c)),
-  );
-  c.single = jest.fn().mockResolvedValue({ data: null, error: null });
-  return c;
+/**
+ * Chainable Supabase mock that is also thenable, so both
+ *   await chain.eq(...).order(...).limit(...)
+ * and
+ *   await chain.insert([...])
+ * resolve to `resolved` wherever the call chain terminates.
+ */
+function makeChain(resolved: { data: unknown; error: unknown }) {
+  const promise = Promise.resolve(resolved);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const chain: any = {
+    then: (
+      onFulfilled: Parameters<Promise<unknown>['then']>[0],
+      onRejected: Parameters<Promise<unknown>['then']>[1],
+    ) => promise.then(onFulfilled, onRejected),
+    catch: (fn: Parameters<Promise<unknown>['catch']>[0]) => promise.catch(fn),
+    finally: (fn: Parameters<Promise<unknown>['finally']>[0]) =>
+      promise.finally(fn),
+  };
+  ['select', 'eq', 'order', 'limit', 'insert'].forEach((m) => {
+    chain[m] = jest.fn().mockReturnValue(chain);
+  });
+  return chain;
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Tests
-// ──────────────────────────────────────────────────────────────────────────────
+/** Mock Twilio messages.create */
+const mockTwilioCreate = jest.fn();
+const mockTwilioClient = { messages: { create: mockTwilioCreate } };
 
-describe('NotificationService', () => {
-  let service: NotificationService;
-  let chain: ReturnType<typeof makeChain>;
-  let mockFetch: jest.SpyInstance;
+async function buildService(
+  configValues: Record<string, string | undefined>,
+  fromMock?: jest.Mock,
+): Promise<NotificationService> {
+  const defaultChain = makeChain({ data: [], error: null });
+  const from = fromMock ?? jest.fn().mockReturnValue(defaultChain);
 
-  const mockSupabaseService = {
-    getClient: jest.fn(),
+  const supabaseMock = {
+    getClient: jest.fn().mockReturnValue({ from }),
   };
 
-  beforeEach(async () => {
-    chain = makeChain();
-    mockSupabaseService.getClient.mockReturnValue({
-      from: jest.fn().mockReturnValue(chain),
+  const module: TestingModule = await Test.createTestingModule({
+    providers: [
+      NotificationService,
+      { provide: SupabaseService, useValue: supabaseMock },
+      {
+        provide: ConfigService,
+        useValue: { get: jest.fn((key: string) => configValues[key]) },
+      },
+    ],
+  }).compile();
+
+  return module.get<NotificationService>(NotificationService);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   sendSms
+   ───────────────────────────────────────────────────────────────────────────── */
+
+describe('NotificationService.sendSms', () => {
+  beforeEach(() => mockTwilioCreate.mockReset());
+
+  it('always persists an SMS notification row to the DB', async () => {
+    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const svc = await buildService({}, from);
+
+    await svc.sendSms({ to: '+14155550100', message: 'Hello', userId: 'u1' });
+
+    expect(from).toHaveBeenCalledWith('notifications');
+    const chain = from.mock.results[0].value;
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'sms', user_id: 'u1' }),
+      ]),
+    );
+  });
+
+  it('returns { success: true, queued: true } when Twilio is not configured', async () => {
+    const svc = await buildService({});
+    const result = await svc.sendSms({ to: '+14155550100', message: 'Test' });
+    expect(result).toEqual({ success: true, queued: true });
+  });
+
+  it('returns { success: true, queued: true } when TWILIO_FROM_NUMBER is missing', async () => {
+    const svc = await buildService({
+      TWILIO_ACCOUNT_SID: 'ACtest',
+      TWILIO_AUTH_TOKEN: 'authtoken',
+      // TWILIO_FROM_NUMBER omitted
     });
+    // Inject mock Twilio client directly to bypass module init
+    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
 
-    // Default: insert succeeds (insert returns the chain; no single() needed)
-    chain.insert.mockReturnValue(chain);
+    const result = await svc.sendSms({ to: '+14155550100', message: 'Test' });
 
-    // Spy on the global fetch
-    mockFetch = jest.spyOn(global, 'fetch').mockResolvedValue({
+    expect(result).toEqual({ success: true, queued: true });
+    expect(mockTwilioCreate).not.toHaveBeenCalled();
+  });
+
+  it('calls Twilio messages.create with E.164 number and returns sid', async () => {
+    mockTwilioCreate.mockResolvedValue({ sid: 'SM_abc123' });
+
+    const svc = await buildService({ TWILIO_FROM_NUMBER: '+18005550100' });
+    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
+
+    const result = await svc.sendSms({ to: '+14155550100', message: 'Contract ready' });
+
+    expect(mockTwilioCreate).toHaveBeenCalledWith({
+      to: '+14155550100',
+      from: '+18005550100',
+      body: 'Contract ready',
+    });
+    expect(result).toEqual({ success: true, sid: 'SM_abc123' });
+  });
+
+  it('returns { success: false, error } when Twilio API throws', async () => {
+    mockTwilioCreate.mockRejectedValue(new Error('21211: Invalid To number'));
+
+    const svc = await buildService({ TWILIO_FROM_NUMBER: '+18005550100' });
+    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
+
+    const result = await svc.sendSms({ to: '+1bad', message: 'Hi' });
+
+    expect(result).toEqual({ success: false, error: '21211: Invalid To number' });
+  });
+
+  it('sets user_id to null when userId is not provided', async () => {
+    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const svc = await buildService({}, from);
+
+    await svc.sendSms({ to: '+14155550100', message: 'Hi' });
+
+    const chain = from.mock.results[0].value;
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: null }),
+      ]),
+    );
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   sendEmail
+   ───────────────────────────────────────────────────────────────────────────── */
+
+describe('NotificationService.sendEmail', () => {
+  const emailData = {
+    to: 'client@example.com',
+    subject: 'Contract ready',
+    template: 'Hello {{name}}, your contract is ready.',
+    variables: { name: 'Alice' },
+    userId: 'u1',
+  };
+
+  let fetchSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({ id: 'resend-msg-123' }),
+      json: jest.fn().mockResolvedValue({ id: 'resend_001' }),
       text: jest.fn().mockResolvedValue(''),
     } as unknown as Response);
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        NotificationService,
-        { provide: SupabaseService, useValue: mockSupabaseService },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key: string, def?: any) => {
-              if (key === 'RESEND_API_KEY') return 're_test_key';
-              if (key === 'EMAIL_FROM') return 'noreply@velluma.com';
-              return def;
-            }),
-          },
-        },
-      ],
-    }).compile();
-
-    service = module.get<NotificationService>(NotificationService);
   });
 
-  afterEach(() => {
-    mockFetch.mockRestore();
+  afterEach(() => fetchSpy.mockRestore());
+
+  it('persists a notification row with type=email', async () => {
+    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const svc = await buildService({ RESEND_API_KEY: 'key' }, from);
+
+    await svc.sendEmail(emailData);
+
+    const chain = from.mock.results[0].value;
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'email', title: emailData.subject }),
+      ]),
+    );
   });
 
-  // ── sendEmail ─────────────────────────────────────────────────────────────
+  it('renders template variables before persisting', async () => {
+    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const svc = await buildService({}, from);
 
-  describe('sendEmail()', () => {
-    const emailData = {
-      to: 'user@example.com',
-      subject: 'Contract Signed',
-      template: 'Your contract {{contractId}} has been signed.',
-      variables: { contractId: 'c-1' },
-      userId: 'user-1',
-    };
+    await svc.sendEmail(emailData);
 
-    it('stores a notification record and sends via Resend', async () => {
-      const result = await service.sendEmail(emailData);
-
-      expect(result.success).toBe(true);
-      expect(result.messageId).toBe('resend-msg-123');
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.resend.com/emails',
-        expect.objectContaining({ method: 'POST' }),
-      );
-      expect(chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            type: 'email',
-            title: emailData.subject,
-          }),
-        ]),
-      );
-    });
-
-    it('interpolates template variables correctly', async () => {
-      await service.sendEmail(emailData);
-
-      // The notification stored should have the rendered template
-      expect(chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            message: 'Your contract c-1 has been signed.',
-          }),
-        ]),
-      );
-    });
-
-    it('returns queued:true and success:false when Resend responds with non-2xx', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        text: jest.fn().mockResolvedValue('Bad API key'),
-      } as unknown as Response);
-
-      const result = await service.sendEmail(emailData);
-
-      expect(result.success).toBe(false);
-      expect(result.queued).toBe(true);
-    });
-
-    it('returns queued:true when RESEND_API_KEY is not set', async () => {
-      const module = await Test.createTestingModule({
-        providers: [
-          NotificationService,
-          {
-            provide: require('supabase-lib').SupabaseService,
-            useValue: mockSupabaseService,
-          },
-          {
-            provide: ConfigService,
-            useValue: {
-              get: jest.fn().mockReturnValue(undefined),
-            },
-          },
-        ],
-      }).compile();
-
-      const noKeyService = module.get<NotificationService>(NotificationService);
-      const result = await noKeyService.sendEmail(emailData);
-
-      expect(result.success).toBe(true);
-      expect(result.queued).toBe(true);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
+    const chain = from.mock.results[0].value;
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ message: 'Hello Alice, your contract is ready.' }),
+      ]),
+    );
   });
 
-  // ── sendSms ───────────────────────────────────────────────────────────────
-
-  describe('sendSms()', () => {
-    it('stores an SMS notification and returns queued:true when Twilio is not set', async () => {
-      const result = await service.sendSms({
-        to: '+1234567890',
-        message: 'Your contract is ready',
-        userId: 'user-1',
-      });
-
-      expect(result.success).toBe(true);
-      expect(result.queued).toBe(true);
-      expect(chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ type: 'sms' }),
-        ]),
-      );
-    });
+  it('returns { success: true, queued: true } when RESEND_API_KEY is not set', async () => {
+    const svc = await buildService({});
+    const result = await svc.sendEmail(emailData);
+    expect(result).toEqual({ success: true, queued: true });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  // ── listNotifications ─────────────────────────────────────────────────────
+  it('sends to Resend and returns messageId on success', async () => {
+    const svc = await buildService({ RESEND_API_KEY: 're_live_key' });
+    const result = await svc.sendEmail(emailData);
 
-  describe('listNotifications()', () => {
-    it('returns notifications for the user', async () => {
-      const notifications = [
-        { id: 'n1', type: 'email', title: 'Contract Signed', is_read: false },
-        { id: 'n2', type: 'sms', title: 'SMS', is_read: true },
-      ];
-      // listNotifications uses .limit() as terminal call
-      chain.limit = jest
-        .fn()
-        .mockResolvedValue({ data: notifications, error: null });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://api.resend.com/emails',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(result).toEqual({ success: true, messageId: 'resend_001' });
+  });
 
-      const result = await service.listNotifications('user-1');
+  it('returns { success: false, queued: true } when Resend returns non-2xx', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      text: jest.fn().mockResolvedValue('rate limit exceeded'),
+    } as unknown as Response);
 
-      expect(result).toEqual(notifications);
-      expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-1');
-    });
+    const svc = await buildService({ RESEND_API_KEY: 're_live_key' });
+    const result = await svc.sendEmail(emailData);
 
-    it('throws when Supabase returns an error', async () => {
-      chain.limit = jest
-        .fn()
-        .mockResolvedValue({ data: null, error: { message: 'DB error' } });
+    expect(result).toEqual({ success: false, queued: true });
+  });
 
-      await expect(service.listNotifications('user-1')).rejects.toMatchObject({
-        message: 'DB error',
-      });
+  it('returns { success: false, queued: true } when fetch throws', async () => {
+    fetchSpy.mockRejectedValue(new Error('network error'));
+
+    const svc = await buildService({ RESEND_API_KEY: 're_live_key' });
+    const result = await svc.sendEmail(emailData);
+
+    expect(result).toEqual({ success: false, queued: true });
+  });
+});
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   listNotifications
+   ───────────────────────────────────────────────────────────────────────────── */
+
+describe('NotificationService.listNotifications', () => {
+  it('returns the notifications list', async () => {
+    const notifications = [
+      { id: 'n1', type: 'email', is_read: false },
+      { id: 'n2', type: 'sms', is_read: true },
+    ];
+    const chain = makeChain({ data: notifications, error: null });
+    const svc = await buildService({}, jest.fn().mockReturnValue(chain));
+
+    const result = await svc.listNotifications('user-abc');
+
+    expect(result).toEqual(notifications);
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'user-abc');
+  });
+
+  it('throws when Supabase returns an error', async () => {
+    const chain = makeChain({ data: null, error: { message: 'DB error' } });
+    const svc = await buildService({}, jest.fn().mockReturnValue(chain));
+
+    await expect(svc.listNotifications('user-abc')).rejects.toMatchObject({
+      message: 'DB error',
     });
   });
 });
