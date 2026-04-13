@@ -15,6 +15,12 @@ import { api } from "@/lib/api-client"
 // DB row types
 // ---------------------------------------------------------------------------
 
+export interface ContractSection {
+  id: string
+  title: string
+  content: string
+}
+
 export type DbContractStatus =
   | "draft"
   | "awaiting_freelancer_review"
@@ -44,6 +50,8 @@ export interface ContractRow {
   signed_by_client: string | null
   signed_by_freelancer: string | null
   tenant_id: string | null
+  content: { sections: ContractSection[] } | null
+  ai_enhanced: boolean | null
 }
 
 export interface ContractTemplateRow {
@@ -83,6 +91,8 @@ export interface Contract {
   template: string
   description: string
   signers: ContractSigner[]
+  sections: ContractSection[]
+  aiEnhanced: boolean
 }
 
 export interface ContractTemplate {
@@ -176,6 +186,8 @@ function mapRowToContract(row: ContractRow): Contract {
     template: "Standard Contract",
     description: row.description ?? "",
     signers,
+    sections: row.content?.sections ?? [],
+    aiEnhanced: row.ai_enhanced ?? false,
   }
 }
 

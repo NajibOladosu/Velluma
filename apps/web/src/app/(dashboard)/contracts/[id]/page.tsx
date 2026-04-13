@@ -8,12 +8,15 @@ import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
 import {
   resolveContractMeta,
   resolveContractDescription,
 } from "@/lib/data/contracts";
+import { useContract } from "@/lib/queries/contracts";
+import type { ContractSection } from "@/lib/queries/contracts";
 import {
   ArrowLeft,
   Eye,
@@ -48,7 +51,27 @@ interface Clause {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CLAUSE DATA — single source of truth
+   HELPERS
+   ═══════════════════════════════════════════════════════ */
+
+/** Convert plain text (with \n\n paragraph breaks) to HTML for the TipTap editor. */
+function textToHtml(text: string): string {
+  if (!text) return ""
+  // If it already looks like HTML, return as-is
+  if (text.trim().startsWith("<")) return text
+  return text
+    .split(/\n\n+/)
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("")
+}
+
+/** Returns true when id is a Supabase UUID. */
+function isUUID(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+}
+
+/* ═══════════════════════════════════════════════════════
+   DEFAULT CLAUSES — used for templates / static contracts
    ═══════════════════════════════════════════════════════ */
 
 const DEFAULT_CLAUSES: Clause[] = [
@@ -81,6 +104,15 @@ const DEFAULT_CLAUSES: Clause[] = [
   },
 ];
 
+/** Map AI-generated sections to the Clause shape. */
+function sectionsToClauses(sections: ContractSection[]): Clause[] {
+  return sections.map((s) => ({
+    id: s.id,
+    title: s.title,
+    defaultContent: textToHtml(s.content),
+  }))
+}
+
 /* ═══════════════════════════════════════════════════════
    CLAUSE BLOCK COMPONENT
    ═══════════════════════════════════════════════════════ */
@@ -112,7 +144,7 @@ function ClauseBlock({
           : "border-l-4 border-l-zinc-900"
       )}
     >
-      {/* Lock toggle button — positioned on the left border */}
+      {/* Lock toggle button */}
       {showLockToggle && (
         <button
           type="button"
@@ -152,7 +184,6 @@ function ClauseBlock({
 
       {/* Clause body */}
       {clause.alwaysLocked ? (
-        /* System-generated — never editable */
         <div className="text-sm text-zinc-600 space-y-3 opacity-80 bg-zinc-50 p-4 rounded-md border border-zinc-100">
           <p>
             Provider agrees to perform the services detailed in the &ldquo;Scope &amp; Value&rdquo;
@@ -165,13 +196,11 @@ function ClauseBlock({
           </p>
         </div>
       ) : locked ? (
-        /* Locked — read-only preview */
         <div
-          className="text-sm text-zinc-600 opacity-80 cursor-not-allowed select-none"
+          className="text-sm text-zinc-600 opacity-80 cursor-not-allowed select-none prose prose-sm prose-zinc max-w-none"
           dangerouslySetInnerHTML={{ __html: content }}
         />
       ) : (
-        /* Unlocked — editable */
         <MinimalEditor
           content={content}
           onChange={(val) => onContentChange(clause.id, val)}
@@ -184,6 +213,38 @@ function ClauseBlock({
 }
 
 /* ═══════════════════════════════════════════════════════
+   LOADING SKELETON
+   ═══════════════════════════════════════════════════════ */
+
+function ContractDetailSkeleton() {
+  return (
+    <div className="space-y-6 pb-20">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-8 w-96" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="flex gap-6 min-h-[calc(100vh-14rem)]">
+        <aside className="w-64 border-r border-zinc-200 bg-zinc-50 p-4 shrink-0 hidden md:block">
+          <Skeleton className="h-4 w-32 mb-6" />
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        </aside>
+        <main className="flex-1 space-y-4 p-8">
+          <Skeleton className="h-6 w-48 mb-2" />
+          <Skeleton className="h-4 w-64 mb-8" />
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </main>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════
    PAGE COMPONENT
    ═══════════════════════════════════════════════════════ */
 
@@ -191,12 +252,30 @@ export default function ContractBuilderPage() {
   const params = useParams();
   const id = (params?.id as string) ?? "";
 
-  // Resolve all metadata from the shared data layer
-  const meta             = resolveContractMeta(id);
-  const contractName     = meta.name;
-  const contractDescription = resolveContractDescription(id);
+  // For UUID IDs: fetch from Supabase. For static IDs (t1, 1, etc.): use mock data.
+  const fetchFromDB = isUUID(id)
+  const { data: dbContract, isLoading } = useContract(fetchFromDB ? id : "")
 
-  // Status badge config for active contracts
+  // Resolve header metadata
+  const staticMeta = !fetchFromDB ? resolveContractMeta(id) : null
+  const staticDescription = !fetchFromDB ? resolveContractDescription(id) : null
+
+  const contractTitle = dbContract?.title ?? staticMeta?.name ?? "Untitled Contract"
+  const contractDescription = dbContract?.description || staticDescription || ""
+  const isTemplate = staticMeta?.isTemplate ?? false
+  const contractStatus = dbContract?.status ?? staticMeta?.status ?? undefined
+  const contractClient = dbContract?.client ?? staticMeta?.client
+  const contractClientId = dbContract?.clientId ?? staticMeta?.clientId
+  const contractDate = dbContract?.createdAt ?? staticMeta?.date ?? "—"
+  const aiEnhanced = dbContract?.aiEnhanced ?? false
+
+  // Build clauses from AI sections or fall back to defaults
+  const clauses: Clause[] =
+    dbContract?.sections && dbContract.sections.length > 0
+      ? sectionsToClauses(dbContract.sections)
+      : DEFAULT_CLAUSES
+
+  // Status badge config
   const statusConfig: Record<string, { label: string; className: string }> = {
     draft:   { label: "Draft",             className: "text-zinc-500 border-zinc-200" },
     pending: { label: "Pending Signatures", className: "text-amber-700 border-amber-300 bg-amber-50/50" },
@@ -206,30 +285,26 @@ export default function ContractBuilderPage() {
 
   const [activeTab, setActiveTab] = React.useState<EditorTab>("editor");
 
-  // Per-clause lock state — Set of locked clause IDs.
-  // Clauses start locked unless they are `alwaysEditable`.
+  // Per-clause lock and content state — initialized/reset when contract changes
   const [lockedClauses, setLockedClauses] = React.useState<Set<string>>(
-    () =>
-      new Set(
-        DEFAULT_CLAUSES.filter((c) => !c.alwaysEditable).map((c) => c.id)
-      )
+    () => new Set(DEFAULT_CLAUSES.filter((c) => !c.alwaysEditable).map((c) => c.id))
+  );
+  const [clauseContents, setClauseContents] = React.useState<Record<string, string>>(
+    () => Object.fromEntries(DEFAULT_CLAUSES.map((c) => [c.id, c.defaultContent]))
   );
 
-  // Per-clause content state
-  const [clauseContents, setClauseContents] = React.useState<
-    Record<string, string>
-  >(() =>
-    Object.fromEntries(DEFAULT_CLAUSES.map((c) => [c.id, c.defaultContent]))
-  );
+  // When real contract data loads, reinitialize clauses
+  React.useEffect(() => {
+    if (clauses.length === 0) return
+    setClauseContents(Object.fromEntries(clauses.map((c) => [c.id, c.defaultContent ?? ""])))
+    setLockedClauses(new Set(clauses.filter((c) => !c.alwaysEditable).map((c) => c.id)))
+  }, [dbContract?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function toggleClauseLock(id: string) {
     setLockedClauses((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -238,22 +313,17 @@ export default function ContractBuilderPage() {
     setClauseContents((prev) => ({ ...prev, [id]: value }));
   }
 
-  // "Lock All" / "Unlock All" operates only on togglable clauses
-  const togglableClauses = DEFAULT_CLAUSES.filter(
-    (c) => !c.alwaysLocked && !c.alwaysEditable
-  );
+  const togglableClauses = clauses.filter((c) => !c.alwaysLocked && !c.alwaysEditable);
   const allLocked = togglableClauses.every((c) => lockedClauses.has(c.id));
 
   function toggleAll() {
     if (allLocked) {
-      // Unlock all togglable
       setLockedClauses((prev) => {
         const next = new Set(prev);
         togglableClauses.forEach((c) => next.delete(c.id));
         return next;
       });
     } else {
-      // Lock all togglable
       setLockedClauses((prev) => {
         const next = new Set(prev);
         togglableClauses.forEach((c) => next.add(c.id));
@@ -262,13 +332,14 @@ export default function ContractBuilderPage() {
     }
   }
 
+  if (isLoading) return <ContractDetailSkeleton />
+
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
         {/* LEFT: back link + title + badge + meta */}
         <div className="flex flex-col min-w-0 flex-1 w-full">
-          {/* Back link */}
           <Link
             href="/contracts"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
@@ -277,67 +348,77 @@ export default function ContractBuilderPage() {
             Back to Contracts
           </Link>
 
-          {/* Title + badge inline */}
           <div className="flex items-center gap-2 min-w-0 mb-1">
             <H1 className="text-2xl font-medium truncate min-w-0">
-              {contractName}
+              {contractTitle}
             </H1>
-            {/* Template type badge */}
-            {meta.isTemplate && (
+            {aiEnhanced && (
+              <Badge
+                variant="outline"
+                className="flex-shrink-0 bg-transparent text-violet-600 border-violet-200 gap-1"
+              >
+                <Sparkles className="h-3 w-3" />
+                AI Generated
+              </Badge>
+            )}
+            {isTemplate && (
               <Badge
                 variant="outline"
                 className={cn(
                   "flex-shrink-0 bg-transparent text-zinc-500 border-zinc-200",
-                  meta.type === "standard" && "text-zinc-700"
+                  staticMeta?.type === "standard" && "text-zinc-700"
                 )}
               >
-                {meta.type === "standard" ? "Standard" : "Custom"} Template
+                {staticMeta?.type === "standard" ? "Standard" : "Custom"} Template
               </Badge>
             )}
-            {/* Status badge for active contracts */}
-            {!meta.isTemplate && meta.status && (
+            {!isTemplate && contractStatus && (
               <Badge
                 variant="outline"
-                className={cn("flex-shrink-0 bg-transparent", statusConfig[meta.status]?.className)}
+                className={cn("flex-shrink-0 bg-transparent", statusConfig[contractStatus]?.className)}
               >
-                {statusConfig[meta.status]?.label}
+                {statusConfig[contractStatus]?.label}
               </Badge>
             )}
           </div>
 
-          {/* Meta row */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
-            {/* Active contract — link to client */}
-            {!meta.isTemplate && meta.client && (
+            {!isTemplate && contractClient && (
               <>
-                <Link
-                  href={`/clients/${meta.clientId}`}
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
-                >
-                  <Building className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{meta.client}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                </Link>
+                {contractClientId ? (
+                  <Link
+                    href={`/clients/${contractClientId}`}
+                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+                  >
+                    <Building className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{contractClient}</span>
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1 truncate min-w-0 flex-shrink-0">
+                    <Building className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{contractClient}</span>
+                  </span>
+                )}
                 <span className="flex-shrink-0 text-zinc-300">•</span>
               </>
             )}
-            {/* Template — usage count */}
-            {meta.isTemplate && meta.usageCount !== undefined && (
+            {isTemplate && staticMeta?.usageCount !== undefined && (
               <>
                 <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
                   <ReceiptText className="h-3 w-3 shrink-0" />
-                  {meta.usageCount} uses
+                  {staticMeta.usageCount} uses
                 </span>
                 <span className="flex-shrink-0 text-zinc-300">•</span>
                 <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
                   <Lock className="h-3 w-3 shrink-0" />
-                  {meta.lockedClauses ?? 0} locked clause{(meta.lockedClauses ?? 0) !== 1 ? "s" : ""}
+                  {staticMeta.lockedClauses ?? 0} locked clause{(staticMeta.lockedClauses ?? 0) !== 1 ? "s" : ""}
                 </span>
                 <span className="flex-shrink-0 text-zinc-300">•</span>
               </>
             )}
             <span className="truncate min-w-0 flex-shrink-0">
-              {meta.isTemplate ? "Last modified" : "Created"} {meta.date}
+              {isTemplate ? "Last modified" : "Created"} {contractDate}
             </span>
           </div>
         </div>
@@ -348,7 +429,7 @@ export default function ContractBuilderPage() {
             <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Preview</span>
           </Button>
-          {meta.isTemplate && (
+          {isTemplate && (
             <Button variant="outline" className="flex-1 sm:flex-none h-9">
               <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
               <span className="hidden sm:inline">Duplicate</span>
@@ -432,7 +513,7 @@ export default function ContractBuilderPage() {
 
                 {/* Builder Header */}
                 <div className="mb-8 border-b border-zinc-200 pb-6">
-                  <H2>Agreement Template</H2>
+                  <H2>Agreement {aiEnhanced ? "Sections" : "Template"}</H2>
                   <Muted className="mt-1 text-sm">
                     {contractDescription
                       ? contractDescription
@@ -446,7 +527,7 @@ export default function ContractBuilderPage() {
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-zinc-900">Clause Locking</h4>
                     <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
-                      Use the lock icon next to each clause to control which sections can be edited in proposals.{" "}
+                      Use the lock icon next to each clause to control which sections can be edited.{" "}
                       <span className="font-medium text-zinc-700">
                         {togglableClauses.filter((c) => lockedClauses.has(c.id)).length} of {togglableClauses.length} togglable clauses locked.
                       </span>
@@ -467,12 +548,12 @@ export default function ContractBuilderPage() {
                 </div>
 
                 {/* Clause Blocks */}
-                {DEFAULT_CLAUSES.map((clause) => (
+                {clauses.map((clause) => (
                   <ClauseBlock
                     key={clause.id}
                     clause={clause}
                     isLocked={lockedClauses.has(clause.id)}
-                    content={clauseContents[clause.id]}
+                    content={clauseContents[clause.id] ?? ""}
                     onToggleLock={toggleClauseLock}
                     onContentChange={handleContentChange}
                   />
@@ -500,8 +581,12 @@ export default function ContractBuilderPage() {
                         <Lock className="h-3 w-3 text-zinc-400 shrink-0" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-sm font-semibold text-zinc-900 truncate">{"{{client.name}}"}</div>
-                        <div className="text-xs text-zinc-500 mt-1 truncate">{"{{client.email}}"}</div>
+                        <div className="text-sm font-semibold text-zinc-900 truncate">
+                          {contractClient ?? "{{client.name}}"}
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-1 truncate">
+                          {dbContract?.client ?? "{{client.email}}"}
+                        </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-zinc-100">
                         <p className="text-xs text-zinc-500 flex items-center gap-1.5">
@@ -538,7 +623,7 @@ export default function ContractBuilderPage() {
                       <input
                         type="text"
                         className="w-full flex h-10 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
-                        defaultValue={contractName}
+                        defaultValue={contractTitle}
                       />
                     </div>
                     <div className="space-y-2">
@@ -547,7 +632,7 @@ export default function ContractBuilderPage() {
                       </label>
                       <textarea
                         className="w-full flex rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 min-h-[100px]"
-                        defaultValue={contractDescription || ""}
+                        defaultValue={contractDescription}
                       />
                     </div>
                   </div>

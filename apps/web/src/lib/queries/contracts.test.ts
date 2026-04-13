@@ -108,6 +108,8 @@ const sampleContractRow: ContractRow = {
   signed_by_client: "2026-03-03T00:00:00Z",
   signed_by_freelancer: "2026-03-02T00:00:00Z",
   tenant_id: "t1",
+  content: null,
+  ai_enhanced: false,
 }
 
 describe("useContracts", () => {
