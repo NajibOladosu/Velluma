@@ -6,6 +6,7 @@ import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -15,27 +16,7 @@ import {
   MoreHorizontal,
   FileText,
 } from "lucide-react";
-
-interface Invoice {
-  id: string;
-  number: string;
-  client: string;
-  amount: string;
-  status: "paid" | "processing" | "upcoming" | "overdue";
-  dueDate: string;
-  sentDate: string;
-}
-
-const invoices: Invoice[] = [
-  { id: "1", number: "INV-0045", client: "Acme Corp", amount: "$2,500", status: "paid", dueDate: "Mar 01", sentDate: "Feb 25" },
-  { id: "2", number: "INV-0046", client: "Terra Finance", amount: "$5,500", status: "paid", dueDate: "Mar 05", sentDate: "Feb 28" },
-  { id: "3", number: "INV-0047", client: "Orbit Systems", amount: "$3,200", status: "processing", dueDate: "Mar 12", sentDate: "Mar 08" },
-  { id: "4", number: "INV-0048", client: "Acme Corp", amount: "$4,000", status: "upcoming", dueDate: "Mar 20", sentDate: "Mar 10" },
-  { id: "5", number: "INV-0049", client: "Vesper AI", amount: "$7,500", status: "upcoming", dueDate: "Mar 25", sentDate: "Mar 14" },
-  { id: "6", number: "INV-0040", client: "Nexus Labs", amount: "$1,800", status: "overdue", dueDate: "Feb 15", sentDate: "Feb 10" },
-  { id: "7", number: "INV-0041", client: "Bloom Studio", amount: "$3,200", status: "overdue", dueDate: "Feb 20", sentDate: "Feb 14" },
-  { id: "8", number: "INV-0042", client: "Cascade Media", amount: "$3,150", status: "overdue", dueDate: "Feb 28", sentDate: "Feb 22" },
-];
+import { useInvoices } from "@/lib/queries/invoices";
 
 const tabs = [
   { key: "all", label: "All" },
@@ -56,16 +37,17 @@ const statusStyles: Record<string, string> = {
 
 export default function InvoicesPage() {
   const [activeTab, setActiveTab] = React.useState<TabKey>("all");
+  const { data: invoices = [], isLoading } = useInvoices();
 
   const filtered = activeTab === "all"
     ? invoices
     : invoices.filter((inv) => inv.status === activeTab);
 
   const totals = {
-    paid: invoices.filter((i) => i.status === "paid").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
-    processing: invoices.filter((i) => i.status === "processing").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
-    upcoming: invoices.filter((i) => i.status === "upcoming").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
-    overdue: invoices.filter((i) => i.status === "overdue").reduce((s, i) => s + parseInt(i.amount.replace(/[$,]/g, "")), 0),
+    paid: invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.numericAmount, 0),
+    processing: invoices.filter((i) => i.status === "processing").reduce((s, i) => s + i.numericAmount, 0),
+    upcoming: invoices.filter((i) => i.status === "upcoming").reduce((s, i) => s + i.numericAmount, 0),
+    overdue: invoices.filter((i) => i.status === "overdue").reduce((s, i) => s + i.numericAmount, 0),
   };
 
   return (
@@ -147,7 +129,18 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filtered.length === 0 && (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-100">
+                    <td className="px-6 py-4"><Skeleton className="h-9 w-36" /></td>
+                    <td className="px-6 py-4 hidden sm:table-cell"><Skeleton className="h-5 w-24" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-20" /></td>
+                    <td className="px-6 py-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-7 w-16 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -158,8 +151,8 @@ export default function InvoicesPage() {
                     </div>
                   </td>
                 </tr>
-              )}
-              {filtered.map((invoice) => (
+              ) : null}
+              {!isLoading && filtered.map((invoice) => (
                 <tr key={invoice.id} className="group hover:bg-zinc-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-semibold text-zinc-900 tracking-tight truncate max-w-[150px] sm:max-w-[200px]">{invoice.number}</div>

@@ -5,6 +5,7 @@ import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 import { H1, H2, Muted, P } from "@/components/ui/typography";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   Clock,
@@ -16,25 +17,7 @@ import {
   BarChart2,
   Calendar,
 } from "lucide-react";
-
-/* ═══════════════════════════════════════════════════════
-   MOCK DATA
-   ═══════════════════════════════════════════════════════ */
-
-const recentEntries = [
-  { id: "1", task: "UI Design — Acme E-commerce", project: "Website Overhaul", client: "Acme Corp",  duration: "3h 15m", date: "Today",     rate: "$150/hr", total: "$487.50" },
-  { id: "2", task: "Backend API Integration",      project: "Dashboard Platform", client: "Terra Finance", duration: "2h 00m", date: "Today",     rate: "$150/hr", total: "$300.00" },
-  { id: "3", task: "Strategy & Discovery Call",   project: "Website Overhaul", client: "Acme Corp",  duration: "1h 00m", date: "Yesterday", rate: "$150/hr", total: "$150.00" },
-  { id: "4", task: "Wireframes v2 Revisions",     project: "Mobile App",       client: "Orbit Systems", duration: "4h 30m", date: "Yesterday", rate: "$150/hr", total: "$675.00" },
-  { id: "5", task: "Client Onboarding Email",     project: "Website Overhaul", client: "Acme Corp",  duration: "0h 45m", date: "Mar 19",    rate: "$150/hr", total: "$112.50" },
-];
-
-const weeklyMetrics = [
-  { label: "Hours This Week",  value: "28h 45m", sub: "+4h vs last week",   icon: Clock     },
-  { label: "Billable Hours",   value: "24h 30m", sub: "85% billable rate",  icon: DollarSign },
-  { label: "Revenue Logged",   value: "$3,675",  sub: "This week",          icon: BarChart2  },
-  { label: "Avg Daily Hours",  value: "5h 45m",  sub: "Mon – Fri",          icon: Calendar   },
-];
+import { useTimeEntries } from "@/lib/queries/time";
 
 /* ═══════════════════════════════════════════════════════
    MAIN PAGE
@@ -44,6 +27,41 @@ export default function TimePage() {
   const [running, setRunning] = React.useState(false);
   const [elapsed, setElapsed] = React.useState(0);
   const [task, setTask]       = React.useState("");
+  const { data: recentEntries = [], isLoading } = useTimeEntries();
+
+  // Compute weekly metrics from real data
+  const weeklyMetrics = React.useMemo(() => {
+    const now = new Date()
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+
+    const weekEntries = recentEntries.filter(
+      (e) => e.endTime && new Date(e.endTime) >= weekStart
+    )
+    const totalMins = weekEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
+    const billableEntries = weekEntries.filter((e) => e.hourlyRate > 0)
+    const billableMins = billableEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0)
+    const revenue = billableEntries.reduce((s, e) => {
+      const hrs = (e.durationMinutes ?? 0) / 60
+      return s + hrs * e.hourlyRate
+    }, 0)
+
+    const totalHrs = Math.floor(totalMins / 60)
+    const totalMinRem = totalMins % 60
+    const billableHrs = Math.floor(billableMins / 60)
+    const billableMinRem = billableMins % 60
+    const avgDailyMins = totalMins / 5
+    const avgHrs = Math.floor(avgDailyMins / 60)
+    const avgMinRem = Math.floor(avgDailyMins % 60)
+
+    return [
+      { label: "Hours This Week",  value: `${totalHrs}h ${String(totalMinRem).padStart(2,"0")}m`, sub: "Current week",   icon: Clock     },
+      { label: "Billable Hours",   value: `${billableHrs}h ${String(billableMinRem).padStart(2,"0")}m`, sub: totalMins > 0 ? `${Math.round((billableMins / totalMins) * 100)}% billable` : "No entries",  icon: DollarSign },
+      { label: "Revenue Logged",   value: `$${Math.round(revenue).toLocaleString()}`,  sub: "This week", icon: BarChart2  },
+      { label: "Avg Daily Hours",  value: `${avgHrs}h ${String(avgMinRem).padStart(2,"0")}m`,  sub: "Mon – Fri",          icon: Calendar   },
+    ]
+  }, [recentEntries]);
 
   // Stopwatch
   React.useEffect(() => {
@@ -166,7 +184,17 @@ export default function TimePage() {
                 </tr>
               </thead>
             <tbody className="divide-y divide-zinc-100">
-              {recentEntries.length === 0 && (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-100">
+                    <td className="px-4 py-4"><Skeleton className="h-5 w-40" /></td>
+                    <td className="px-4 py-4 hidden sm:table-cell"><Skeleton className="h-9 w-32" /></td>
+                    <td className="px-4 py-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-5 w-14" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-5 w-16" /></td>
+                  </tr>
+                ))
+              ) : recentEntries.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
@@ -177,29 +205,29 @@ export default function TimePage() {
                     </div>
                   </td>
                 </tr>
+              ) : (
+                recentEntries.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-zinc-50/50 transition-colors group">
+                    <td className="px-4 py-4 max-w-[150px] sm:max-w-[200px]">
+                      <span className="font-medium text-zinc-900 text-sm truncate block min-w-0">{entry.task}</span>
+                    </td>
+                    <td className="px-4 py-4 hidden sm:table-cell max-w-[150px] sm:max-w-[200px]">
+                      <div className="text-sm text-zinc-900 truncate min-w-0">{entry.contractId}</div>
+                    </td>
+                    <td className="px-4 py-4 hidden md:table-cell">
+                      <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[10px] font-medium capitalize shrink-0 whitespace-nowrap">
+                        {entry.date}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-mono text-sm font-medium text-zinc-900 shrink-0 whitespace-nowrap">{entry.duration}</span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="font-semibold text-zinc-900 shrink-0 whitespace-nowrap">{entry.total}</span>
+                    </td>
+                  </tr>
+                ))
               )}
-              {recentEntries.map((entry) => (
-                <tr key={entry.id} className="hover:bg-zinc-50/50 transition-colors group">
-                  <td className="px-4 py-4 max-w-[150px] sm:max-w-[200px]">
-                    <span className="font-medium text-zinc-900 text-sm truncate block min-w-0">{entry.task}</span>
-                  </td>
-                  <td className="px-4 py-4 hidden sm:table-cell max-w-[150px] sm:max-w-[200px]">
-                    <div className="text-sm text-zinc-900 truncate min-w-0">{entry.project}</div>
-                    <div className="text-xs text-zinc-400 truncate min-w-0">{entry.client}</div>
-                  </td>
-                  <td className="px-4 py-4 hidden md:table-cell">
-                    <Badge variant="outline" className="border-zinc-200 text-zinc-500 bg-transparent text-[10px] font-medium capitalize shrink-0 whitespace-nowrap">
-                      {entry.date}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="font-mono text-sm font-medium text-zinc-900 shrink-0 whitespace-nowrap">{entry.duration}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="font-semibold text-zinc-900 shrink-0 whitespace-nowrap">{entry.total}</span>
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
           </div>

@@ -28,207 +28,12 @@ import {
   LayoutTemplate,
   User,
 } from "lucide-react";
-
-/* ═══════════════════════════════════════════════════════
-   TYPES
-   ═══════════════════════════════════════════════════════ */
-
-type ProposalStatus = "draft" | "sent" | "viewed" | "signed" | "expired";
-
-interface Proposal {
-  id: string;
-  title: string;
-  client: string;
-  clientId: string;
-  status: ProposalStatus;
-  value: string;
-  numericValue: number;
-  createdAt: string;
-  sentAt: string | null;
-  viewedAt: string | null;
-  signedAt: string | null;
-  expiresAt: string | null;
-  template: string;
-  viewCount: number;
-  sections: number;
-}
-
-/* ═══════════════════════════════════════════════════════
-   MOCK DATA
-   ═══════════════════════════════════════════════════════ */
-
-const proposalsData: Proposal[] = [
-  {
-    id: "1",
-    title: "Website Overhaul — Full Redesign",
-    client: "Acme Corp",
-    clientId: "1",
-    status: "signed",
-    value: "$12,500",
-    numericValue: 12500,
-    createdAt: "Feb 28, 2026",
-    sentAt: "Mar 01, 2026",
-    viewedAt: "Mar 01, 2026",
-    signedAt: "Mar 03, 2026",
-    expiresAt: null,
-    template: "Website Project",
-    viewCount: 8,
-    sections: 5,
-  },
-  {
-    id: "2",
-    title: "Brand Identity Package",
-    client: "Vesper AI",
-    clientId: "3",
-    status: "viewed",
-    value: "$8,500",
-    numericValue: 8500,
-    createdAt: "Mar 05, 2026",
-    sentAt: "Mar 06, 2026",
-    viewedAt: "Mar 10, 2026",
-    signedAt: null,
-    expiresAt: "Mar 20, 2026",
-    template: "Brand Package",
-    viewCount: 4,
-    sections: 5,
-  },
-  {
-    id: "3",
-    title: "E-Commerce Platform Build",
-    client: "Terra Finance",
-    clientId: "2",
-    status: "sent",
-    value: "$22,000",
-    numericValue: 22000,
-    createdAt: "Mar 08, 2026",
-    sentAt: "Mar 09, 2026",
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: "Mar 23, 2026",
-    template: "Website Project",
-    viewCount: 0,
-    sections: 5,
-  },
-  {
-    id: "4",
-    title: "Mobile App MVP — Phase 1",
-    client: "Orbit Systems",
-    clientId: "4",
-    status: "draft",
-    value: "$18,000",
-    numericValue: 18000,
-    createdAt: "Mar 10, 2026",
-    sentAt: null,
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: null,
-    template: "Blank",
-    viewCount: 0,
-    sections: 3,
-  },
-  {
-    id: "5",
-    title: "Marketing Website Refresh",
-    client: "Bloom Studio",
-    clientId: "5",
-    status: "signed",
-    value: "$6,200",
-    numericValue: 6200,
-    createdAt: "Feb 20, 2026",
-    sentAt: "Feb 21, 2026",
-    viewedAt: "Feb 22, 2026",
-    signedAt: "Feb 24, 2026",
-    expiresAt: null,
-    template: "Website Project",
-    viewCount: 5,
-    sections: 5,
-  },
-  {
-    id: "6",
-    title: "SaaS Dashboard UI/UX",
-    client: "Nexus Labs",
-    clientId: "6",
-    status: "expired",
-    value: "$15,000",
-    numericValue: 15000,
-    createdAt: "Feb 01, 2026",
-    sentAt: "Feb 02, 2026",
-    viewedAt: "Feb 03, 2026",
-    signedAt: null,
-    expiresAt: "Feb 16, 2026",
-    template: "Blank",
-    viewCount: 2,
-    sections: 4,
-  },
-  {
-    id: "7",
-    title: "Content Strategy Retainer",
-    client: "Cascade Media",
-    clientId: "7",
-    status: "draft",
-    value: "$4,500",
-    numericValue: 4500,
-    createdAt: "Mar 12, 2026",
-    sentAt: null,
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: null,
-    template: "Blank",
-    viewCount: 0,
-    sections: 2,
-  },
-  {
-    id: "8",
-    title: "API Integration Suite",
-    client: "Acme Corp",
-    clientId: "1",
-    status: "viewed",
-    value: "$9,800",
-    numericValue: 9800,
-    createdAt: "Mar 11, 2026",
-    sentAt: "Mar 11, 2026",
-    viewedAt: "Mar 13, 2026",
-    signedAt: null,
-    expiresAt: "Mar 25, 2026",
-    template: "Website Project",
-    viewCount: 3,
-    sections: 5,
-  },
-  {
-    id: "9",
-    title: "Design System & Component Library",
-    client: "Vesper AI",
-    clientId: "3",
-    status: "sent",
-    value: "$11,200",
-    numericValue: 11200,
-    createdAt: "Mar 13, 2026",
-    sentAt: "Mar 13, 2026",
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: "Mar 27, 2026",
-    template: "Brand Package",
-    viewCount: 0,
-    sections: 5,
-  },
-  {
-    id: "10",
-    title: "Annual Maintenance Contract",
-    client: "Bloom Studio",
-    clientId: "5",
-    status: "draft",
-    value: "$3,600",
-    numericValue: 3600,
-    createdAt: "Mar 14, 2026",
-    sentAt: null,
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: null,
-    template: "Blank",
-    viewCount: 0,
-    sections: 2,
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useProposals,
+  type ProposalStatus,
+  type Proposal,
+} from "@/lib/queries/proposals";
 
 const statusTabs: { key: ProposalStatus | "all"; label: string }[] = [
   { key: "all", label: "All" },
@@ -268,6 +73,8 @@ export default function ProposalsDirectoryPage() {
   const [newClient, setNewClient] = React.useState("");
   const [newTemplate, setNewTemplate] = React.useState("blank");
 
+  const { data: proposalsData = [], isLoading } = useProposals();
+
   /* ── Filtering ────────────────────────────────── */
   const filtered = React.useMemo(() => {
     let list = proposalsData;
@@ -281,7 +88,7 @@ export default function ProposalsDirectoryPage() {
       );
     }
     return list;
-  }, [activeTab, searchQuery]);
+  }, [proposalsData, activeTab, searchQuery]);
 
   /* ── Metrics ──────────────────────────────────── */
   const metrics = React.useMemo(() => {
@@ -298,13 +105,13 @@ export default function ProposalsDirectoryPage() {
       signedCount: signed.length,
       signedValue: signed.reduce((s, p) => s + p.numericValue, 0),
     };
-  }, []);
+  }, [proposalsData]);
 
   const tabCounts = React.useMemo(() => {
     const counts: Record<string, number> = { all: proposalsData.length };
     for (const p of proposalsData) counts[p.status] = (counts[p.status] || 0) + 1;
     return counts;
-  }, []);
+  }, [proposalsData]);
 
   return (
     <div className="space-y-8">
@@ -313,8 +120,7 @@ export default function ProposalsDirectoryPage() {
         <div>
           <H1>Proposals</H1>
           <Muted>
-            {proposalsData.length} proposals · $
-            {metrics.totalPipeline.toLocaleString()} pipeline
+            {isLoading ? "Loading…" : `${proposalsData.length} proposals · $${metrics.totalPipeline.toLocaleString()} pipeline`}
           </Muted>
         </div>
         <Button
@@ -431,7 +237,19 @@ export default function ProposalsDirectoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {filtered.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-100">
+                    <td className="px-6 py-4"><Skeleton className="h-9 w-48" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4 hidden sm:table-cell"><Skeleton className="h-5 w-20" /></td>
+                    <td className="px-6 py-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4 hidden md:table-cell"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-6 py-4 hidden lg:table-cell"><Skeleton className="h-5 w-12" /></td>
+                    <td className="px-6 py-4"><Skeleton className="h-7 w-16 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : filtered.length > 0 ? (
                 filtered.map((proposal) => (
                   <tr
                     key={proposal.id}
