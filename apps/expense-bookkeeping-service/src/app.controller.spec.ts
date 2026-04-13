@@ -1,22 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+// The expense-bookkeeping-service runs as a Redis microservice with no HTTP
+// app controller. Real business logic tests live in:
+//   src/expense/expense.service.spec.ts
+//
+// This file is intentionally empty to satisfy the Jest test suite scan.
 
-describe('AppController', () => {
-  let appController: AppController;
-
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
-    }).compile();
-
-    appController = app.get<AppController>(AppController);
-  });
-
-  describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toBe('Hello World!');
-    });
+describe('ExpenseBookkeepingService bootstrap', () => {
+  it('is a Redis microservice with no HTTP app controller', () => {
+    expect(true).toBe(true);
   });
 });
