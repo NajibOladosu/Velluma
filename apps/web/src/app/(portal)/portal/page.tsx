@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { H1, H2, H3, Muted, P } from "@/components/ui/typography";
+import { H1, H3, Muted, P } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   ShieldCheck,
@@ -19,8 +19,20 @@ import {
   Send,
   CheckCircle2,
   Circle,
-  ArrowUpRight,
+  AlertCircle,
 } from "lucide-react";
+import {
+  usePortalContracts,
+  usePortalMilestones,
+  usePortalPayments,
+  usePortalEscrow,
+  usePortalDocuments,
+  type PortalContract,
+} from "@/lib/queries/portal";
+
+// ---------------------------------------------------------------------------
+// Tab definition
+// ---------------------------------------------------------------------------
 
 const tabs = [
   { key: "overview", label: "Overview", icon: FileText },
@@ -29,30 +41,179 @@ const tabs = [
   { key: "messages", label: "Messages", icon: MessageSquare },
 ] as const;
 
-type TabKey = typeof tabs[number]["key"];
+type TabKey = (typeof tabs)[number]["key"];
 
-/* ─── Overview Tab ─── */
-function OverviewTab() {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatCurrency(amount: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+// ---------------------------------------------------------------------------
+// OverviewTab
+// ---------------------------------------------------------------------------
+
+interface OverviewTabProps {
+  contractId: string;
+  contract: PortalContract;
+}
+
+function OverviewTab({ contractId, contract }: OverviewTabProps) {
+  const milestonesQuery = usePortalMilestones(contractId);
+  const escrowQuery = usePortalEscrow(contractId);
+  const documentsQuery = usePortalDocuments(contractId);
+  const paymentsQuery = usePortalPayments(contractId);
+
+  const milestones = milestonesQuery.data ?? [];
+  const escrows = escrowQuery.data ?? [];
+  const documents = documentsQuery.data ?? [];
+  const payments = paymentsQuery.data ?? [];
+
+  const isLoading =
+    milestonesQuery.isLoading ||
+    escrowQuery.isLoading ||
+    documentsQuery.isLoading ||
+    paymentsQuery.isLoading;
+
+  // Progress
+  const totalMilestones = milestones.length;
+  const completedMilestones = milestones.filter((m) => m.status === "completed").length;
+  const progress =
+    totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+
+  // Next milestone
+  const nextMilestone = milestones.find(
+    (m) => m.status === "pending" || m.status === "in_progress",
+  );
+
+  // Escrow held (active escrows)
+  const escrowHeld = escrows
+    .filter((e) => e.status === "active")
+    .reduce((sum, e) => sum + e.fundedAmount, 0);
+
+  // Activity timeline: merge milestone completions + payment events + contract sign
+  type TimelineEvent = { text: string; ts: string };
+  const events: TimelineEvent[] = [];
+
+  milestones.forEach((m) => {
+    if (m.completedAt) {
+      events.push({ text: `Milestone "${m.title}" completed`, ts: m.completedAt });
+    }
+  });
+
+  payments.forEach((p) => {
+    if (p.completedAt) {
+      const desc =
+        p.label ??
+        (p.paymentType === "release"
+          ? "Payment released from escrow"
+          : p.paymentType === "refund"
+            ? "Payment refunded"
+            : "Escrow funded");
+      events.push({
+        text: `${desc}: ${formatCurrency(p.amount, p.currency)}`,
+        ts: p.completedAt,
+      });
+    }
+  });
+
+  if (contract.signedByClient && contract.signedByFreelancer) {
+    events.push({ text: "Contract signed by both parties", ts: contract.updatedAt });
+  }
+
+  events.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+
   return (
     <div className="space-y-8">
       {/* Progress Summary */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Surface className="p-5">
           <Muted className="text-[10px] uppercase tracking-widest font-bold">Project Progress</Muted>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900 mt-2">64%</div>
-          <div className="h-[2px] w-full bg-zinc-100 mt-3">
-            <div className="h-full bg-zinc-900" style={{ width: "64%" }} />
-          </div>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-8 w-16 mt-2" />
+              <Skeleton className="h-[2px] w-full mt-3" />
+            </>
+          ) : (
+            <>
+              <div className="text-3xl font-bold tracking-tighter text-zinc-900 mt-2">
+                {progress}%
+              </div>
+              <div className="h-[2px] w-full bg-zinc-100 mt-3">
+                <div
+                  className="h-full bg-zinc-900 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <Muted className="text-[10px] mt-1">
+                {completedMilestones} of {totalMilestones} milestones complete
+              </Muted>
+            </>
+          )}
         </Surface>
+
         <Surface className="p-5">
           <Muted className="text-[10px] uppercase tracking-widest font-bold">Next Milestone</Muted>
-          <div className="text-sm font-bold text-zinc-900 mt-2">Backend Integration</div>
-          <Muted className="text-[10px] mt-1">ETA: Mar 18, 2026</Muted>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-4 w-36 mt-2" />
+              <Skeleton className="h-3 w-24 mt-1" />
+            </>
+          ) : nextMilestone ? (
+            <>
+              <div className="text-sm font-bold text-zinc-900 mt-2">{nextMilestone.title}</div>
+              {nextMilestone.dueDate && (
+                <Muted className="text-[10px] mt-1">Due {formatDate(nextMilestone.dueDate)}</Muted>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-bold text-zinc-900 mt-2">All milestones complete</div>
+              <Muted className="text-[10px] mt-1">Great work!</Muted>
+            </>
+          )}
         </Surface>
+
         <Surface className="p-5">
           <Muted className="text-[10px] uppercase tracking-widest font-bold">Escrow Held</Muted>
-          <div className="text-3xl font-bold tracking-tighter text-zinc-900 mt-2">$5,500</div>
-          <Muted className="text-[10px] mt-1">Stripe Connect Verified</Muted>
+          {isLoading ? (
+            <Skeleton className="h-8 w-24 mt-2" />
+          ) : (
+            <>
+              <div className="text-3xl font-bold tracking-tighter text-zinc-900 mt-2">
+                {formatCurrency(escrowHeld, contract.currency)}
+              </div>
+              <Muted className="text-[10px] mt-1">Stripe Connect Verified</Muted>
+            </>
+          )}
         </Surface>
       </div>
 
@@ -61,61 +222,126 @@ function OverviewTab() {
         <div className="md:col-span-7 space-y-4">
           <H3 className="text-base font-semibold">Activity Timeline</H3>
           <Surface className="p-5">
-            <div className="space-y-5">
-              {[
-                { action: "Milestone 2 delivered for review", time: "2h ago", type: "milestone" },
-                { action: "New assets uploaded to shared vault", time: "1d ago", type: "file" },
-                { action: "Payment of $2,500 released from escrow", time: "3d ago", type: "payment" },
-                { action: "Milestone 1 approved by you", time: "1w ago", type: "approval" },
-                { action: "Contract signed by both parties", time: "2w ago", type: "contract" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className="h-1.5 w-1.5 rounded-full bg-zinc-400 mt-2 flex-shrink-0" />
-                  <div className="space-y-0.5">
-                    <P className="text-sm leading-snug text-zinc-900 font-medium">{item.action}</P>
-                    <Muted className="text-[10px] uppercase tracking-widest">{item.time}</Muted>
+            {isLoading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <Skeleton className="h-1.5 w-1.5 rounded-full mt-2 flex-shrink-0" />
+                    <div className="space-y-1 flex-1">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : events.length > 0 ? (
+              <div className="space-y-5">
+                {events.slice(0, 8).map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="h-1.5 w-1.5 rounded-full bg-zinc-400 mt-2 flex-shrink-0" />
+                    <div className="space-y-0.5">
+                      <P className="text-sm leading-snug text-zinc-900 font-medium">{item.text}</P>
+                      <Muted className="text-[10px] uppercase tracking-widest">
+                        {relativeTime(item.ts)}
+                      </Muted>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Muted className="text-sm">No activity yet.</Muted>
+            )}
           </Surface>
         </div>
 
         <div className="md:col-span-5 space-y-4">
           <H3 className="text-base font-semibold">Shared Documents</H3>
-          <Surface className="divide-y divide-zinc-100">
-            {[
-              { name: "Brand Guidelines v2.pdf", size: "4.2 MB" },
-              { name: "UI Mockups Final.fig", size: "12 MB" },
-              { name: "Service Agreement.pdf", size: "240 KB" },
-            ].map((doc, i) => (
-              <div key={i} className="p-4 flex items-center justify-between group cursor-pointer hover:bg-zinc-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
-                  <div>
-                    <P className="text-sm font-medium">{doc.name}</P>
-                    <Muted className="text-[10px]">{doc.size}</Muted>
+          {isLoading ? (
+            <Surface className="divide-y divide-zinc-100">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 flex items-center gap-3">
+                  <Skeleton className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-3 w-16 mt-1" />
                   </div>
                 </div>
-                <Download className="h-4 w-4 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
-              </div>
-            ))}
-          </Surface>
+              ))}
+            </Surface>
+          ) : documents.length > 0 ? (
+            <Surface className="divide-y divide-zinc-100">
+              {documents.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="p-4 flex items-center justify-between group cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText
+                      className="h-4 w-4 text-zinc-400 flex-shrink-0"
+                      strokeWidth={1.5}
+                    />
+                    <div>
+                      <P className="text-sm font-medium">
+                        {doc.format.toUpperCase()} v{doc.version}
+                      </P>
+                      <Muted className="text-[10px]">{formatDate(doc.generatedAt)}</Muted>
+                    </div>
+                  </div>
+                  {doc.storageUrl ? (
+                    <a href={doc.storageUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4 text-zinc-300 group-hover:text-zinc-900 transition-colors" />
+                    </a>
+                  ) : (
+                    <Download className="h-4 w-4 text-zinc-200" />
+                  )}
+                </div>
+              ))}
+            </Surface>
+          ) : (
+            <Surface className="p-5">
+              <Muted className="text-sm">No documents available yet.</Muted>
+            </Surface>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── Tasks Tab ─── */
-function TasksTab() {
-  const milestones = [
-    { name: "Discovery & Research", status: "completed", dueDate: "Feb 28" },
-    { name: "UI Design Phase 1", status: "completed", dueDate: "Mar 05" },
-    { name: "Backend Integration", status: "in-progress", dueDate: "Mar 18" },
-    { name: "Testing & QA", status: "upcoming", dueDate: "Mar 25" },
-    { name: "Launch & Handoff", status: "upcoming", dueDate: "Apr 01" },
-  ];
+// ---------------------------------------------------------------------------
+// TasksTab
+// ---------------------------------------------------------------------------
+
+function TasksTab({ contractId }: { contractId: string }) {
+  const { data: milestones, isLoading, isError } = usePortalMilestones(contractId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-5 w-24" />
+        <Surface className="divide-y divide-zinc-100">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-4 w-4 rounded-full" />
+                <div>
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-24 mt-1" />
+                </div>
+              </div>
+              <Skeleton className="h-5 w-16 rounded" />
+            </div>
+          ))}
+        </Surface>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return <Muted className="text-sm">Failed to load milestones.</Muted>;
+  }
+
+  const rows = milestones ?? [];
 
   return (
     <div className="space-y-6">
@@ -124,41 +350,129 @@ function TasksTab() {
         <Muted className="text-xs">Showing client-visible milestones only.</Muted>
       </div>
       <Surface className="divide-y divide-zinc-100">
-        {milestones.map((m, i) => (
-          <div key={i} className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {m.status === "completed" ? (
-                <CheckCircle2 className="h-4.5 w-4.5 text-zinc-900" strokeWidth={2} />
-              ) : m.status === "in-progress" ? (
-                <Clock className="h-4.5 w-4.5 text-zinc-500" strokeWidth={1.5} />
-              ) : (
-                <Circle className="h-4.5 w-4.5 text-zinc-300" strokeWidth={1.5} />
-              )}
-              <div>
-                <P className={cn("text-sm font-medium", m.status === "completed" ? "text-zinc-400 line-through" : "text-zinc-900")}>
-                  {m.name}
-                </P>
-                <Muted className="text-[10px] uppercase tracking-widest">Due {m.dueDate}</Muted>
-              </div>
-            </div>
-            <Badge variant="outline" className="border-zinc-200 text-zinc-600 bg-transparent font-medium text-[10px] uppercase tracking-widest">
-              {m.status === "in-progress" ? "In Progress" : m.status === "completed" ? "Done" : "Upcoming"}
-            </Badge>
+        {rows.length === 0 ? (
+          <div className="p-5">
+            <Muted className="text-sm">No milestones for this contract yet.</Muted>
           </div>
-        ))}
+        ) : (
+          rows.map((m) => (
+            <div key={m.id} className="p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {m.status === "completed" ? (
+                  <CheckCircle2 className="h-4 w-4 text-zinc-900" strokeWidth={2} />
+                ) : m.status === "in_progress" ? (
+                  <Clock className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
+                ) : m.status === "disputed" ? (
+                  <AlertCircle className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
+                ) : (
+                  <Circle className="h-4 w-4 text-zinc-300" strokeWidth={1.5} />
+                )}
+                <div>
+                  <P
+                    className={cn(
+                      "text-sm font-medium",
+                      m.status === "completed" ? "text-zinc-400 line-through" : "text-zinc-900",
+                    )}
+                  >
+                    {m.title}
+                  </P>
+                  {m.dueDate && (
+                    <Muted className="text-[10px] uppercase tracking-widest">
+                      Due {formatDate(m.dueDate)}
+                    </Muted>
+                  )}
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className="border-zinc-200 text-zinc-600 bg-transparent font-medium text-[10px] uppercase tracking-widest"
+              >
+                {m.status === "in_progress"
+                  ? "In Progress"
+                  : m.status === "completed"
+                    ? "Done"
+                    : m.status === "disputed"
+                      ? "Disputed"
+                      : "Upcoming"}
+              </Badge>
+            </div>
+          ))
+        )}
       </Surface>
     </div>
   );
 }
 
-/* ─── Billing Tab ─── */
-function BillingTab() {
-  const payments = [
-    { label: "Deposit: Design Phase", amount: "$2,500", date: "Mar 01", status: "Released" },
-    { label: "Milestone 1: Research", amount: "$1,500", date: "Mar 05", status: "Released" },
-    { label: "Milestone 2: Backend", amount: "$3,000", date: "Mar 18", status: "Secured" },
-    { label: "Final: Delivery", amount: "$2,000", date: "Apr 01", status: "Pending" },
-  ];
+// ---------------------------------------------------------------------------
+// BillingTab
+// ---------------------------------------------------------------------------
+
+interface BillingTabProps {
+  contractId: string;
+  contract: PortalContract;
+}
+
+function BillingTab({ contractId, contract }: BillingTabProps) {
+  const { data: payments, isLoading, isError } = usePortalPayments(contractId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-8 w-40 rounded" />
+        </div>
+        <Surface className="overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                {["Description", "Date", "Amount", "Status"].map((col) => (
+                  <th
+                    key={col}
+                    className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500"
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <tr key={i}>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-40" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-20" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <Skeleton className="h-4 w-16" />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <Skeleton className="h-5 w-16 ml-auto" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Surface>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return <Muted className="text-sm">Failed to load payment history.</Muted>;
+  }
+
+  const rows = payments ?? [];
+
+  function statusLabel(status: string, type: string) {
+    if (status === "completed") return type === "release" ? "Released" : "Completed";
+    if (status === "pending") return "Pending";
+    if (status === "failed") return "Failed";
+    if (status === "refunded") return "Refunded";
+    return status;
+  }
 
   return (
     <div className="space-y-6">
@@ -174,28 +488,66 @@ function BillingTab() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Description</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Date</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Amount</th>
-                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">Status</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                  Description
+                </th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                  Date
+                </th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                  Amount
+                </th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500 text-right">
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {payments.map((p, i) => (
-                <tr key={i} className="hover:bg-zinc-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-zinc-900">{p.label}</td>
-                  <td className="px-6 py-4 text-sm text-zinc-500">{p.date}</td>
-                  <td className="px-6 py-4 font-medium text-zinc-900">{p.amount}</td>
-                  <td className="px-6 py-4 text-right">
-                    <Badge variant="outline" className={cn(
-                      "border-zinc-200 bg-transparent font-medium",
-                      p.status === "Released" ? "text-zinc-500" : p.status === "Secured" ? "text-zinc-900 font-bold" : "text-zinc-400"
-                    )}>
-                      {p.status}
-                    </Badge>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-zinc-400">
+                    No payments recorded yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((p) => {
+                  const label =
+                    p.label ??
+                    (p.paymentType === "release"
+                      ? "Payment Release"
+                      : p.paymentType === "escrow"
+                        ? "Escrow Deposit"
+                        : "Refund");
+                  return (
+                    <tr key={p.id} className="hover:bg-zinc-50/50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-zinc-900">{label}</td>
+                      <td className="px-6 py-4 text-sm text-zinc-500">
+                        {formatDate(p.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 font-medium text-zinc-900">
+                        {formatCurrency(p.amount, p.currency ?? contract.currency)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "border-zinc-200 bg-transparent font-medium",
+                            p.status === "completed"
+                              ? "text-zinc-500"
+                              : p.status === "pending"
+                                ? "text-zinc-400"
+                                : p.status === "failed"
+                                  ? "text-red-500"
+                                  : "text-zinc-600",
+                          )}
+                        >
+                          {statusLabel(p.status, p.paymentType)}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -204,17 +556,36 @@ function BillingTab() {
   );
 }
 
-/* ─── Messages Tab ─── */
+// ---------------------------------------------------------------------------
+// MessagesTab — placeholder (no messaging table in schema yet)
+// ---------------------------------------------------------------------------
+
 function MessagesTab() {
   const messages = [
-    { from: "Najib O.", content: "Hey! Just uploaded the latest mockups to the vault. Take a look when you get a chance.", time: "2h ago", isAgent: true },
-    { from: "You", content: "These look great! Can we adjust the hero section color to match the updated brand guidelines?", time: "1h ago", isAgent: false },
-    { from: "Najib O.", content: "Absolutely. I'll push an update by end of day.", time: "45m ago", isAgent: true },
+    {
+      from: "Freelancer",
+      content:
+        "Hey! Just uploaded the latest assets to the shared vault. Take a look when you get a chance.",
+      time: "2h ago",
+      isAgent: true,
+    },
+    {
+      from: "You",
+      content:
+        "These look great! Can we adjust the hero section to match the updated brand guidelines?",
+      time: "1h ago",
+      isAgent: false,
+    },
+    {
+      from: "Freelancer",
+      content: "Absolutely. I'll push an update by end of day.",
+      time: "45m ago",
+      isAgent: true,
+    },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Messages List */}
       <div className="space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={cn("flex", msg.isAgent ? "justify-start" : "justify-end")}>
@@ -222,23 +593,25 @@ function MessagesTab() {
               <div className="flex items-center gap-2">
                 {msg.isAgent && (
                   <div className="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-zinc-600">NO</span>
+                    <span className="text-[10px] font-bold text-zinc-600">F</span>
                   </div>
                 )}
                 <span className="text-xs font-medium text-zinc-900">{msg.from}</span>
                 <Muted className="text-[10px]">{msg.time}</Muted>
               </div>
-              <Surface className={cn("p-4 inline-block text-left", msg.isAgent ? "" : "bg-zinc-50")}>
+              <Surface className={cn("p-4 inline-block text-left", !msg.isAgent && "bg-zinc-50")}>
                 <P className="text-sm text-zinc-700 leading-relaxed">{msg.content}</P>
               </Surface>
             </div>
           </div>
         ))}
       </div>
-
-      {/* Message Input */}
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="icon" className="h-10 w-10 border-zinc-200 flex-shrink-0">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 border-zinc-200 flex-shrink-0"
+        >
           <Upload className="h-4 w-4 text-zinc-400" />
         </Button>
         <Input
@@ -253,33 +626,81 @@ function MessagesTab() {
   );
 }
 
-/* ─── Main Portal Page ─── */
+// ---------------------------------------------------------------------------
+// Main Portal Page
+// ---------------------------------------------------------------------------
+
 export default function ClientPortalPage() {
   const [activeTab, setActiveTab] = React.useState<TabKey>("overview");
+  const [selectedContractId, setSelectedContractId] = React.useState<string | null>(null);
 
-  const tabContent: Record<TabKey, React.ReactNode> = {
-    overview: <OverviewTab />,
-    tasks: <TasksTab />,
-    billing: <BillingTab />,
-    messages: <MessagesTab />,
-  };
+  const { data: contracts, isLoading: contractsLoading } = usePortalContracts();
+
+  const activeContract = React.useMemo(() => {
+    if (!contracts?.length) return null;
+    return contracts.find((c) => c.status === "active") ?? contracts[0];
+  }, [contracts]);
+
+  const contract =
+    (selectedContractId ? contracts?.find((c) => c.id === selectedContractId) : null) ??
+    activeContract ??
+    null;
+
+  const contractId = contract?.id ?? "";
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-6 space-y-8">
-      {/* Client Identity & Trust Badge */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-md bg-zinc-900 flex items-center justify-center">
             <ShieldCheck className="h-6 w-6 text-white" strokeWidth={1.5} />
           </div>
           <div>
-            <H1 className="text-2xl">E-commerce Redesign</H1>
-            <Muted>Acme Corp · Secured environment</Muted>
+            {contractsLoading ? (
+              <>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-32 mt-1" />
+              </>
+            ) : contract ? (
+              <>
+                <H1 className="text-2xl">{contract.title}</H1>
+                <Muted>{contract.clientEmail ?? "Client"} · Secured environment</Muted>
+              </>
+            ) : (
+              <>
+                <H1 className="text-2xl">Client Portal</H1>
+                <Muted>No active contracts · Secured environment</Muted>
+              </>
+            )}
           </div>
         </div>
-        <Badge variant="outline" className="border-zinc-200 text-zinc-900 bg-transparent font-bold">
-          Active
-        </Badge>
+
+        <div className="flex items-center gap-3">
+          {contracts && contracts.length > 1 && (
+            <select
+              value={contractId}
+              onChange={(e) => setSelectedContractId(e.target.value)}
+              className="text-xs border border-zinc-200 rounded-md px-2.5 py-1.5 bg-white text-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            >
+              {contracts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          )}
+          {contractsLoading ? (
+            <Skeleton className="h-6 w-16 rounded" />
+          ) : contract ? (
+            <Badge
+              variant="outline"
+              className="border-zinc-200 text-zinc-900 bg-transparent font-bold capitalize"
+            >
+              {contract.status.replace(/_/g, " ")}
+            </Badge>
+          ) : null}
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -292,7 +713,7 @@ export default function ClientPortalPage() {
               "flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest transition-colors border-b-2 -mb-[1px]",
               activeTab === tab.key
                 ? "border-zinc-900 text-zinc-900"
-                : "border-transparent text-zinc-400 hover:text-zinc-600"
+                : "border-transparent text-zinc-400 hover:text-zinc-600",
             )}
           >
             <tab.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -302,7 +723,27 @@ export default function ClientPortalPage() {
       </div>
 
       {/* Tab Content */}
-      {tabContent[activeTab]}
+      {contractsLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-32 w-full rounded-lg" />
+        </div>
+      ) : contract && contractId ? (
+        <>
+          {activeTab === "overview" && (
+            <OverviewTab contractId={contractId} contract={contract} />
+          )}
+          {activeTab === "tasks" && <TasksTab contractId={contractId} />}
+          {activeTab === "billing" && (
+            <BillingTab contractId={contractId} contract={contract} />
+          )}
+          {activeTab === "messages" && <MessagesTab />}
+        </>
+      ) : (
+        <div className="py-16 text-center">
+          <Muted className="text-sm">No contracts found for your account.</Muted>
+        </div>
+      )}
 
       {/* Trust Footer */}
       <div className="text-center pt-6">
