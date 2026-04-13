@@ -60,5 +60,5 @@ stitch.zip
 dist/
 dist
 
-PLAN.md
-BUGS.md
+*.md
+!README.md
