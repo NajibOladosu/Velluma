@@ -6,10 +6,10 @@ import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useContracts,
   useContractTemplates,
@@ -17,6 +17,7 @@ import {
   type Contract,
   type ContractTemplate,
 } from "@/lib/queries/contracts";
+import { ContractWizard } from "@/components/contracts/contract-wizard";
 import {
   Plus,
   Search,
@@ -28,11 +29,11 @@ import {
   Clock,
   CheckCircle2,
   ShieldCheck,
-  User,
   Library,
   Briefcase,
   BookOpen,
   Lock,
+  Sparkles,
 } from "lucide-react";
 
 
@@ -60,15 +61,11 @@ const statusConfig: Record<ContractStatus, { label: string; className: string }>
    ═══════════════════════════════════════════════════════ */
 
 export default function ContractsDirectoryPage() {
+  const router = useRouter();
   const [viewMode, setViewMode] = React.useState<ViewMode>("active");
   const [activeTab, setActiveTab] = React.useState<ContractStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
-  const [showNewDrawer, setShowNewDrawer] = React.useState(false);
-
-  // Drawer state
-  const [newTitle, setNewTitle] = React.useState("");
-  const [newClient, setNewClient] = React.useState("");
-  const [newTemplate, setNewTemplate] = React.useState("");
+  const [showWizard, setShowWizard] = React.useState(false);
 
   // Real data hooks
   const { data: contractsData = [], isLoading: contractsLoading } = useContracts();
@@ -128,10 +125,10 @@ export default function ContractsDirectoryPage() {
           </div>
           <Button
             className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto shrink-0"
-            onClick={() => setShowNewDrawer(true)}
+            onClick={() => setShowWizard(true)}
           >
-            <Plus className="h-4 w-4" strokeWidth={1.5} />
-            {viewMode === "templates" ? "New Template" : "Draft Contract"}
+            <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+            {viewMode === "templates" ? "New Template" : "Draft with AI"}
           </Button>
         </div>
 
@@ -487,125 +484,15 @@ export default function ContractsDirectoryPage() {
         </div>
       )}
 
-      {/* ── New Drawer ─────────────────────────── */}
-      {showNewDrawer && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            className="absolute inset-0 bg-zinc-900/20"
-            onClick={() => setShowNewDrawer(false)}
-          />
-          <div className="relative w-full max-w-md bg-white border-l border-zinc-200 shadow-lg p-8 space-y-6 overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <H3>{viewMode === "templates" ? "New Template" : "Draft Contract"}</H3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowNewDrawer(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <Separator />
-
-            {viewMode === "active" && (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-700">Client</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                    <Input
-                      placeholder="Select a client..."
-                      value={newClient}
-                      onChange={(e) => setNewClient(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-700">
-                    Agreement Title
-                  </label>
-                  <Input
-                    placeholder="e.g., Master Services Agreement"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-zinc-700">
-                    Base Template
-                  </label>
-                  <div className="space-y-2">
-                    {templatesData.map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() => setNewTemplate(t.id)}
-                        className={cn(
-                          "flex items-start gap-3 p-4 rounded-md border cursor-pointer transition-all",
-                          newTemplate === t.id
-                            ? "border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50/50"
-                            : "border-zinc-200 hover:border-zinc-300"
-                        )}
-                      >
-                        <div className="h-8 w-8 mt-0.5 rounded-md bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
-                          {t.type === "standard" ? (
-                            <ShieldCheck className="h-4 w-4 text-zinc-700" />
-                          ) : (
-                            <FileText className="h-4 w-4 text-zinc-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-zinc-900">
-                            {t.name}
-                          </div>
-                          <Muted className="text-xs mt-0.5 leading-relaxed">{t.description}</Muted>
-                        </div>
-                        {newTemplate === t.id && (
-                          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-zinc-900 ml-auto mt-1" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {viewMode === "templates" && (
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-700">
-                    Template Name
-                  </label>
-                  <Input
-                    placeholder="e.g., Retainer Agreement"
-                    value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-zinc-700">
-                    Description
-                  </label>
-                  <Input
-                    placeholder="Brief description for internal use"
-                  />
-                </div>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Action */}
-            <Button className="w-full font-semibold">
-              <Plus className="h-4 w-4 mr-2" />
-              {viewMode === "templates" ? "Create Template" : "Start Draft"}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* ── AI Contract Wizard ─────────────────── */}
+      <ContractWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onSuccess={(contractId) => {
+          setShowWizard(false);
+          router.push(`/contracts/${contractId}`);
+        }}
+      />
     </div>
   );
 }
