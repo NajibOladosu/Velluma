@@ -201,3 +201,16 @@ export function useUpdateProposal() {
     },
   })
 }
+
+/** Delete a proposal via the API Gateway (document microservice). */
+export function useDeleteProposal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.delete(`/proposals/${id}`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: proposalKeys.lists() })
+    },
+  })
+}

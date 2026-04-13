@@ -181,6 +181,60 @@ export function useCreateExpense() {
   })
 }
 
+/** Update an expense record. */
+export interface UpdateExpensePayload {
+  id: string
+  description?: string
+  amount?: number
+  currency?: string
+  category?: string
+  expenseDate?: string
+  receiptUrl?: string
+  notes?: string
+  status?: ExpenseRow["status"]
+}
+
+export function useUpdateExpense() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      description,
+      amount,
+      currency,
+      category,
+      expenseDate,
+      receiptUrl,
+      notes,
+      status,
+    }: UpdateExpensePayload) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({
+          ...(description !== undefined && { description }),
+          ...(amount !== undefined && { amount }),
+          ...(currency !== undefined && { currency }),
+          ...(category !== undefined && { category }),
+          ...(expenseDate !== undefined && { expense_date: expenseDate }),
+          ...(receiptUrl !== undefined && { receipt_url: receiptUrl }),
+          ...(notes !== undefined && { notes }),
+          ...(status !== undefined && { status }),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message)
+      return data as ExpenseRow
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: expenseKeys.summary() })
+    },
+  })
+}
+
 /** Delete an expense record. */
 export function useDeleteExpense() {
   const queryClient = useQueryClient()

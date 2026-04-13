@@ -5,12 +5,14 @@
  * and error handling for useTimeEntries.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import {
   timeKeys,
   useTimeEntries,
+  useUpdateTimeEntry,
+  useDeleteTimeEntry,
   type TimeEntryRow,
 } from "./time"
 
@@ -207,5 +209,149 @@ describe("useTimeEntries", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect((result.current.error as Error).message).toBe("RLS error")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 3. useUpdateTimeEntry — mutation
+// ---------------------------------------------------------------------------
+
+describe("useUpdateTimeEntry", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("updates time entry fields", async () => {
+    const updatedRow = { ...sampleRow, task_description: "Updated task" }
+    const singleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateTimeEntry(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "te-1", taskDescription: "Updated task" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ task_description: "Updated task" })
+    )
+    expect(result.current.data!.task).toBe("Updated task")
+  })
+
+  it("maps camelCase fields to snake_case column names", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: sampleRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateTimeEntry(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "te-1", hourlyRate: 120, durationMinutes: 90 })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ hourly_rate: 120, duration_minutes: 90 })
+    )
+  })
+
+  it("throws when Supabase update fails", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: null, error: { message: "Update failed" } })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateTimeEntry(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "te-1", status: "submitted" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Update failed")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4. useDeleteTimeEntry — mutation
+// ---------------------------------------------------------------------------
+
+describe("useDeleteTimeEntry", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("deletes the time entry by id", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteTimeEntry(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("te-1")
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(deleteMock).toHaveBeenCalled()
+    expect(eqMock).toHaveBeenCalledWith("id", "te-1")
+  })
+
+  it("throws when Supabase delete fails", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: "Delete failed" } })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteTimeEntry(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("te-1")
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Delete failed")
   })
 })

@@ -135,3 +135,56 @@ export function useCreateClient() {
     },
   })
 }
+
+/** Update an existing client record. */
+export interface UpdateClientPayload {
+  id: string
+  name?: string
+  email?: string
+  company_name?: string
+  tags?: string[]
+  health_score?: number
+  linkedin_profile?: string
+  metadata?: Record<string, unknown>
+}
+
+export function useUpdateClient() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: UpdateClientPayload) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("clients")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message)
+      return data as ClientRow
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
+    },
+  })
+}
+
+/** Delete a client record. */
+export function useDeleteClient() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
+    },
+  })
+}
