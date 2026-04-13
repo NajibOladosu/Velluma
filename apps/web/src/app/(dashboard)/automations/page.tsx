@@ -19,74 +19,12 @@ import {
   ToggleRight,
   Repeat,
 } from "lucide-react";
-
-/* ═══════════════════════════════════════════════════════
-   TYPES & DATA
-   ═══════════════════════════════════════════════════════ */
-
-interface Automation {
-  id: string;
-  name: string;
-  description: string;
-  trigger: string;
-  action: string;
-  enabled: boolean;
-  runs: number;
-  icon: React.ElementType;
-}
-
-const automations: Automation[] = [
-  {
-    id: "1",
-    name: "Invoice Overdue Reminder",
-    description: "Automatically nudge clients 3 days after an invoice goes overdue.",
-    trigger: "Invoice → Overdue (3 days)",
-    action: "Send Email",
-    enabled: true,
-    runs: 14,
-    icon: Mail,
-  },
-  {
-    id: "2",
-    name: "New Contract → Welcome Email",
-    description: "Send a personalised welcome email when a contract is signed.",
-    trigger: "Contract → Signed",
-    action: "Send Email",
-    enabled: true,
-    runs: 8,
-    icon: FileText,
-  },
-  {
-    id: "3",
-    name: "Weekly Time Summary",
-    description: "Receive a Slack message every Monday with last week's logged hours.",
-    trigger: "Schedule → Every Monday 8:00am",
-    action: "Slack Notification",
-    enabled: false,
-    runs: 0,
-    icon: Clock,
-  },
-  {
-    id: "4",
-    name: "Milestone Approved → Release Payment",
-    description: "Automatically trigger escrow payout when a milestone is approved.",
-    trigger: "Milestone → Approved",
-    action: "Release Escrow",
-    enabled: true,
-    runs: 5,
-    icon: CreditCard,
-  },
-  {
-    id: "5",
-    name: "Client Health Score Alert",
-    description: "Get notified when a client's health score drops below 50.",
-    trigger: "Health Score → < 50",
-    action: "In-App Notification",
-    enabled: false,
-    runs: 2,
-    icon: Bell,
-  },
-];
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  useAutomations,
+  useToggleAutomation,
+  type Automation,
+} from "@/lib/queries/automations";
 
 const templates = [
   { name: "Follow-up after proposal sent",      trigger: "Proposal Sent",   action: "Email (3 days later)"    },
@@ -99,12 +37,13 @@ const templates = [
    ═══════════════════════════════════════════════════════ */
 
 export default function AutomationsPage() {
-  const [items, setItems] = React.useState(automations);
+  const { data: items = [], isLoading } = useAutomations();
+  const toggleMutation = useToggleAutomation();
 
   function toggleEnabled(id: string) {
-    setItems((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a))
-    );
+    const current = items.find((a) => a.id === id);
+    if (!current) return;
+    toggleMutation.mutate({ id, enabled: !current.enabled });
   }
 
   const activeCount = items.filter((a) => a.enabled).length;
@@ -145,8 +84,24 @@ export default function AutomationsPage() {
       <div className="space-y-3">
         <H2 className="text-base">Your Automations</H2>
         <div className="space-y-2">
-          {items.map((automation) => {
-            const Icon = automation.icon;
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Surface key={i} className="p-5 flex items-center gap-5">
+                <Skeleton className="h-10 w-10 rounded-md flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-64" />
+                </div>
+                <Skeleton className="h-7 w-7 flex-shrink-0" />
+              </Surface>
+            ))
+          ) : items.length === 0 ? (
+            <Surface className="p-10 text-center">
+              <Muted className="text-sm">No automation rules yet. Create one to get started.</Muted>
+            </Surface>
+          ) : (
+          items.map((automation) => {
+            const Icon = Zap; // Default icon since DB doesn't store icon type
             return (
               <Surface
                 key={automation.id}
@@ -198,7 +153,8 @@ export default function AutomationsPage() {
                 </button>
               </Surface>
             );
-          })}
+          })
+          )}
         </div>
       </div>
 

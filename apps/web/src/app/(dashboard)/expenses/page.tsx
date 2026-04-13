@@ -8,48 +8,68 @@ import { H1, H3, Muted, P } from "@/components/ui/typography"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Upload, Plus, FileText, Download, Trash2, Search } from "lucide-react"
+import { Upload, Plus, Download, Search } from "lucide-react"
+import {
+  useExpenses,
+  useExpenseSummary,
+  formatExpenseCurrency,
+  formatExpenseDate,
+} from "@/lib/queries/expenses"
 
-const expensesData = [
-    { id: "1", vendor: "Adobe Creative Cloud", date: "Mar 10, 2026", amount: "$54.99", category: "Software", status: "Reimbursable" },
-    { id: "2", vendor: "AWS", date: "Mar 08, 2026", amount: "$125.00", category: "Infrastructure", status: "Billed" },
-    { id: "3", vendor: "Local Coffee", date: "Mar 05, 2026", amount: "$4.50", category: "Meals", status: "Personal" },
-    { id: "4", vendor: "Apple Inc.", date: "Mar 01, 2026", amount: "$2,499.00", category: "Hardware", status: "Billed" },
-]
+// Column defs use any here because TanStack Table's CellContext generic is
+// deeply parameterised; this matches the existing DataTable contract in the repo.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ColCell = { row: any }
 
 const columns = [
-    { accessorKey: "vendor", header: "Vendor / Description" },
-    { accessorKey: "date", header: "Date" },
+    { accessorKey: "description", header: "Vendor / Description" },
+    {
+        accessorKey: "expense_date",
+        header: "Date",
+        cell: ({ row }: ColCell) => <span>{formatExpenseDate(row.getValue("expense_date"))}</span>,
+    },
     { accessorKey: "category", header: "Category" },
     {
         accessorKey: "amount",
         header: "Amount",
-        cell: ({ row }: any) => <span className="font-semibold">{row.getValue("amount")}</span>
+        cell: ({ row }: ColCell) => (
+            <span className="font-semibold">
+                {formatExpenseCurrency(Number(row.getValue("amount")), row.original.currency)}
+            </span>
+        ),
     },
     {
         accessorKey: "status",
-        header: "Tax Status",
-        cell: ({ row }: any) => {
-            const status = row.getValue("status")
+        header: "Status",
+        cell: ({ row }: ColCell) => {
+            const status: string = row.getValue("status")
+            const label = status.charAt(0).toUpperCase() + status.slice(1)
             return (
-                <Badge variant={status === "Billed" ? "blue" : "default"}>
-                    {status}
+                <Badge variant={status === "approved" ? "blue" : "default"}>
+                    {label}
                 </Badge>
             )
-        }
+        },
     },
-    {
-        id: "actions",
-        cell: () => (
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400">
-                <MoreHorizontal className="h-4 w-4" />
-            </Button>
-        )
-    }
 ]
 
 export default function ExpensesPage() {
+    const [search, setSearch] = React.useState("")
+    const { data: expenses = [], isLoading } = useExpenses()
+    const { data: summary } = useExpenseSummary()
+
+    const filtered = React.useMemo(() => {
+        if (!search.trim()) return expenses
+        const q = search.toLowerCase()
+        return expenses.filter(
+            (e) =>
+                e.description.toLowerCase().includes(q) ||
+                e.category.toLowerCase().includes(q)
+        )
+    }, [expenses, search])
+
     return (
         <div className="space-y-8">
             {/* Header */}
@@ -79,14 +99,27 @@ export default function ExpensesPage() {
                         <div className="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between bg-zinc-50/30 gap-4 sm:gap-0">
                             <div className="relative w-full sm:max-w-xs">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                                <Input placeholder="Filter expenses..." className="pl-9 h-9 w-full" />
+                                <Input
+                                    placeholder="Filter expenses..."
+                                    className="pl-9 h-9 w-full"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto shrink-0">
                                 <Button variant="outline" size="sm" className="h-8 flex-1 sm:flex-none">Date Range</Button>
                                 <Button variant="outline" size="sm" className="h-8 flex-1 sm:flex-none">Category</Button>
                             </div>
                         </div>
-                        <DataTable columns={columns} data={expensesData} />
+                        {isLoading ? (
+                            <div className="p-6 space-y-3">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-10 w-full" />
+                                ))}
+                            </div>
+                        ) : (
+                            <DataTable columns={columns} data={filtered} />
+                        )}
                     </Surface>
                 </div>
 
@@ -106,17 +139,31 @@ export default function ExpensesPage() {
                         <H3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Quick Summary</H3>
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-4">
-                                <span className="text-sm text-zinc-600 truncate">Total Billed</span>
-                                <span className="text-sm font-semibold text-zinc-900 shrink-0">$2,624.00</span>
+                                <span className="text-sm text-zinc-600 truncate">Total Approved</span>
+                                {isLoading ? (
+                                    <Skeleton className="h-5 w-16" />
+                                ) : (
+                                    <span className="text-sm font-semibold text-zinc-900 shrink-0">
+                                        {summary?.formattedBilled ?? "$0"}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex items-center justify-between gap-4">
                                 <span className="text-sm text-zinc-600 truncate">Pending Reimbursements</span>
-                                <span className="text-sm font-semibold text-zinc-900 shrink-0">$54.99</span>
+                                {isLoading ? (
+                                    <Skeleton className="h-5 w-16" />
+                                ) : (
+                                    <span className="text-sm font-semibold text-zinc-900 shrink-0">
+                                        {summary?.formattedReimbursable ?? "$0"}
+                                    </span>
+                                )}
                             </div>
                             <Separator />
                             <div className="flex items-center justify-between gap-4">
-                                <span className="text-sm text-zinc-600 truncate">Estimated Tax Write-off</span>
-                                <span className="text-sm font-semibold text-blue-600 shrink-0">$787.20</span>
+                                <span className="text-sm text-zinc-600 truncate">Total Expenses</span>
+                                <span className="text-sm font-semibold text-zinc-900 shrink-0">
+                                    {expenses.length} records
+                                </span>
                             </div>
                         </div>
                     </Surface>

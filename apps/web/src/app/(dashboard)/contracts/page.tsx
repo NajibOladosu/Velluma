@@ -7,15 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
+  useContracts,
+  useContractTemplates,
   type ContractStatus,
   type Contract,
   type ContractTemplate,
-  contractsData,
-  templatesData,
-} from "@/lib/data/contracts";
+} from "@/lib/queries/contracts";
 import {
   Plus,
   Search,
@@ -63,11 +64,17 @@ export default function ContractsDirectoryPage() {
   const [activeTab, setActiveTab] = React.useState<ContractStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [showNewDrawer, setShowNewDrawer] = React.useState(false);
-  
+
   // Drawer state
   const [newTitle, setNewTitle] = React.useState("");
   const [newClient, setNewClient] = React.useState("");
-  const [newTemplate, setNewTemplate] = React.useState("t1");
+  const [newTemplate, setNewTemplate] = React.useState("");
+
+  // Real data hooks
+  const { data: contractsData = [], isLoading: contractsLoading } = useContracts();
+  const { data: templatesData = [], isLoading: templatesLoading } = useContractTemplates();
+
+  const isLoading = contractsLoading || templatesLoading;
 
   /* ── Derived Data ─────────────────────────────── */
   const filteredContracts = React.useMemo(() => {
@@ -80,13 +87,13 @@ export default function ContractsDirectoryPage() {
       );
     }
     return list;
-  }, [activeTab, searchQuery]);
+  }, [contractsData, activeTab, searchQuery]);
 
   const filteredTemplates = React.useMemo(() => {
     if (!searchQuery.trim()) return templatesData;
     const q = searchQuery.toLowerCase();
     return templatesData.filter((t) => t.name.toLowerCase().includes(q));
-  }, [searchQuery]);
+  }, [templatesData, searchQuery]);
 
   const metrics = React.useMemo(() => {
     const active = contractsData.filter((c) => c.status !== "expired");
@@ -100,13 +107,13 @@ export default function ContractsDirectoryPage() {
       signedCount: signed.length,
       signedValue: signed.reduce((s, c) => s + c.numericValue, 0),
     };
-  }, []);
+  }, [contractsData]);
 
   const tabCounts = React.useMemo(() => {
     const counts: Record<string, number> = { all: contractsData.length };
     for (const c of contractsData) counts[c.status] = (counts[c.status] || 0) + 1;
     return counts;
-  }, []);
+  }, [contractsData]);
 
   return (
     <div className="space-y-8 pb-10">
@@ -325,7 +332,18 @@ export default function ContractsDirectoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {filteredContracts.length > 0 ? (
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <tr key={i} className="border-b border-zinc-100">
+                        <td className="px-4 py-4"><Skeleton className="h-9 w-48" /></td>
+                        <td className="px-4 py-4"><Skeleton className="h-5 w-20" /></td>
+                        <td className="px-4 py-4 hidden sm:table-cell"><Skeleton className="h-5 w-16" /></td>
+                        <td className="px-4 py-4 hidden md:table-cell"><Skeleton className="h-5 w-24" /></td>
+                        <td className="px-4 py-4 hidden lg:table-cell"><Skeleton className="h-5 w-20" /></td>
+                        <td className="px-4 py-4"><Skeleton className="h-7 w-16 ml-auto" /></td>
+                      </tr>
+                    ))
+                  ) : filteredContracts.length > 0 ? (
                     filteredContracts.map((contract) => (
                       <tr
                         key={contract.id}

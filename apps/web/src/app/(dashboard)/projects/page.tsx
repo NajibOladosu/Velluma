@@ -1,10 +1,12 @@
 "use client";
 
+import * as React from "react";
 import { H1, Muted } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   Plus,
@@ -14,25 +16,7 @@ import {
   ArrowUpRight,
   Briefcase,
 } from "lucide-react";
-
-interface Project {
-  id: string;
-  name: string;
-  client: string;
-  status: "active" | "completed" | "on-hold";
-  progress: number;
-  value: string;
-  nextMilestone: string;
-}
-
-const projects: Project[] = [
-  { id: "1", name: "E-commerce Redesign", client: "Acme Corp", status: "active", progress: 65, value: "$18,500", nextMilestone: "Backend Integration" },
-  { id: "2", name: "SaaS Dashboard Audit", client: "Orbit Systems", status: "active", progress: 30, value: "$9,800", nextMilestone: "UX Research Report" },
-  { id: "3", name: "Marketing Platform", client: "Terra Finance", status: "active", progress: 15, value: "$22,000", nextMilestone: "Wireframes" },
-  { id: "4", name: "Brand Identity Guide", client: "Acme Corp", status: "completed", progress: 100, value: "$12,000", nextMilestone: "—" },
-  { id: "5", name: "Marketing Landing Page", client: "Acme Corp", status: "completed", progress: 100, value: "$12,000", nextMilestone: "—" },
-  { id: "6", name: "Mobile App MVP", client: "Vesper AI", status: "on-hold", progress: 45, value: "$15,000", nextMilestone: "API Layer" },
-];
+import { useProjects } from "@/lib/queries/projects";
 
 const statusLabel: Record<string, string> = {
   active: "Active",
@@ -41,13 +25,26 @@ const statusLabel: Record<string, string> = {
 };
 
 export default function ProjectsPage() {
+  const [search, setSearch] = React.useState("");
+  const { data: projects = [], isLoading } = useProjects();
+
+  const filtered = React.useMemo(() => {
+    if (!search.trim()) return projects;
+    const q = search.toLowerCase();
+    return projects.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q)
+    );
+  }, [projects, search]);
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
           <H1 className="truncate">Projects</H1>
-          <Muted className="truncate block">{projects.length} projects across all clients.</Muted>
+          <Muted className="truncate block">
+            {isLoading ? "Loading…" : `${projects.length} projects across all clients.`}
+          </Muted>
         </div>
         <Button className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto shrink-0">
           <Plus className="h-4 w-4" strokeWidth={1.5} />
@@ -62,6 +59,8 @@ export default function ProjectsPage() {
           <Input
             placeholder="Search projects..."
             className="pl-9 h-9 w-full bg-white border-zinc-200 text-sm focus:ring-0"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="flex items-center gap-1 border border-zinc-200 rounded-md p-0.5 w-full sm:w-auto justify-center sm:justify-start">
@@ -88,7 +87,27 @@ export default function ProjectsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {projects.map((project) => (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-100">
+                    <td className="px-4 py-4"><Skeleton className="h-9 w-40" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-4 py-4 hidden md:table-cell"><Skeleton className="h-2 w-24" /></td>
+                    <td className="px-4 py-4"><Skeleton className="h-5 w-16" /></td>
+                    <td className="px-4 py-4 hidden sm:table-cell"><Skeleton className="h-5 w-24 ml-auto" /></td>
+                  </tr>
+                ))
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <Briefcase className="h-8 w-8 text-zinc-300" strokeWidth={1.5} />
+                      <Muted className="text-sm">No projects found.</Muted>
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+              {!isLoading && filtered.map((project) => (
                 <Link key={project.id} href={`/projects/${project.id}`} className="contents">
                   <tr className="group hover:bg-zinc-50/50 transition-colors cursor-pointer">
                     <td className="px-4 py-4">
