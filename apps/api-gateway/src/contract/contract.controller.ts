@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Inject, Param, Get } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ClientProxy } from '@nestjs/microservices';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { SignContractDto } from './dto/sign-contract.dto';
@@ -27,6 +28,9 @@ export class ContractController {
     return callMicroservice(this.client.send('generate_contract', data));
   }
 
+  // Contract signing is a legally significant, low-frequency operation —
+  // strict tier prevents automated/accidental double-sign attempts.
+  @Throttle({ strict: { limit: 10, ttl: 60_000 } })
   @Post('sign')
   async signContract(@Body() data: SignContractDto) {
     return callMicroservice(this.client.send('sign_contract', data));
