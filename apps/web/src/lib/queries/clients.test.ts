@@ -1,12 +1,45 @@
-import { describe, it, expect } from 'vitest';
-import { clientKeys } from './clients';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
+import {
+  clientKeys,
+  useUpdateClient,
+  useDeleteClient,
+  type ClientRow,
+} from './clients';
+
+// ---------------------------------------------------------------------------
+// Mock Supabase client
+// ---------------------------------------------------------------------------
+
+vi.mock('@/utils/supabase/client', () => ({
+  createClient: vi.fn(),
+}))
+
+import { createClient } from '@/utils/supabase/client';
+
+function wrapper(queryClient: QueryClient) {
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children)
+}
+
+const sampleClient: ClientRow = {
+  id: 'cl-1',
+  tenant_id: 't1',
+  created_at: '2026-01-01T00:00:00Z',
+  name: 'Acme Corp',
+  email: 'contact@acme.com',
+  company_name: 'Acme Inc',
+  linkedin_profile: null,
+  health_score: 80,
+  tags: ['enterprise'],
+  metadata: null,
+}
 
 // ──────────────────────────────────────────────────────────────────────────────
-// clientKeys key factory
+// 1. clientKeys key factory
 // ──────────────────────────────────────────────────────────────────────────────
-// The hooks (useClients, useClient, useCreateClient) require a full React +
-// TanStack Query environment to test. The key factory is pure and can be
-// tested without mocking anything.
 
 describe('clientKeys', () => {
   it('all returns the base key', () => {
@@ -41,4 +74,121 @@ describe('clientKeys', () => {
     expect(lists[1]).toBe('list');
     expect(detail[1]).toBe('detail');
   });
+});
+
+// ---------------------------------------------------------------------------
+// 2. useUpdateClient — mutation
+// ---------------------------------------------------------------------------
+
+describe('useUpdateClient', () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it('updates client fields and returns updated row', async () => {
+    const updatedRow = { ...sampleClient, name: 'New Name' }
+    const singleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateClient(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: 'cl-1', name: 'New Name' })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Name' }))
+    expect(result.current.data!.name).toBe('New Name')
+  })
+
+  it('throws when Supabase update fails', async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateClient(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: 'cl-1', email: 'bad@example.com' })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe('Update failed')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 3. useDeleteClient — mutation
+// ---------------------------------------------------------------------------
+
+describe('useDeleteClient', () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it('deletes the client row by id', async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteClient(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate('cl-1')
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(deleteMock).toHaveBeenCalled()
+    expect(eqMock).toHaveBeenCalledWith('id', 'cl-1')
+  })
+
+  it('throws when Supabase delete fails', async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: 'Delete failed' } })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteClient(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate('cl-1')
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe('Delete failed')
+  })
 });

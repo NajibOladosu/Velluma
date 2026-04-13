@@ -5,25 +5,36 @@
  * status mapping, metadata extraction, and error handling.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import {
   proposalKeys,
   useProposals,
   useProposal,
+  useDeleteProposal,
   type ProjectRow,
 } from "./proposals"
 
 // ---------------------------------------------------------------------------
-// Mock Supabase client
+// Mock Supabase client and API client
 // ---------------------------------------------------------------------------
 
 vi.mock("@/utils/supabase/client", () => ({
   createClient: vi.fn(),
 }))
 
+vi.mock("@/lib/api-client", () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}))
+
 import { createClient } from "@/utils/supabase/client"
+import { api } from "@/lib/api-client"
 
 function wrapper(queryClient: QueryClient) {
   return ({ children }: { children: React.ReactNode }) =>
@@ -295,5 +306,48 @@ describe("useProposal", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data!.id).toBe("proj-1")
     expect(result.current.data!.title).toBe("Website Redesign Proposal")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4. useDeleteProposal — mutation
+// ---------------------------------------------------------------------------
+
+describe("useDeleteProposal", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("calls api.delete with the proposal id", async () => {
+    vi.mocked(api.delete).mockResolvedValue(undefined)
+
+    const { result } = renderHook(() => useDeleteProposal(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("proj-1")
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(api.delete).toHaveBeenCalledWith("/proposals/proj-1")
+  })
+
+  it("throws when the API returns an error", async () => {
+    vi.mocked(api.delete).mockRejectedValue(new Error("API error"))
+
+    const { result } = renderHook(() => useDeleteProposal(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("proj-1")
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("API error")
   })
 })

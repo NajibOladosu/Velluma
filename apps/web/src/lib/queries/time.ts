@@ -167,3 +167,69 @@ export function useStopTimer() {
     },
   })
 }
+
+/** Update a time entry's fields directly in Supabase. */
+export interface UpdateTimeEntryPayload {
+  id: string
+  taskDescription?: string
+  startTime?: string
+  endTime?: string
+  durationMinutes?: number
+  hourlyRate?: number
+  status?: TimeEntryRow["status"]
+}
+
+export function useUpdateTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      taskDescription,
+      startTime,
+      endTime,
+      durationMinutes,
+      hourlyRate,
+      status,
+    }: UpdateTimeEntryPayload) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("time_entries")
+        .update({
+          ...(taskDescription !== undefined && { task_description: taskDescription }),
+          ...(startTime !== undefined && { start_time: startTime }),
+          ...(endTime !== undefined && { end_time: endTime }),
+          ...(durationMinutes !== undefined && { duration_minutes: durationMinutes }),
+          ...(hourlyRate !== undefined && { hourly_rate: hourlyRate }),
+          ...(status !== undefined && { status }),
+        })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}
+
+/** Delete a time entry. */
+export function useDeleteTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("time_entries")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}

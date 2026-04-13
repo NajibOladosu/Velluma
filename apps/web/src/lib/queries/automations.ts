@@ -148,3 +148,78 @@ export function useCreateAutomation() {
     },
   })
 }
+
+/**
+ * Update an automation rule's fields.
+ * When `description` is provided the existing conditions are fetched first to
+ * preserve the `run_count` bookkeeping field stored alongside it.
+ */
+export interface UpdateAutomationPayload {
+  id: string
+  name?: string
+  trigger?: string
+  action?: string
+  description?: string
+  isActive?: boolean
+}
+
+export function useUpdateAutomation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: UpdateAutomationPayload) => {
+      const supabase = createClient()
+
+      // Fetch current conditions so run_count is preserved when description changes
+      const { data: current, error: fetchError } = await supabase
+        .from("automation_rules")
+        .select("conditions")
+        .eq("id", payload.id)
+        .single()
+
+      if (fetchError) throw new Error(fetchError.message)
+
+      const prevConditions = (current?.conditions ?? {}) as Record<string, unknown>
+
+      const { data, error } = await supabase
+        .from("automation_rules")
+        .update({
+          ...(payload.name !== undefined && { name: payload.name }),
+          ...(payload.trigger !== undefined && { trigger: payload.trigger }),
+          ...(payload.action !== undefined && { action: payload.action }),
+          ...(payload.isActive !== undefined && { is_active: payload.isActive }),
+          ...(payload.description !== undefined && {
+            conditions: { ...prevConditions, description: payload.description },
+          }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", payload.id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToAutomation(data as AutomationRuleRow)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: automationKeys.lists() })
+    },
+  })
+}
+
+/** Delete an automation rule. */
+export function useDeleteAutomation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("automation_rules")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: automationKeys.lists() })
+    },
+  })
+}

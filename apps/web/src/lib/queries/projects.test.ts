@@ -5,13 +5,16 @@
  * nextMilestone), and error handling.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import {
   projectKeys,
   useProjects,
   useProject,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
   type ProjectRow,
 } from "./projects"
 
@@ -297,5 +300,183 @@ describe("useProject", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data!.id).toBe("p1")
     expect(result.current.data!.name).toBe("E-commerce Platform")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4. useCreateProject — mutation
+// ---------------------------------------------------------------------------
+
+describe("useCreateProject", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("inserts a project row with active status by default", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: sampleProjectRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+    const profileSingleMock = vi.fn().mockResolvedValue({ data: { tenant_id: "t1" }, error: null })
+    const profileEqMock = vi.fn().mockReturnValue({ single: profileSingleMock })
+    const profileSelectMock = vi.fn().mockReturnValue({ eq: profileEqMock })
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce({ select: profileSelectMock }) // profiles
+      .mockReturnValueOnce({ insert: insertMock }) // projects
+
+    vi.mocked(createClient).mockReturnValue({
+      from: fromMock,
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useCreateProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ title: "New Project", clientId: "cl1" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({ title: "New Project", client_id: "cl1", status: "active" }),
+    ])
+  })
+
+  it("throws when not authenticated", async () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn(),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useCreateProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ title: "New Project", clientId: "cl1" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Not authenticated")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 5. useUpdateProject — mutation
+// ---------------------------------------------------------------------------
+
+describe("useUpdateProject", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("updates project fields", async () => {
+    const updatedRow = { ...sampleProjectRow, title: "Updated Title" }
+    const singleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "p1", title: "Updated Title" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ title: "Updated Title" }))
+    expect(result.current.data!.name).toBe("Updated Title")
+  })
+
+  it("throws when Supabase update fails", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: null, error: { message: "Update error" } })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "p1", status: "completed" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Update error")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 6. useDeleteProject — mutation
+// ---------------------------------------------------------------------------
+
+describe("useDeleteProject", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("deletes the project row by id", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("p1")
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(eqMock).toHaveBeenCalledWith("id", "p1")
+  })
+
+  it("throws when Supabase delete fails", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: "Delete failed" } })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteProject(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("p1")
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Delete failed")
   })
 })

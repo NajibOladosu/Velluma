@@ -5,13 +5,14 @@
  * exported formatter functions.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import {
   expenseKeys,
   useExpenses,
   useExpenseSummary,
+  useUpdateExpense,
   formatExpenseCurrency,
   formatExpenseDate,
   type ExpenseRow,
@@ -243,5 +244,89 @@ describe("useExpenseSummary", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect((result.current.error as Error).message).toBe("Summary error")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 5. useUpdateExpense — mutation
+// ---------------------------------------------------------------------------
+
+describe("useUpdateExpense", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("updates expense fields", async () => {
+    const updatedRow = { ...sampleExpense, amount: 75 }
+    const singleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateExpense(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "exp-1", amount: 75 })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ amount: 75 }))
+    expect(result.current.data!.amount).toBe(75)
+  })
+
+  it("maps camelCase expenseDate to snake_case expense_date", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: sampleExpense, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateExpense(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "exp-1", expenseDate: "2026-04-01" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ expense_date: "2026-04-01" }))
+  })
+
+  it("throws when Supabase update fails", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: null, error: { message: "Update failed" } })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateExpense(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "exp-1", status: "approved" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Update failed")
   })
 })

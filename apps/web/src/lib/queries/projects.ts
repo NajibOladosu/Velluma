@@ -151,6 +151,113 @@ export function useProjectKanban(projectId: string) {
   })
 }
 
+/** Create a new project. */
+export interface CreateProjectPayload {
+  title: string
+  clientId: string
+  description?: string
+  totalBudget?: number
+  status?: string
+}
+
+export function useCreateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CreateProjectPayload) => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single()
+
+      const { data, error } = await supabase
+        .from("projects")
+        .insert([
+          {
+            tenant_id: profile?.tenant_id ?? null,
+            client_id: payload.clientId,
+            title: payload.title,
+            description: payload.description ?? null,
+            status: payload.status ?? "active",
+            total_budget: payload.totalBudget ?? null,
+          },
+        ])
+        .select("*, clients(name)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToProject(data as ProjectRow)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() })
+    },
+  })
+}
+
+/** Update an existing project. */
+export interface UpdateProjectPayload {
+  id: string
+  title?: string
+  description?: string
+  status?: string
+  totalBudget?: number
+  metadata?: Record<string, unknown>
+}
+
+export function useUpdateProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, title, description, status, totalBudget, metadata }: UpdateProjectPayload) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("projects")
+        .update({
+          ...(title !== undefined && { title }),
+          ...(description !== undefined && { description }),
+          ...(status !== undefined && { status }),
+          ...(totalBudget !== undefined && { total_budget: totalBudget }),
+          ...(metadata !== undefined && { metadata }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .select("*, clients(name)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToProject(data as ProjectRow)
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() })
+    },
+  })
+}
+
+/** Delete a project. */
+export function useDeleteProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() })
+    },
+  })
+}
+
 /** Create a new milestone for a project via API Gateway. */
 export interface CreateMilestonePayload {
   projectId: string

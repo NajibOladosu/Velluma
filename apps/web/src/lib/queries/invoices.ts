@@ -126,3 +126,115 @@ export function useInvoices() {
     },
   })
 }
+
+/** Fetch a single payment/invoice by ID. */
+export function useInvoice(id: string) {
+  return useQuery({
+    queryKey: invoiceKeys.detail(id),
+    queryFn: async (): Promise<Invoice> => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .select("*, contracts(title, client_email)")
+        .eq("id", id)
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToInvoice(data as ContractPaymentRow, 0)
+    },
+    enabled: Boolean(id),
+  })
+}
+
+/** Create a new payment record (escrow deposit). */
+export interface CreateInvoicePayload {
+  contractId: string
+  amount: number
+  currency?: string
+  paymentType?: ContractPaymentRow["payment_type"]
+}
+
+export function useCreateInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CreateInvoicePayload) => {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .insert([
+          {
+            contract_id: payload.contractId,
+            user_id: user.id,
+            amount: payload.amount,
+            currency: payload.currency ?? "USD",
+            payment_type: payload.paymentType ?? "escrow",
+            status: "pending",
+          },
+        ])
+        .select("*, contracts(title, client_email)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return data as ContractPaymentRow
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() })
+    },
+  })
+}
+
+/** Update a payment record's status or completion date. */
+export interface UpdateInvoicePayload {
+  id: string
+  status?: ContractPaymentRow["status"]
+  completedAt?: string
+}
+
+export function useUpdateInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, completedAt }: UpdateInvoicePayload) => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .update({
+          ...(status !== undefined && { status }),
+          ...(completedAt !== undefined && { completed_at: completedAt }),
+        })
+        .eq("id", id)
+        .select("*, contracts(title, client_email)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return data as ContractPaymentRow
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() })
+    },
+  })
+}
+
+/** Delete a payment record. */
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from("contract_payments")
+        .delete()
+        .eq("id", id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invoiceKeys.lists() })
+    },
+  })
+}

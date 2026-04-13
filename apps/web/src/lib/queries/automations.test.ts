@@ -13,6 +13,8 @@ import {
   automationKeys,
   useAutomations,
   useToggleAutomation,
+  useUpdateAutomation,
+  useDeleteAutomation,
   type AutomationRuleRow,
 } from "./automations"
 
@@ -238,5 +240,174 @@ describe("useToggleAutomation", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect((result.current.error as Error).message).toBe("Update failed")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4. useUpdateAutomation — mutation
+// ---------------------------------------------------------------------------
+
+describe("useUpdateAutomation", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("fetches current conditions then updates the rule", async () => {
+    const updatedRow = { ...sampleRow, name: "Renamed Rule" }
+
+    // First call: select conditions; second call: update
+    const fetchSingleMock = vi.fn().mockResolvedValue({ data: { conditions: sampleRow.conditions }, error: null })
+    const fetchEqMock = vi.fn().mockReturnValue({ single: fetchSingleMock })
+    const fetchSelectMock = vi.fn().mockReturnValue({ eq: fetchEqMock })
+
+    const updateSingleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const updateSelectMock = vi.fn().mockReturnValue({ single: updateSingleMock })
+    const updateEqMock = vi.fn().mockReturnValue({ select: updateSelectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: updateEqMock })
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce({ select: fetchSelectMock })
+      .mockReturnValueOnce({ update: updateMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: fromMock,
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateAutomation(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "auto-1", name: "Renamed Rule" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Renamed Rule" })
+    )
+    expect(result.current.data!.name).toBe("Renamed Rule")
+  })
+
+  it("preserves run_count when updating description", async () => {
+    const prevConditions = { description: "Old desc", run_count: 5 }
+    const updatedRow = {
+      ...sampleRow,
+      conditions: { description: "New desc", run_count: 5 },
+    }
+
+    const fetchSingleMock = vi.fn().mockResolvedValue({ data: { conditions: prevConditions }, error: null })
+    const fetchEqMock = vi.fn().mockReturnValue({ single: fetchSingleMock })
+    const fetchSelectMock = vi.fn().mockReturnValue({ eq: fetchEqMock })
+
+    const updateSingleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const updateSelectMock = vi.fn().mockReturnValue({ single: updateSingleMock })
+    const updateEqMock = vi.fn().mockReturnValue({ select: updateSelectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: updateEqMock })
+
+    const fromMock = vi.fn()
+      .mockReturnValueOnce({ select: fetchSelectMock })
+      .mockReturnValueOnce({ update: updateMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: fromMock,
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateAutomation(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "auto-1", description: "New desc" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conditions: { description: "New desc", run_count: 5 },
+      })
+    )
+  })
+
+  it("throws when the conditions fetch fails", async () => {
+    const fetchSingleMock = vi.fn().mockResolvedValue({ data: null, error: { message: "Fetch failed" } })
+    const fetchEqMock = vi.fn().mockReturnValue({ single: fetchSingleMock })
+    const fetchSelectMock = vi.fn().mockReturnValue({ eq: fetchEqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ select: fetchSelectMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateAutomation(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "auto-1", name: "X" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Fetch failed")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 5. useDeleteAutomation — mutation
+// ---------------------------------------------------------------------------
+
+describe("useDeleteAutomation", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("deletes the automation rule by id", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteAutomation(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("auto-1")
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(deleteMock).toHaveBeenCalled()
+    expect(eqMock).toHaveBeenCalledWith("id", "auto-1")
+  })
+
+  it("throws when Supabase delete fails", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: "Delete failed" } })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteAutomation(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("auto-1")
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Delete failed")
   })
 })

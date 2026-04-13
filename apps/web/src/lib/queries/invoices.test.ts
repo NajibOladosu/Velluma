@@ -5,12 +5,16 @@
  * the key factory, the payment-status mapper, and the row-to-Invoice mapper.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
 import {
   invoiceKeys,
   useInvoices,
+  useInvoice,
+  useCreateInvoice,
+  useUpdateInvoice,
+  useDeleteInvoice,
   type Invoice,
 } from "./invoices"
 
@@ -213,5 +217,248 @@ describe("useInvoices", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect((result.current.error as Error).message).toBe("DB error")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 3. useInvoice (single record)
+// ---------------------------------------------------------------------------
+
+describe("useInvoice", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("is disabled when id is empty", () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn(),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useInvoice(""), {
+      wrapper: wrapper(queryClient),
+    })
+
+    expect(result.current.fetchStatus).toBe("idle")
+  })
+
+  it("fetches a single invoice by id", async () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: samplePaymentRow, error: null }),
+          }),
+        }),
+      }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useInvoice("pay-1"), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data!.id).toBe("pay-1")
+    expect(result.current.data!.numericAmount).toBe(2500)
+  })
+
+  it("throws when Supabase returns an error", async () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
+          }),
+        }),
+      }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useInvoice("pay-missing"), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Not found")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 4. useCreateInvoice — mutation
+// ---------------------------------------------------------------------------
+
+describe("useCreateInvoice", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("inserts a payment row with pending status", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: samplePaymentRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ insert: insertMock }),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useCreateInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ contractId: "c1", amount: 2500 })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(insertMock).toHaveBeenCalledWith([
+      expect.objectContaining({
+        contract_id: "c1",
+        amount: 2500,
+        status: "pending",
+        payment_type: "escrow",
+      }),
+    ])
+  })
+
+  it("throws when not authenticated", async () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn(),
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useCreateInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ contractId: "c1", amount: 100 })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Not authenticated")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 5. useUpdateInvoice — mutation
+// ---------------------------------------------------------------------------
+
+describe("useUpdateInvoice", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("updates status on the payment row", async () => {
+    const updatedRow = { ...samplePaymentRow, status: "completed" as const }
+    const singleMock = vi.fn().mockResolvedValue({ data: updatedRow, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "pay-1", status: "completed" })
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ status: "completed" }))
+  })
+
+  it("throws when Supabase update fails", async () => {
+    const singleMock = vi.fn().mockResolvedValue({ data: null, error: { message: "Update error" } })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ update: updateMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useUpdateInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate({ id: "pay-1", status: "failed" })
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Update error")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 6. useDeleteInvoice — mutation
+// ---------------------------------------------------------------------------
+
+describe("useDeleteInvoice", () => {
+  let queryClient: QueryClient
+
+  beforeEach(() => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    vi.clearAllMocks()
+  })
+
+  it("deletes the payment row by id", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: null })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("pay-1")
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(deleteMock).toHaveBeenCalled()
+    expect(eqMock).toHaveBeenCalledWith("id", "pay-1")
+  })
+
+  it("throws when Supabase delete fails", async () => {
+    const eqMock = vi.fn().mockResolvedValue({ error: { message: "Delete failed" } })
+    const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: deleteMock }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
+
+    const { result } = renderHook(() => useDeleteInvoice(), {
+      wrapper: wrapper(queryClient),
+    })
+
+    await act(async () => {
+      result.current.mutate("pay-1")
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect((result.current.error as Error).message).toBe("Delete failed")
   })
 })
