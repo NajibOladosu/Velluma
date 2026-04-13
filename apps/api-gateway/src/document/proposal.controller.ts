@@ -1,14 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Inject,
-  Param,
-  Put,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Inject, Param, Put } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 
 @Controller('proposals')
@@ -17,12 +9,12 @@ export class ProposalController {
 
   @Post()
   async createProposal(@Body() data: CreateProposalDto) {
-    return await firstValueFrom(this.client.send('create_proposal', data));
+    return callMicroservice(this.client.send('create_proposal', data));
   }
 
   @Get(':id')
   async getProposal(@Param('id') id: string) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('get_proposal', { projectId: id }),
     );
   }
@@ -32,7 +24,7 @@ export class ProposalController {
     @Param('id') id: string,
     @Body() content: UpdateProposalDto,
   ) {
-    return await firstValueFrom(
+    return callMicroservice(
       this.client.send('update_proposal', { projectId: id, content }),
     );
   }

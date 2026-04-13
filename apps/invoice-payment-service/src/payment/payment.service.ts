@@ -42,17 +42,22 @@ export class PaymentService implements OnModuleInit {
       .single();
 
     // 2. Create Stripe Payment Intent
-    // We hold the funds on the platform account first (Escrow)
-    const intent = await this.stripe.paymentIntents.create({
-      amount: Math.round(data.amount * 100), // convert to cents
-      currency: data.currency || 'usd',
-      metadata: {
-        milestoneId: data.milestoneId,
-        tenantId: data.tenantId,
-        clientId: data.clientId,
-        type: 'escrow_funding',
+    // We hold the funds on the platform account first (Escrow).
+    // Idempotency key is scoped to this milestone so retried requests never create
+    // duplicate payment intents.
+    const intent = await this.stripe.paymentIntents.create(
+      {
+        amount: Math.round(data.amount * 100), // convert to cents
+        currency: data.currency || 'usd',
+        metadata: {
+          milestoneId: data.milestoneId,
+          tenantId: data.tenantId,
+          clientId: data.clientId,
+          type: 'escrow_funding',
+        },
       },
-    });
+      { idempotencyKey: `escrow_fund_${data.milestoneId}` },
+    );
 
     // 3. Record in local Escrow Ledger (Supabase)
     const { data: record, error } = await this.supabase
@@ -96,13 +101,17 @@ export class PaymentService implements OnModuleInit {
     if (!transaction.tenants?.stripe_connect_id)
       throw new Error('Freelancer has no Stripe account connected');
 
-    // 2. Transfer funds to freelancer's Connect account
-    const transfer = await this.stripe.transfers.create({
-      amount: Math.round(transaction.amount * 100),
-      currency: 'usd',
-      destination: transaction.tenants.stripe_connect_id,
-      metadata: { milestoneId },
-    });
+    // 2. Transfer funds to freelancer's Connect account.
+    // Idempotency key prevents duplicate transfers on retries.
+    const transfer = await this.stripe.transfers.create(
+      {
+        amount: Math.round(transaction.amount * 100),
+        currency: 'usd',
+        destination: transaction.tenants.stripe_connect_id,
+        metadata: { milestoneId },
+      },
+      { idempotencyKey: `escrow_release_${milestoneId}` },
+    );
 
     // 3. Update Ledger
     await client

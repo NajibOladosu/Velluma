@@ -17,19 +17,15 @@ export class ResourceService {
   }) {
     const { data: resource, error } = await this.supabase
       .getClient()
-      .from('audit_logs') // Actually we should have a 'resources' table, but using a generic pattern for now if not defined
+      .from('project_deliverables')
       .insert([
         {
+          project_id: data.projectId,
           tenant_id: data.tenantId,
-          entity_type: 'resource',
-          entity_id: data.projectId,
-          action: 'resource_added',
-          metadata: {
-            name: data.name,
-            description: data.description,
-            file_url: data.fileUrl,
-            type: data.type,
-          },
+          name: data.name,
+          description: data.description ?? null,
+          file_url: data.fileUrl,
+          type: data.type,
         },
       ])
       .select()
@@ -46,10 +42,10 @@ export class ResourceService {
   async listResources(projectId: string) {
     const { data, error } = await this.supabase
       .getClient()
-      .from('audit_logs')
+      .from('project_deliverables')
       .select('*')
-      .eq('entity_id', projectId)
-      .eq('entity_type', 'resource');
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;

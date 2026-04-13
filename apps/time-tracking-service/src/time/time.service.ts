@@ -7,22 +7,26 @@ export class TimeService {
 
   constructor(private supabase: SupabaseService) {}
 
+  /**
+   * Starts a timer by creating an active time_tracking_sessions record.
+   * Note: projectId is treated as contractId because the gateway conflates the two.
+   */
   async startTimer(data: {
     projectId: string;
     userId: string;
     tenantId: string;
+    taskDescription?: string;
   }) {
-    const { data: log, error } = await this.supabase
+    const { data: session, error } = await this.supabase
       .getClient()
-      .from('audit_logs') // Re-using audit_logs as generic store for now
+      .from('time_tracking_sessions')
       .insert([
         {
-          tenant_id: data.tenantId,
-          user_id: data.userId,
-          entity_type: 'timer',
-          entity_id: data.projectId,
-          action: 'timer_started',
-          metadata: { started_at: new Date().toISOString() },
+          contract_id: data.projectId,
+          freelancer_id: data.userId,
+          task_description: data.taskDescription ?? 'Work session',
+          start_time: new Date().toISOString(),
+          is_active: true,
         },
       ])
       .select()
@@ -33,50 +37,78 @@ export class TimeService {
       throw new Error('Failed to start timer');
     }
 
-    return log;
+    return session;
   }
 
+  /**
+   * Stops a running session and creates a draft time_entry with the calculated duration.
+   */
   async stopTimer(timerId: string) {
-    const { data: timer } = await this.supabase
-      .getClient()
-      .from('audit_logs')
+    const client = this.supabase.getClient();
+
+    const { data: session, error: fetchError } = await client
+      .from('time_tracking_sessions')
       .select('*')
       .eq('id', timerId)
       .single();
 
-    if (!timer) throw new Error('Timer not found');
+    if (fetchError || !session) throw new Error('Timer session not found');
 
-    const duration =
-      (new Date().getTime() - new Date(timer.metadata.started_at).getTime()) /
-      1000;
+    const stoppedAt = new Date();
+    const startedAt = new Date(session.start_time);
+    const durationMinutes = Math.round(
+      (stoppedAt.getTime() - startedAt.getTime()) / 60_000,
+    );
 
-    const { data: stopped, error } = await this.supabase
-      .getClient()
-      .from('audit_logs')
+    // Mark session as inactive
+    const { data: stopped, error: updateError } = await client
+      .from('time_tracking_sessions')
       .update({
-        action: 'timer_stopped',
-        metadata: {
-          ...timer.metadata,
-          stopped_at: new Date().toISOString(),
-          duration_seconds: duration,
-        },
+        is_active: false,
+        last_activity: stoppedAt.toISOString(),
       })
       .eq('id', timerId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (updateError) throw updateError;
 
-    return stopped;
+    // Create a draft time_entry for review/approval
+    const { data: entry, error: entryError } = await client
+      .from('time_entries')
+      .insert([
+        {
+          contract_id: session.contract_id,
+          freelancer_id: session.freelancer_id,
+          task_description: session.task_description,
+          start_time: session.start_time,
+          end_time: stoppedAt.toISOString(),
+          duration_minutes: durationMinutes,
+          status: 'draft',
+        },
+      ])
+      .select()
+      .single();
+
+    if (entryError) {
+      this.logger.warn(
+        `Timer stopped but time_entry creation failed: ${entryError.message}`,
+      );
+    }
+
+    return { session: stopped, entry: entry ?? null, durationMinutes };
   }
 
+  /**
+   * Lists time entries (completed sessions) for a project/contract.
+   */
   async listTimers(projectId: string) {
     const { data, error } = await this.supabase
       .getClient()
-      .from('audit_logs')
+      .from('time_entries')
       .select('*')
-      .eq('entity_id', projectId)
-      .eq('entity_type', 'timer');
+      .eq('contract_id', projectId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;
