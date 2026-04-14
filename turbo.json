@@ -11,6 +11,10 @@
                 "dist/**"
             ]
         },
+        "test": {
+            "outputs": [],
+            "cache": false
+        },
         "lint": {
             "dependsOn": [
                 "^lint"
