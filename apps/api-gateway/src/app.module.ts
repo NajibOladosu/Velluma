@@ -13,6 +13,7 @@ import { DocumentModule } from './document/document.module';
 import { ProposalController } from './document/proposal.controller';
 import { FinanceModule } from './finance/finance.module';
 import { PaymentController } from './finance/payment.controller';
+import { InvoiceController } from './finance/invoice.controller';
 import { ContractModule } from './contract/contract.module';
 import { ContractController } from './contract/contract.controller';
 import { ProjectModule } from './project/project.module';
@@ -78,6 +79,7 @@ import { AutomationController } from './automation/automation.controller';
     IdentityController,
     ProposalController,
     PaymentController,
+    InvoiceController,
     ContractController,
     ProjectController,
     CrmController,

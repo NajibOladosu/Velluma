@@ -17,4 +17,6 @@ import { getMicroserviceConfig } from '../common/utils/microservice-config';
   ],
   exports: [ClientsModule],
 })
+// Note: InvoiceController and PaymentController are registered on AppModule
+// so they share the FINANCE_SERVICE client token exported from ClientsModule.
 export class FinanceModule {}
