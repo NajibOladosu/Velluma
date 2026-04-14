@@ -46,8 +46,8 @@ next-env.d.ts
 CLAUDE.md
 .mcp.json
 
-# Supabase local
-supabase/
+# Supabase local dev directory (root only — does not affect src/utils/supabase/)
+/supabase/
 stitch.zip
 /stitch
 
