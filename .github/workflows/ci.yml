@@ -2,29 +2,79 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
-  lint-and-typecheck:
+  # ── Job 1: Lint + Type Check ─────────────────────────────────────────────────
+  # Runs in parallel with the test job. Fast feedback on style and types.
+  lint-typecheck:
+    name: Lint & Type Check
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint (with relaxed rules)
+      - name: Lint (relaxed CI rules)
         run: npm run ci-lint
 
-      - name: Type check
+      - name: Type check (web)
         run: npm run type-check:ci
+
+  # ── Job 2: Tests ─────────────────────────────────────────────────────────────
+  # Runs all Jest (NestJS services) and Vitest (Next.js web) suites via Turbo.
+  # No real Redis or Supabase needed — all external I/O is mocked in tests.
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run all tests
+        run: npm test
+
+  # ── Job 3: Build ─────────────────────────────────────────────────────────────
+  # Gates on both lint+typecheck and tests passing. Builds the full monorepo
+  # via Turbo (Next.js frontend + all NestJS service dist/ outputs).
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint-typecheck, test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build monorepo
+        run: npm run build
