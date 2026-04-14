@@ -11,7 +11,9 @@ import { Separator } from "@/components/ui/separator"
 import { ShieldCheck, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export default function LoginPage() {
+// Separated so that useSearchParams() is inside a Suspense boundary,
+// which Next.js requires for static page generation.
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirectTo") ?? "/dashboard"
@@ -155,5 +157,13 @@ export default function LoginPage() {
         </Muted>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense>
+      <LoginContent />
+    </React.Suspense>
   )
 }
