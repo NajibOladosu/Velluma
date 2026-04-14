@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseModule } from 'supabase-lib';
 import { ContractModule } from './contract/contract.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { ContractModule } from './contract/contract.module';
     SupabaseModule,
     ContractModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

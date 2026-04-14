@@ -1,3 +1,9 @@
-// This file is intentionally empty.
-// The expense-bookkeeping-service runs as a Redis microservice.
-// All message handlers live in src/expense/expense.controller.ts.
+import { Controller, Get } from '@nestjs/common';
+
+@Controller()
+export class AppController {
+  @Get('health')
+  health() {
+    return { status: 'ok', service: 'expense-bookkeeping-service', timestamp: new Date().toISOString() };
+  }
+}

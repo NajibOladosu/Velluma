@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseModule } from 'supabase-lib';
 import { PaymentModule } from './payment/payment.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { PaymentModule } from './payment/payment.module';
     SupabaseModule,
     PaymentModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}
