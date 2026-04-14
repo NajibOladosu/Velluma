@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SupabaseModule } from 'supabase-lib';
 import { NotificationModule } from './notification/notification.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { NotificationModule } from './notification/notification.module';
     SupabaseModule,
     NotificationModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

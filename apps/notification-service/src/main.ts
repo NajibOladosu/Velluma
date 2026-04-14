@@ -5,16 +5,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('NotificationService');
-  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    AppModule,
-    {
-      transport: Transport.REDIS,
-      options: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      },
-    },
-  );
+
+  const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -24,7 +16,20 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen();
-  logger.log('Notification Microservice is listening via Redis...');
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.REDIS,
+    options: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+    },
+  });
+
+  await app.startAllMicroservices();
+
+  const healthPort = parseInt(process.env.HEALTH_PORT || '3100');
+  await app.listen(healthPort);
+  logger.log(
+    `Notification Microservice is listening via Redis | health → :${healthPort}/health`,
+  );
 }
 bootstrap();
