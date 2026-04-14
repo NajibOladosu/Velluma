@@ -16,7 +16,7 @@ describe('AppController', () => {
     it('should return ok status with service name and timestamp', () => {
       const result = appController.health();
       expect(result.status).toBe('ok');
-      expect(result.service).toBe('time-tracking-service');
+      expect(result.service).toBe('automation-service');
       expect(result.timestamp).toBeDefined();
     });
   });
