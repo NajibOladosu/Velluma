@@ -78,3 +78,11 @@ jobs:
 
       - name: Build monorepo
         run: npm run build
+        env:
+          # Placeholder values so Next.js can prerender pages that reference
+          # Supabase env vars at build time. Real values are injected at runtime.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
