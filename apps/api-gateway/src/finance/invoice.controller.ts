@@ -11,19 +11,19 @@ import {
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 
+@ApiTags('Invoices')
+@ApiBearerAuth('supabase-jwt')
 @Controller('invoices')
 export class InvoiceController {
   constructor(@Inject('FINANCE_SERVICE') private client: ClientProxy) {}
 
-  /**
-   * POST /invoices
-   * Create a new invoice (backed by contract_payments).
-   * The userId is taken from the authenticated session, not the request body.
-   */
+  @ApiOperation({ summary: 'Create an invoice', description: 'Creates an invoice backed by a contract_payments record. The authenticated user\'s ID is used as the owner — it cannot be overridden in the body.' })
+  @ApiResponse({ status: 201, description: 'Invoice created' })
   @Post()
   async createInvoice(@Req() req: any, @Body() dto: CreateInvoiceDto) {
     return callMicroservice(
@@ -31,11 +31,11 @@ export class InvoiceController {
     );
   }
 
-  /**
-   * GET /invoices
-   * List invoices for the authenticated user.
-   * Optional: ?contractId=<uuid>&status=pending|completed|failed|refunded
-   */
+  @ApiOperation({ summary: 'List invoices', description: 'Returns all invoices for the authenticated user, optionally filtered by contract or status.' })
+  @ApiQuery({ name: 'contractId', required: false, description: 'Filter by contract UUID' })
+  @ApiQuery({ name: 'status', required: false, enum: ['pending', 'completed', 'failed', 'refunded'] })
+  @ApiQuery({ name: 'search', required: false, description: 'Full-text search on invoice number or notes' })
+  @ApiResponse({ status: 200, description: 'Array of invoice records' })
   @Get()
   async listInvoices(
     @Req() req: any,
@@ -53,19 +53,18 @@ export class InvoiceController {
     );
   }
 
-  /**
-   * GET /invoices/:id
-   * Get a single invoice by ID.
-   */
+  @ApiOperation({ summary: 'Get a single invoice' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Invoice record' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
   @Get(':id')
   async getInvoice(@Param('id', ParseUUIDPipe) id: string) {
     return callMicroservice(this.client.send('get_invoice', { id }));
   }
 
-  /**
-   * PATCH /invoices/:id
-   * Update invoice status, due date, or notes.
-   */
+  @ApiOperation({ summary: 'Update invoice status, due date, or notes' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Updated invoice record' })
   @Patch(':id')
   async updateInvoice(
     @Param('id', ParseUUIDPipe) id: string,
@@ -76,10 +75,9 @@ export class InvoiceController {
     );
   }
 
-  /**
-   * POST /invoices/:id/send
-   * Mark the invoice as sent (records sent_at timestamp in metadata).
-   */
+  @ApiOperation({ summary: 'Mark invoice as sent', description: 'Records the sent_at timestamp in the invoice metadata.' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID', format: 'uuid' })
+  @ApiResponse({ status: 201, description: 'Invoice marked as sent' })
   @Post(':id/send')
   async sendInvoice(@Param('id', ParseUUIDPipe) id: string) {
     return callMicroservice(this.client.send('send_invoice', { id }));

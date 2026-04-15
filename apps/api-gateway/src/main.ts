@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
   const logger = new Logger('ApiGateway');
@@ -64,6 +65,48 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3001;
+
+  // ---------------------------------------------------------------------------
+  // Swagger / OpenAPI — available at /api/docs in non-production environments
+  // Set SWAGGER_ENABLED=true to expose it in production (e.g. behind auth proxy)
+  // ---------------------------------------------------------------------------
+  if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Velluma API')
+      .setDescription(
+        'API Gateway for the Velluma freelance contract-management platform.\n\n' +
+        'All endpoints require a valid Supabase Bearer token in the `Authorization` header ' +
+        'unless otherwise noted.\n\n' +
+        '**Auth:** `Authorization: Bearer <supabase-access-token>`',
+      )
+      .setVersion('1.0')
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase-jwt')
+      .addTag('Identity', 'Tenant provisioning and Stripe Connect onboarding')
+      .addTag('Contracts', 'AI contract generation and digital signing')
+      .addTag('Invoices', 'Invoice lifecycle — create, list, update, send')
+      .addTag('Payments', 'Escrow funding and release')
+      .addTag('Proposals', 'Document generation and proposal management')
+      .addTag('Projects', 'Kanban board and milestone tracking')
+      .addTag('CRM', 'Client relationship management')
+      .addTag('Resources', 'Project deliverable management')
+      .addTag('Time', 'Time-entry logging and approval workflow')
+      .addTag('Expenses', 'Expense approval and reimbursement')
+      .addTag('Budget', 'Project profitability and tenant health metrics')
+      .addTag('Notifications', 'Email and SMS dispatch')
+      .addTag('Automation', 'Rule-based workflow automation')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
+    });
+    logger.log(`Swagger UI → http://localhost:${port}/api/docs`);
+  }
+
   await app.listen(port);
   logger.log(`API Gateway running on http://localhost:${port}`);
   logger.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
