@@ -43,6 +43,8 @@ import {
   ToggleLeft,
   ToggleRight,
   AlertCircle,
+  Download,
+  Loader2,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -278,6 +280,26 @@ export default function ProposalBuilderPage() {
     { id: "invoice", label: "Generate First Invoice", description: "Create deposit invoice automatically", enabled: false, icon: Receipt },
   ]);
   const [reminderEnabled, setReminderEnabled] = React.useState(true);
+  const [exportingPdf, setExportingPdf] = React.useState(false);
+
+  const handleExportPdf = React.useCallback(async () => {
+    setExportingPdf(true);
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/pdf`);
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposal-${proposalId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[pdf export]", err);
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [proposalId]);
 
   /* ── Pricing Calculations ─────────────────── */
   const tierPrices: Record<string, number> = {
@@ -358,6 +380,21 @@ export default function ProposalBuilderPage() {
           <Button variant="outline" className="flex-1 sm:flex-none h-9">
             <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Preview</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none h-9"
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+          >
+            {exportingPdf ? (
+              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            )}
+            <span className="hidden sm:inline">
+              {exportingPdf ? "Generating…" : "Export PDF"}
+            </span>
           </Button>
           <Button variant="outline" className="flex-1 sm:flex-none h-9">
             <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
