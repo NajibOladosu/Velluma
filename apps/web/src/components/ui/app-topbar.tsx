@@ -2,11 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Menu, Search, User } from "lucide-react";
+import { Menu, Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { MobileNavDrawer } from "./mobile-nav-drawer";
 import { useAppStore } from "@/store/use-app-store";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function AppTopBar() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -53,9 +54,7 @@ export function AppTopBar() {
           >
             <Search className="h-5 w-5" strokeWidth={1.5} />
           </Button>
-          <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900 h-9 w-9">
-            <Bell className="h-5 w-5" strokeWidth={1.5} />
-          </Button>
+          <NotificationBell />
           <Link href="/profile">
             <div className="h-9 w-9 rounded-md border border-zinc-200 bg-zinc-50 flex items-center justify-center text-zinc-900 cursor-pointer overflow-hidden transition-colors hover:bg-zinc-100">
               <User className="h-5 w-5" strokeWidth={1.5} />
