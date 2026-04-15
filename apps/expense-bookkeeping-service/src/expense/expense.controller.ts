@@ -32,4 +32,23 @@ export class ExpenseController {
   ) {
     return this.expenseService.getExpenseSummary(data);
   }
+
+  @MessagePattern('approve_expense')
+  async approveExpense(
+    @Payload() data: { id: string; approverId: string },
+  ) {
+    return this.expenseService.approveExpense(data.id, data.approverId);
+  }
+
+  @MessagePattern('reject_expense')
+  async rejectExpense(
+    @Payload() data: { id: string; approverId: string; notes?: string },
+  ) {
+    return this.expenseService.rejectExpense(data.id, data.approverId, data.notes);
+  }
+
+  @MessagePattern('reimburse_expense')
+  async reimburseExpense(@Payload() data: { id: string }) {
+    return this.expenseService.reimburseExpense(data.id);
+  }
 }

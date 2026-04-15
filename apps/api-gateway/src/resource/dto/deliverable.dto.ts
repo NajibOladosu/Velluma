@@ -1,4 +1,15 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsUrl, IsIn } from 'class-validator';
+
+const DELIVERABLE_TYPES = [
+  'document',
+  'image',
+  'video',
+  'audio',
+  'archive',
+  'spreadsheet',
+  'presentation',
+  'other',
+] as const;
 
 export class AddDeliverableDto {
   @IsString()
@@ -17,11 +28,11 @@ export class AddDeliverableDto {
   @IsOptional()
   description?: string;
 
-  @IsString()
+  @IsUrl()
   @IsNotEmpty()
   fileUrl: string;
 
-  @IsString()
+  @IsIn(DELIVERABLE_TYPES)
   @IsNotEmpty()
-  type: string;
+  type: (typeof DELIVERABLE_TYPES)[number];
 }

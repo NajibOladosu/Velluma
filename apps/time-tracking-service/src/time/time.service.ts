@@ -113,4 +113,107 @@ export class TimeService {
     if (error) throw error;
     return data;
   }
+
+  /**
+   * Creates a manual time entry (bypasses the session/timer flow).
+   */
+  async createTimeEntry(data: {
+    contractId: string;
+    userId: string;
+    taskDescription: string;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+    hourlyRate?: number;
+  }) {
+    const { data: entry, error } = await this.supabase
+      .getClient()
+      .from('time_entries')
+      .insert([
+        {
+          contract_id: data.contractId,
+          freelancer_id: data.userId,
+          task_description: data.taskDescription,
+          start_time: data.startTime,
+          end_time: data.endTime,
+          duration_minutes: data.durationMinutes,
+          hourly_rate: data.hourlyRate ?? null,
+          status: 'draft',
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      this.logger.error(`Error creating time entry: ${error.message}`);
+      throw new Error('Failed to create time entry');
+    }
+
+    return entry;
+  }
+
+  /**
+   * Submits a draft time entry for approval.
+   */
+  async submitTimeEntry(id: string) {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('time_entries')
+      .update({ status: 'submitted' })
+      .eq('id', id)
+      .eq('status', 'draft')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to submit time entry: ${error.message}`);
+    if (!data) throw new Error('Time entry not found or already submitted');
+    return data;
+  }
+
+  /**
+   * Approves a submitted time entry.
+   */
+  async approveTimeEntry(id: string, approverId: string) {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('time_entries')
+      .update({
+        status: 'approved',
+        approved_by: approverId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('status', 'submitted')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to approve time entry: ${error.message}`);
+    if (!data) throw new Error('Time entry not found or not in submitted state');
+    return data;
+  }
+
+  /**
+   * Rejects a submitted time entry with optional feedback.
+   */
+  async rejectTimeEntry(id: string, approverId: string, reason?: string) {
+    const updatePayload: Record<string, unknown> = {
+      status: 'rejected',
+      approved_by: approverId,
+      approved_at: new Date().toISOString(),
+    };
+    if (reason) updatePayload['rejection_reason'] = reason;
+
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('time_entries')
+      .update(updatePayload)
+      .eq('id', id)
+      .eq('status', 'submitted')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to reject time entry: ${error.message}`);
+    if (!data) throw new Error('Time entry not found or not in submitted state');
+    return data;
+  }
 }

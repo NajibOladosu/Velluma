@@ -1,4 +1,5 @@
 import {
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -9,6 +10,7 @@ import {
 
 export class UpdateInvoiceDto {
   @IsUUID()
+  @IsNotEmpty()
   id: string;
 
   @IsIn(['pending', 'completed', 'failed', 'refunded'])

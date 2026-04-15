@@ -17,6 +17,7 @@ export class SendEmailDto {
   subject: string;
 
   @IsIn(['proposal_sent', 'contract_active', 'payment_held'])
+  @IsNotEmpty()
   template: string;
 
   @IsObject()

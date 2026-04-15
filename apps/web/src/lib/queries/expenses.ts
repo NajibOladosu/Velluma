@@ -6,6 +6,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
+import { api } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // DB row type  (matches `expenses` table)
@@ -248,6 +249,48 @@ export function useDeleteExpense() {
         .eq("id", id)
 
       if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: expenseKeys.summary() })
+    },
+  })
+}
+
+/** Approve a pending expense (routes through API Gateway for business-logic enforcement). */
+export function useApproveExpense() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.patch(`/expenses/${id}/approve`, {})
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: expenseKeys.summary() })
+    },
+  })
+}
+
+/** Reject a pending expense with optional notes. */
+export function useRejectExpense() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
+      return api.patch(`/expenses/${id}/reject`, { notes })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: expenseKeys.summary() })
+    },
+  })
+}
+
+/** Mark an approved expense as reimbursed. */
+export function useReimburseExpense() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.patch(`/expenses/${id}/reimburse`, {})
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })

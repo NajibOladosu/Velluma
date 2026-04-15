@@ -26,6 +26,7 @@ import { TimeModule } from './time/time.module';
 import { TimeController } from './time/time.controller';
 import { BudgetModule } from './budget/budget.module';
 import { BudgetController } from './budget/budget.controller';
+import { ExpenseController } from './budget/expense.controller';
 import { NotificationModule } from './notification/notification.module';
 import { NotificationController } from './notification/notification.controller';
 import { AutomationModule } from './automation/automation.module';
@@ -86,6 +87,7 @@ import { AutomationController } from './automation/automation.controller';
     ResourceController,
     TimeController,
     BudgetController,
+    ExpenseController,
     NotificationController,
     AutomationController,
   ],
