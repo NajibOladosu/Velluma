@@ -50,6 +50,27 @@ export async function POST(req: NextRequest) {
   // and there is no user session in this context.
   const supabase = await createServiceClient()
 
+  // ── Idempotency guard ────────────────────────────────────────────────────
+  // Insert the event_id before processing. If the row already exists the
+  // UNIQUE constraint returns a conflict — meaning Stripe is retrying an event
+  // we already handled. Return 200 immediately to stop retries.
+  const { error: dedupError } = await supabase
+    .from("stripe_webhook_events")
+    .insert({
+      event_id:   event.id,
+      event_type: event.type,
+      data:       event.data.object as Record<string, unknown>,
+    })
+
+  if (dedupError) {
+    if (dedupError.code === "23505") {
+      // Unique violation — already processed
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+    // Unexpected DB error — log but continue processing to avoid losing the event
+    console.error("stripe_webhook_events insert error:", dedupError)
+  }
+
   try {
     switch (event.type) {
       // ── Payment intents ─────────────────────────���──────────────────────────
@@ -58,7 +79,7 @@ export async function POST(req: NextRequest) {
         const milestoneId = intent.metadata?.milestoneId
         if (milestoneId) {
           await supabase
-            .from("escrow_transactions")
+            .from("escrow_ledger")
             .update({ status: "funded", funded_at: new Date().toISOString() })
             .eq("stripe_charge_id", intent.id)
         }
@@ -70,7 +91,7 @@ export async function POST(req: NextRequest) {
         const milestoneId = intent.metadata?.milestoneId
         if (milestoneId) {
           await supabase
-            .from("escrow_transactions")
+            .from("escrow_ledger")
             .update({
               status: "failed",
               failure_reason: intent.last_payment_error?.message ?? "Unknown",
@@ -171,12 +192,10 @@ export async function POST(req: NextRequest) {
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice
         if ((invoice as any).subscription) {
-          await supabase.from("subscription_events").insert({
-            event_id: event.id,
-            event_type: event.type,
-            data: { invoice_id: invoice.id, amount_paid: invoice.amount_paid },
-            processed: true,
-          })
+          await supabase
+            .from("user_subscriptions")
+            .update({ status: "active", updated_at: new Date().toISOString() })
+            .eq("stripe_subscription_id", (invoice as any).subscription)
         }
         break
       }
