@@ -32,7 +32,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "supabase-lib": "file:../../packages/supabase-lib",
-    "twilio": "^5.13.1"
+    "twilio": "^5.13.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -57,7 +58,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "@types/web-push": "^3.6.4"
   },
   "jest": {
     "moduleFileExtensions": [

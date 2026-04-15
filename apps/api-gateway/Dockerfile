@@ -20,6 +20,8 @@ RUN npm run build --workspace=api-gateway
 # Production stage
 FROM node:22-alpine
 
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 COPY --from=builder /app/apps/api-gateway/dist ./dist

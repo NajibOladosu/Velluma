@@ -1,5 +1,10 @@
 version: '3.8'
 
+# ---------------------------------------------------------------------------
+# Shared defaults for every NestJS microservice.
+# Each service exposes a lightweight HTTP health endpoint on HEALTH_PORT
+# (default 3100) alongside its Redis pub/sub transport.
+# ---------------------------------------------------------------------------
 x-nestjs-service: &nestjs-service
   build:
     context: .
@@ -10,10 +15,30 @@ x-nestjs-service: &nestjs-service
     SUPABASE_URL: ${SUPABASE_URL}
     SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
     SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    HEALTH_PORT: 3100
   depends_on:
-    - redis
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+  healthcheck: &microservice-healthcheck
+    test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 30s
+  deploy:
+    resources:
+      limits:
+        memory: 256M
+        cpus: "0.25"
+      reservations:
+        memory: 128M
+        cpus: "0.05"
 
 services:
+  # ---------------------------------------------------------------------------
+  # Redis — message broker for all microservice communication
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:7-alpine
     container_name: velluma-redis
@@ -21,8 +46,26 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 192M
+          cpus: "0.25"
+        reservations:
+          memory: 64M
+          cpus: "0.05"
 
+  # ---------------------------------------------------------------------------
+  # API Gateway — the sole public-facing HTTP service
+  # ---------------------------------------------------------------------------
   api-gateway:
     build:
       context: .
@@ -33,14 +76,41 @@ services:
     environment:
       <<: *service-env
       PORT: 3001
+      NODE_ENV: ${NODE_ENV:-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
     depends_on:
-      - redis
-      - identity-service
-      - contract-service
-      - crm-service
-      - project-service
-      - invoice-payment-service
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      contract-service:
+        condition: service_healthy
+      crm-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      invoice-payment-service:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.50"
+        reservations:
+          memory: 256M
+          cpus: "0.10"
 
+  # ---------------------------------------------------------------------------
+  # Domain microservices
+  # ---------------------------------------------------------------------------
   identity-service:
     <<: *nestjs-service
     build:
@@ -56,6 +126,14 @@ services:
       args:
         SERVICE_NAME: contract-service
     container_name: velluma-contract
+    deploy:
+      resources:
+        limits:
+          memory: 384M   # contract AI generation is memory-heavier
+          cpus: "0.50"
+        reservations:
+          memory: 192M
+          cpus: "0.10"
 
   crm-service:
     <<: *nestjs-service
@@ -111,6 +189,13 @@ services:
       EMAIL_SERVER_PORT: ${EMAIL_SERVER_PORT}
       EMAIL_SERVER_USER: ${EMAIL_SERVER_USER}
       EMAIL_SERVER_PASSWORD: ${EMAIL_SERVER_PASSWORD}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:noreply@velluma.com}
 
   automation-service:
     <<: *nestjs-service
