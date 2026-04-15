@@ -10,7 +10,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
-import { api } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // DB row type  (matches `time_entries` table)
@@ -143,12 +142,26 @@ export function useStartTimer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: StartTimerPayload) => {
-      // Gateway route: POST /time/timers/start
-      return api.post("/time/timers/start", {
-        projectId: payload.contractId,
-        taskDescription: payload.taskDescription,
-        hourlyRate: payload.hourlyRate,
-      })
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data, error } = await supabase
+        .from("time_entries")
+        .insert({
+          contract_id: payload.contractId,
+          freelancer_id: user.id,
+          tenant_id: user.id,
+          task_description: payload.taskDescription,
+          start_time: new Date().toISOString(),
+          hourly_rate: payload.hourlyRate ?? 0,
+          status: "draft",
+        })
+        .select("*")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -156,13 +169,32 @@ export function useStartTimer() {
   })
 }
 
-/** Stop the running timer by session ID. */
+/** Stop the running timer by entry ID — sets end_time and calculates duration. */
 export function useStopTimer() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (sessionId: string) => {
-      // Gateway route: PUT /time/timers/:id/stop
-      return api.put(`/time/timers/${sessionId}/stop`, {})
+    mutationFn: async (entryId: string) => {
+      const supabase = createClient()
+      const { data: entry } = await supabase
+        .from("time_entries")
+        .select("start_time")
+        .eq("id", entryId)
+        .single()
+
+      const endTime = new Date().toISOString()
+      const durationMinutes = entry?.start_time
+        ? Math.round((Date.now() - new Date(entry.start_time).getTime()) / 60000)
+        : 0
+
+      const { data, error } = await supabase
+        .from("time_entries")
+        .update({ end_time: endTime, duration_minutes: durationMinutes })
+        .eq("id", entryId)
+        .select("*")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -250,7 +282,28 @@ export function useCreateTimeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: CreateTimeEntryPayload) => {
-      return api.post("/time/entries", payload)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data, error } = await supabase
+        .from("time_entries")
+        .insert({
+          contract_id: payload.contractId,
+          freelancer_id: user.id,
+          tenant_id: user.id,
+          task_description: payload.taskDescription,
+          start_time: payload.startTime,
+          end_time: payload.endTime,
+          duration_minutes: payload.durationMinutes,
+          hourly_rate: payload.hourlyRate ?? 0,
+          status: "draft",
+        })
+        .select("*")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -263,7 +316,15 @@ export function useSubmitTimeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.patch(`/time/entries/${id}/submit`, {})
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("time_entries")
+        .update({ status: "submitted", submitted_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("*")
+        .single()
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -271,12 +332,21 @@ export function useSubmitTimeEntry() {
   })
 }
 
-/** Approve a submitted entry (manager action). */
+/** Approve a submitted entry. */
 export function useApproveTimeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.patch(`/time/entries/${id}/approve`, {})
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from("time_entries")
+        .update({ status: "approved", approved_at: new Date().toISOString(), approved_by: user?.id ?? null })
+        .eq("id", id)
+        .select("*")
+        .single()
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -284,12 +354,20 @@ export function useApproveTimeEntry() {
   })
 }
 
-/** Reject a submitted entry with optional reason. */
+/** Reject a submitted entry. */
 export function useRejectTimeEntry() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      return api.patch(`/time/entries/${id}/reject`, { reason })
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("time_entries")
+        .update({ status: "rejected", freelancer_notes: reason ?? null })
+        .eq("id", id)
+        .select("*")
+        .single()
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })

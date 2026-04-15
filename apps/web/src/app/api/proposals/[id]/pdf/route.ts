@@ -7,8 +7,8 @@
  * Response: application/pdf with Content-Disposition: attachment
  */
 import { NextRequest, NextResponse } from "next/server"
-import { renderToBuffer } from "@react-pdf/renderer"
-import React from "react"
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer"
+import React, { type JSXElementConstructor } from "react"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { ProposalDocument, type ProposalPdfData } from "@/lib/pdf/proposal-pdf"
@@ -125,7 +125,10 @@ export async function GET(
   let buffer: Buffer
   try {
     buffer = await renderToBuffer(
-      React.createElement(ProposalDocument, { data: pdfData }),
+      React.createElement(ProposalDocument, { data: pdfData }) as React.ReactElement<
+        DocumentProps,
+        string | JSXElementConstructor<unknown>
+      >,
     )
   } catch (err) {
     console.error("[pdf] render error:", err)

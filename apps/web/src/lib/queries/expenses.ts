@@ -257,12 +257,20 @@ export function useDeleteExpense() {
   })
 }
 
-/** Approve a pending expense (routes through API Gateway for business-logic enforcement). */
+/** Approve a pending expense directly in Supabase. */
 export function useApproveExpense() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.patch(`/expenses/${id}/approve`, {})
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({ status: "approved" })
+        .eq("id", id)
+        .select()
+        .single()
+      if (error) throw new Error(error.message)
+      return data as ExpenseRow
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
@@ -276,7 +284,15 @@ export function useRejectExpense() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      return api.patch(`/expenses/${id}/reject`, { notes })
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({ status: "rejected", notes: notes ?? null })
+        .eq("id", id)
+        .select()
+        .single()
+      if (error) throw new Error(error.message)
+      return data as ExpenseRow
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })
@@ -290,7 +306,15 @@ export function useReimburseExpense() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.patch(`/expenses/${id}/reimburse`, {})
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("expenses")
+        .update({ status: "reimbursed" })
+        .eq("id", id)
+        .select()
+        .single()
+      if (error) throw new Error(error.message)
+      return data as ExpenseRow
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: expenseKeys.lists() })

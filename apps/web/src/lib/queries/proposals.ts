@@ -8,7 +8,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
-import { api } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // DB row type  (projects table, used as proposals)
@@ -163,7 +162,7 @@ export function useProposal(id: string) {
   })
 }
 
-/** Create a new proposal via the API Gateway (document microservice). */
+/** Create a new proposal directly in Supabase (projects table). */
 export interface CreateProposalPayload {
   title: string
   clientId: string
@@ -175,12 +174,26 @@ export function useCreateProposal() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: CreateProposalPayload) => {
-      return api.post("/proposals", {
-        title: payload.title,
-        clientId: payload.clientId,
-        content: {},
-        description: payload.description ?? "",
-      })
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({
+          tenant_id: user.id,
+          user_id: user.id,
+          client_id: payload.clientId || null,
+          title: payload.title,
+          description: payload.description ?? null,
+          status: "draft",
+          metadata: { template: payload.template ?? "blank", section_count: 0, view_count: 0 },
+        })
+        .select("*, clients(name, email)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToProposal(data as ProjectRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: proposalKeys.lists() })
@@ -188,12 +201,29 @@ export function useCreateProposal() {
   })
 }
 
-/** Update proposal content (rich-text body) via the API Gateway. */
+/** Update proposal content/metadata directly in Supabase. */
 export function useUpdateProposal() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, content }: { id: string; content: unknown }) => {
-      return api.put(`/proposals/${id}`, { content })
+      const supabase = createClient()
+      const { data: existing } = await supabase
+        .from("projects")
+        .select("metadata")
+        .eq("id", id)
+        .single()
+
+      const merged = { ...(existing?.metadata ?? {}), content }
+
+      const { data, error } = await supabase
+        .from("projects")
+        .update({ metadata: merged, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select("*, clients(name, email)")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToProposal(data as ProjectRow)
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: proposalKeys.detail(variables.id) })
@@ -202,12 +232,14 @@ export function useUpdateProposal() {
   })
 }
 
-/** Delete a proposal via the API Gateway (document microservice). */
+/** Delete a proposal directly from Supabase. */
 export function useDeleteProposal() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/proposals/${id}`)
+      const supabase = createClient()
+      const { error } = await supabase.from("projects").delete().eq("id", id)
+      if (error) throw new Error(error.message)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: proposalKeys.lists() })
