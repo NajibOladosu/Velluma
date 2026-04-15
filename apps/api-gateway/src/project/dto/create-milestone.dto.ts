@@ -3,6 +3,7 @@ import {
   IsString,
   IsNumber,
   IsOptional,
+  IsDateString,
   Min,
 } from 'class-validator';
 
@@ -27,7 +28,7 @@ export class CreateMilestoneDto {
   @Min(0)
   amount: number;
 
-  @IsString()
+  @IsDateString()
   @IsOptional()
   dueDate?: string;
 }

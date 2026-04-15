@@ -9,6 +9,7 @@ import {
 
 export class SendEmailDto {
   @IsEmail()
+  @IsNotEmpty()
   to: string;
 
   @IsString()
@@ -22,6 +23,7 @@ export class SendEmailDto {
 
   /** Key-value map substituted into the template. */
   @IsObject()
+  @IsNotEmpty()
   variables: Record<string, unknown>;
 
   @IsOptional()

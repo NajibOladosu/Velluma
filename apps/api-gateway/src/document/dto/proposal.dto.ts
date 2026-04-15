@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsObject } from 'class-validator';
 
 export class CreateProposalDto {
   @IsString()
@@ -9,8 +9,10 @@ export class CreateProposalDto {
   @IsOptional()
   description?: string;
 
+  /** Structured proposal content — must be a plain object (e.g. TipTap JSON). */
+  @IsObject()
   @IsNotEmpty()
-  content: any;
+  content: Record<string, unknown>;
 
   @IsString()
   @IsNotEmpty()
@@ -31,5 +33,6 @@ export class UpdateProposalDto {
   description?: string;
 
   @IsOptional()
-  content?: any;
+  @IsObject()
+  content?: Record<string, unknown>;
 }

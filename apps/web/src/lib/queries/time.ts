@@ -143,8 +143,9 @@ export function useStartTimer() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: StartTimerPayload) => {
-      return api.post("/time/start", {
-        contractId: payload.contractId,
+      // Gateway route: POST /time/timers/start
+      return api.post("/time/timers/start", {
+        projectId: payload.contractId,
         taskDescription: payload.taskDescription,
         hourlyRate: payload.hourlyRate,
       })
@@ -155,12 +156,13 @@ export function useStartTimer() {
   })
 }
 
-/** Stop the running timer for the current user. */
+/** Stop the running timer by session ID. */
 export function useStopTimer() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (entryId: string) => {
-      return api.post("/time/stop", { entryId })
+    mutationFn: async (sessionId: string) => {
+      // Gateway route: PUT /time/timers/:id/stop
+      return api.put(`/time/timers/${sessionId}/stop`, {})
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
@@ -227,6 +229,67 @@ export function useDeleteTimeEntry() {
         .eq("id", id)
 
       if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}
+
+/** Create a manual time entry. */
+export interface CreateTimeEntryPayload {
+  contractId: string
+  taskDescription: string
+  startTime: string
+  endTime: string
+  durationMinutes: number
+  hourlyRate?: number
+}
+
+export function useCreateTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CreateTimeEntryPayload) => {
+      return api.post("/time/entries", payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}
+
+/** Submit a draft entry for approval. */
+export function useSubmitTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.patch(`/time/entries/${id}/submit`, {})
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}
+
+/** Approve a submitted entry (manager action). */
+export function useApproveTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      return api.patch(`/time/entries/${id}/approve`, {})
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}
+
+/** Reject a submitted entry with optional reason. */
+export function useRejectTimeEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
+      return api.patch(`/time/entries/${id}/reject`, { reason })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: timeKeys.lists() })

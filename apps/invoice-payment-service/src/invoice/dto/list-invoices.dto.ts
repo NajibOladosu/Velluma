@@ -1,7 +1,8 @@
-import { IsOptional, IsString, IsUUID, IsIn } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, IsIn } from 'class-validator';
 
 export class ListInvoicesDto {
   @IsUUID()
+  @IsNotEmpty()
   userId: string;
 
   @IsUUID()

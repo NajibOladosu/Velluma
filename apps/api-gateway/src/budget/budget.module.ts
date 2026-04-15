@@ -13,6 +13,13 @@ import { getMicroserviceConfig } from '../common/utils/microservice-config';
           getMicroserviceConfig(configService),
         inject: [ConfigService],
       },
+      {
+        name: 'EXPENSE_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) =>
+          getMicroserviceConfig(configService),
+        inject: [ConfigService],
+      },
     ]),
   ],
   exports: [ClientsModule],

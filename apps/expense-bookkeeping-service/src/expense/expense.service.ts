@@ -87,6 +87,62 @@ export class ExpenseService {
     return { success: true };
   }
 
+  async approveExpense(id: string, approverId: string) {
+    const { data: expense, error } = await this.supabase
+      .getClient()
+      .from('expenses')
+      .update({
+        status: 'approved',
+        approved_by: approverId,
+        approved_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to approve expense: ${error.message}`);
+    if (!expense) throw new Error('Expense not found or not in pending state');
+    return expense;
+  }
+
+  async rejectExpense(id: string, approverId: string, notes?: string) {
+    const updatePayload: Record<string, unknown> = {
+      status: 'rejected',
+      approved_by: approverId,
+      approved_at: new Date().toISOString(),
+    };
+    if (notes) updatePayload['notes'] = notes;
+
+    const { data: expense, error } = await this.supabase
+      .getClient()
+      .from('expenses')
+      .update(updatePayload)
+      .eq('id', id)
+      .eq('status', 'pending')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to reject expense: ${error.message}`);
+    if (!expense) throw new Error('Expense not found or not in pending state');
+    return expense;
+  }
+
+  async reimburseExpense(id: string) {
+    const { data: expense, error } = await this.supabase
+      .getClient()
+      .from('expenses')
+      .update({ status: 'reimbursed' })
+      .eq('id', id)
+      .eq('status', 'approved')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to mark expense as reimbursed: ${error.message}`);
+    if (!expense) throw new Error('Expense not found or not in approved state');
+    return expense;
+  }
+
   async getExpenseSummary(data: { projectId: string; tenantId: string }) {
     const { data: expenses, error } = await this.supabase
       .getClient()

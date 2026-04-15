@@ -3,8 +3,14 @@ import {
   IsString,
   IsNumber,
   IsOptional,
+  IsIn,
   Min,
 } from 'class-validator';
+
+const SUPPORTED_CURRENCIES = [
+  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK',
+  'SGD', 'HKD', 'NZD', 'MXN', 'BRL', 'INR', 'ZAR', 'AED', 'NGN',
+] as const;
 
 export class FundEscrowDto {
   @IsString()
@@ -23,7 +29,7 @@ export class FundEscrowDto {
   @IsNotEmpty()
   clientId: string;
 
-  @IsString()
+  @IsIn(SUPPORTED_CURRENCIES)
   @IsOptional()
   currency?: string;
 }
