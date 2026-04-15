@@ -16,7 +16,10 @@ import {
   Text,
   View,
   StyleSheet,
+  // Font imported for future custom font registration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Font,
+  type DocumentProps,
 } from "@react-pdf/renderer"
 
 // ---------------------------------------------------------------------------
@@ -438,6 +441,14 @@ function TipTapContent({ json }: { json: unknown }) {
 }
 
 // ---------------------------------------------------------------------------
+// maybe() — prevents boolean/null from leaking into @react-pdf children
+// ---------------------------------------------------------------------------
+
+function maybe(condition: boolean, node: React.ReactElement): React.ReactElement | null {
+  return condition ? node : null
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -517,8 +528,8 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
   const addOnsTotal = (data.addOns ?? []).reduce((s, a) => s + a.price, 0)
   const deposit = Math.round(total * ((data.depositPercent ?? 50) / 100))
   const balance = total - deposit
-  const hasContent =
-    data.content &&
+  const hasContent: boolean =
+    Boolean(data.content) &&
     typeof data.content === "object" &&
     (data.content as TipTapNode).type === "doc" &&
     ((data.content as TipTapNode).content?.length ?? 0) > 0
@@ -540,9 +551,9 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
           <Text style={s.coverEyebrow}>Project Proposal</Text>
           <Text style={s.coverTitle}>{data.title}</Text>
           <Text style={s.coverClient}>Prepared for {data.client}</Text>
-          {data.clientEmail && (
-            <Text style={s.coverMeta}>{data.clientEmail}</Text>
-          )}
+          {maybe(Boolean(data.clientEmail), (
+            <Text style={s.coverMeta}>{data.clientEmail ?? ""}</Text>
+          ))}
           <Text style={{ ...s.coverMeta, marginTop: 8 }}>
             {fmtDate(data.createdAt)}
             {data.expiresAt ? `  ·  Valid until ${fmtDate(data.expiresAt)}` : ""}
@@ -553,16 +564,16 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
         <View style={s.coverFooterRow}>
           <View>
             <Text style={s.coverBrand}>VELLUMA</Text>
-            {data.freelancerName && (
-              <Text style={{ ...s.coverMeta, marginTop: 4 }}>{data.freelancerName}</Text>
-            )}
+            {maybe(Boolean(data.freelancerName), (
+              <Text style={{ ...s.coverMeta, marginTop: 4 }}>{data.freelancerName ?? ""}</Text>
+            ))}
           </View>
-          {total > 0 && (
+          {maybe(total > 0, (
             <View style={s.coverValuePill}>
               <Text style={s.coverValueLabel}>Total Value</Text>
               <Text style={s.coverValueAmount}>{fmt(total)}</Text>
             </View>
-          )}
+          ))}
         </View>
       </Page>
 
@@ -574,23 +585,23 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
         <PageFooter client={data.client} />
 
         {/* Welcome section */}
-        {data.welcomeMessage && (
+        {maybe(Boolean(data.welcomeMessage), (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Welcome</Text>
-            <Text style={s.body}>{data.welcomeMessage}</Text>
+            <Text style={s.body}>{data.welcomeMessage ?? ""}</Text>
           </View>
-        )}
+        ))}
 
         {/* Rich-text content (TipTap) — shown if present */}
-        {hasContent && (
+        {maybe(hasContent, (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Proposal Details</Text>
             <TipTapContent json={data.content} />
           </View>
-        )}
+        ))}
 
         {/* Scope of work — bullet list */}
-        {(data.scopeItems?.length ?? 0) > 0 && (
+        {maybe((data.scopeItems?.length ?? 0) > 0, (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Scope of Work</Text>
             {(data.scopeItems ?? []).map((item, i) => (
@@ -600,7 +611,7 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
               </View>
             ))}
           </View>
-        )}
+        ))}
       </Page>
 
       {/* ════════════════════════════════════════
@@ -627,7 +638,7 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
             ))}
           </View>
 
-          {(data.addOns?.length ?? 0) > 0 && (
+          {maybe((data.addOns?.length ?? 0) > 0, (
             <View style={s.section}>
               <Text style={s.sectionLabel}>Add-Ons</Text>
               {(data.addOns ?? []).map((addon, i) => (
@@ -637,7 +648,7 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
                 </View>
               ))}
             </View>
-          )}
+          ))}
         </Page>
       )}
 
@@ -649,7 +660,7 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
         <PageFooter client={data.client} />
 
         {/* Legal clauses */}
-        {(data.legalClauses?.length ?? 0) > 0 && (
+        {maybe((data.legalClauses?.length ?? 0) > 0, (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Agreement Terms</Text>
             {(data.legalClauses ?? []).map((clause, i) => (
@@ -659,12 +670,12 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
               </View>
             ))}
           </View>
-        )}
+        ))}
 
         <View style={s.divider} />
 
         {/* Payment summary */}
-        {total > 0 && (
+        {maybe(total > 0, (
           <View style={s.section}>
             <Text style={s.sectionLabel}>Payment Terms</Text>
             <View style={s.lineRow}>
@@ -675,18 +686,18 @@ export function ProposalDocument({ data }: { data: ProposalPdfData }) {
               <Text style={s.lineLabel}>Balance on completion</Text>
               <Text style={s.lineValue}>{fmt(balance)}</Text>
             </View>
-            {(data.milestones ?? 0) > 0 && (
+            {maybe((data.milestones ?? 0) > 0, (
               <View style={s.lineRow}>
                 <Text style={s.lineLabel}>Payment milestones</Text>
-                <Text style={s.lineValue}>{data.milestones}</Text>
+                <Text style={s.lineValue}>{String(data.milestones)}</Text>
               </View>
-            )}
+            ))}
             <View style={s.totalRow}>
               <Text style={s.totalLabel}>Total Project Value</Text>
               <Text style={s.totalValue}>{fmt(total)}</Text>
             </View>
           </View>
-        )}
+        ))}
 
         <View style={s.divider} />
 

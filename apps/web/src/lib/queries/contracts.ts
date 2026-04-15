@@ -9,7 +9,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
-import { api } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // DB row types
@@ -269,7 +268,29 @@ export function useCreateContract() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: CreateContractPayload) => {
-      return api.post("/contracts/generate", payload)
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const { data, error } = await supabase
+        .from("contracts")
+        .insert({
+          title: payload.title,
+          description: payload.description ?? null,
+          creator_id: user.id,
+          freelancer_id: user.id,
+          tenant_id: user.id,
+          client_email: payload.clientEmail,
+          template_id: payload.templateId ?? null,
+          total_amount: payload.totalAmount ?? null,
+          status: "draft",
+          currency: "USD",
+        })
+        .select("*")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToContract(data as ContractRow)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: contractKeys.lists() })
