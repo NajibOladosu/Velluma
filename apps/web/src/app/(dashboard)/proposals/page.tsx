@@ -27,6 +27,7 @@ import {
   Calendar,
   LayoutTemplate,
   User,
+  Download,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -69,6 +70,26 @@ export default function ProposalsDirectoryPage() {
   const [activeTab, setActiveTab] = React.useState<ProposalStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [showNewDrawer, setShowNewDrawer] = React.useState(false);
+  const [downloadingId, setDownloadingId] = React.useState<string | null>(null);
+
+  const handleDownloadPdf = React.useCallback(async (proposalId: string, title: string) => {
+    setDownloadingId(proposalId);
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/pdf`);
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposal-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("[pdf export]", err);
+    } finally {
+      setDownloadingId(null);
+    }
+  }, []);
   const [newTitle, setNewTitle] = React.useState("");
   const [newClient, setNewClient] = React.useState("");
   const [newTemplate, setNewTemplate] = React.useState("blank");
@@ -328,6 +349,26 @@ export default function ProposalsDirectoryPage() {
                             Send
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Download PDF"
+                          disabled={downloadingId === proposal.id}
+                          onClick={() => handleDownloadPdf(proposal.id, proposal.title)}
+                        >
+                          {downloadingId === proposal.id ? (
+                            <svg className="h-3.5 w-3.5 text-zinc-400 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <Download
+                              className="h-3.5 w-3.5 text-zinc-400"
+                              strokeWidth={1.5}
+                            />
+                          )}
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
