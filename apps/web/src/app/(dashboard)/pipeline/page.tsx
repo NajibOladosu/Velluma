@@ -12,7 +12,6 @@ import { KanbanBoard, KanbanColumn, KanbanCard } from "@/components/ui/kanban";
 import { cn } from "@/lib/utils";
 import {
   Plus,
-  MoreHorizontal,
   Sparkles,
   User,
   Search,
@@ -31,8 +30,6 @@ import {
   Zap,
   Tag,
   ChevronDown,
-  Settings2,
-  GripVertical,
   Trash2,
   PenLine,
   Archive,
@@ -43,14 +40,20 @@ import {
   AlertCircle,
   Flame,
   Target,
+  Clock,
+  AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 import {
   usePipelineStages,
   useMovePipelineLead,
   useCreatePipelineLead,
+  useUpdatePipelineLead,
+  useArchivePipelineLead,
   type PipelineLead,
   type PipelineStageData,
   type CreateLeadPayload,
+  type UpdateLeadPayload,
 } from "@/lib/queries/pipeline";
 
 /* ═══════════════════════════════════════════════════════
@@ -137,7 +140,13 @@ function PipelineMetrics({ stages, isLoading }: { stages: PipelineStageData[]; i
 }
 
 /** ─── AI Priority Banner ─── */
-function AIPriorityBanner({ stages }: { stages: PipelineStageData[] }) {
+function AIPriorityBanner({
+  stages,
+  onReview,
+}: {
+  stages: PipelineStageData[];
+  onReview: () => void;
+}) {
   const hotLeads = stages.flatMap((s) => s.leads).filter((l) => l.aiPriority === "hot");
   if (hotLeads.length === 0) return null;
 
@@ -159,6 +168,7 @@ function AIPriorityBanner({ stages }: { stages: PipelineStageData[] }) {
         variant="outline"
         size="sm"
         className="border-zinc-200 text-xs flex-shrink-0 gap-1.5"
+        onClick={onReview}
       >
         <Eye className="h-3.5 w-3.5" />
         Review
@@ -278,27 +288,90 @@ function LeadCardContent({
   );
 }
 
+/** ─── Archive Confirmation Modal ─── */
+function ArchiveConfirmModal({
+  lead,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  lead: PipelineLead;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/20" onClick={onCancel} />
+      <Surface className="relative z-10 p-6 w-full max-w-sm mx-4 shadow-lg space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="h-4 w-4 text-zinc-600" strokeWidth={1.5} />
+          </div>
+          <div>
+            <P className="font-semibold text-zinc-900">Archive Lead?</P>
+            <Muted className="text-xs">This will remove {lead.name} from your pipeline.</Muted>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <Button
+            variant="outline"
+            className="flex-1 border-zinc-200"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="flex-1 bg-zinc-900 hover:bg-zinc-800 font-semibold"
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? "Archiving…" : "Archive"}
+          </Button>
+        </div>
+      </Surface>
+    </div>
+  );
+}
+
 /** ─── Lead Detail Drawer ─── */
 function LeadDetailDrawer({
   lead,
   stages,
   onClose,
   onMoveStage,
+  onEdit,
+  onArchive,
 }: {
   lead: PipelineLead;
   stages: PipelineStageData[];
   onClose: () => void;
   onMoveStage: (leadId: string, stageId: string) => void;
+  onEdit: (lead: PipelineLead) => void;
+  onArchive: (lead: PipelineLead) => void;
 }) {
   const currentStage = stages.find((s) => s.leads.some((l) => l.id === lead.id));
   const [moveOpen, setMoveOpen] = React.useState(false);
 
-  const timelineIcons: Record<string, React.ElementType> = {
+  const timelineTypeIcons: Record<string, React.ElementType> = {
     email: Mail,
     call: Phone,
     note: PenLine,
     system: AlertCircle,
     automation: Zap,
+  };
+
+  const handleSendEmail = () => {
+    if (lead.email) {
+      window.open(`mailto:${lead.email}`, "_blank");
+    }
+  };
+
+  const handleScheduleCall = () => {
+    if (lead.phone) {
+      window.open(`tel:${lead.phone}`, "_blank");
+    }
   };
 
   return (
@@ -417,9 +490,9 @@ function LeadDetailDrawer({
           <Muted className="text-[10px] uppercase tracking-widest font-bold">Contact</Muted>
           <div className="space-y-2">
             {[
-              { icon: Mail, value: lead.email },
-              { icon: Phone, value: lead.phone },
-              { icon: Globe, value: lead.website },
+              { icon: Mail, value: lead.email, href: lead.email ? `mailto:${lead.email}` : undefined },
+              { icon: Phone, value: lead.phone, href: lead.phone ? `tel:${lead.phone}` : undefined },
+              { icon: Globe, value: lead.website, href: lead.website || undefined },
             ]
               .filter((item) => item.value)
               .map((item) => (
@@ -431,7 +504,18 @@ function LeadDetailDrawer({
                     className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0"
                     strokeWidth={1.5}
                   />
-                  <span className="truncate">{item.value}</span>
+                  {item.href ? (
+                    <a
+                      href={item.href}
+                      target={item.icon === Globe ? "_blank" : undefined}
+                      rel={item.icon === Globe ? "noopener noreferrer" : undefined}
+                      className="truncate hover:text-zinc-900 hover:underline transition-colors"
+                    >
+                      {item.value}
+                    </a>
+                  ) : (
+                    <span className="truncate">{item.value}</span>
+                  )}
                 </div>
               ))}
           </div>
@@ -465,9 +549,14 @@ function LeadDetailDrawer({
           </div>
           {lead.enrichment.linkedin && (
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                <Linkedin className="h-3.5 w-3.5" strokeWidth={1.5} /> LinkedIn
-              </span>
+              <a
+                href={lead.enrichment.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                <Linkedin className="h-3.5 w-3.5" strokeWidth={1.5} /> LinkedIn Profile
+              </a>
             </div>
           )}
         </div>
@@ -496,6 +585,8 @@ function LeadDetailDrawer({
               variant="outline"
               size="sm"
               className="border-zinc-200 text-xs gap-1.5 justify-start"
+              onClick={handleSendEmail}
+              disabled={!lead.email}
             >
               <Send className="h-3.5 w-3.5" /> Send Email
             </Button>
@@ -503,24 +594,62 @@ function LeadDetailDrawer({
               variant="outline"
               size="sm"
               className="border-zinc-200 text-xs gap-1.5 justify-start"
+              onClick={handleScheduleCall}
+              disabled={!lead.phone}
             >
-              <Calendar className="h-3.5 w-3.5" /> Schedule Call
+              <Phone className="h-3.5 w-3.5" /> Call Lead
             </Button>
             <Button
               variant="outline"
               size="sm"
               className="border-zinc-200 text-xs gap-1.5 justify-start"
+              onClick={() => onEdit(lead)}
             >
               <PenLine className="h-3.5 w-3.5" /> Edit Lead
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="border-zinc-200 text-xs gap-1.5 justify-start"
+              className="border-zinc-200 text-xs gap-1.5 justify-start text-zinc-500 hover:text-zinc-900"
+              onClick={() => onArchive(lead)}
             >
               <Archive className="h-3.5 w-3.5" /> Archive
             </Button>
           </div>
+        </div>
+
+        <Separator />
+
+        {/* Timeline */}
+        <div className="space-y-3">
+          <Muted className="text-[10px] uppercase tracking-widest font-bold">Activity</Muted>
+          {lead.timeline.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center mb-2">
+                <Clock className="h-4 w-4 text-zinc-300" strokeWidth={1.5} />
+              </div>
+              <Muted className="text-xs">No activity yet</Muted>
+              <Muted className="text-[10px] mt-1">Actions like emails and calls will appear here.</Muted>
+            </div>
+          ) : (
+            <div className="relative space-y-4 pl-4">
+              <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-100" />
+              {lead.timeline.map((event, i) => {
+                const Icon = timelineTypeIcons[event.type] ?? MessageSquare;
+                return (
+                  <div key={i} className="flex items-start gap-3 relative">
+                    <div className="h-5 w-5 rounded-full bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0 -ml-[2px] z-10">
+                      <Icon className="h-2.5 w-2.5 text-zinc-500" strokeWidth={1.5} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-medium text-zinc-900">{event.action}</span>
+                      <Muted className="text-[10px] block mt-0.5">{event.time}</Muted>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -528,13 +657,21 @@ function LeadDetailDrawer({
 }
 
 /** ─── Add Lead Drawer ─── */
-function AddLeadDrawer({ onClose }: { onClose: () => void }) {
+function AddLeadDrawer({
+  onClose,
+  initialStage = "inquiry",
+}: {
+  onClose: () => void;
+  initialStage?: string;
+}) {
   const createLead = useCreatePipelineLead();
   const [name, setName] = React.useState("");
   const [company, setCompany] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [website, setWebsite] = React.useState("");
   const [dealValue, setDealValue] = React.useState("");
+  const [source, setSource] = React.useState("Manual Entry");
   const [priority, setPriority] = React.useState<"high" | "medium" | "low">("medium");
 
   const handleSubmit = async () => {
@@ -546,7 +683,8 @@ function AddLeadDrawer({ onClose }: { onClose: () => void }) {
       phone: phone.trim() || undefined,
       dealValue: dealValue ? Number(dealValue.replace(/[^0-9.]/g, "")) : undefined,
       priority,
-      stageId: "inquiry",
+      stageId: initialStage,
+      source: source.trim() || "Manual Entry",
     });
     onClose();
   };
@@ -563,11 +701,13 @@ function AddLeadDrawer({ onClose }: { onClose: () => void }) {
 
         <div className="space-y-4">
           {[
-            { label: "Full Name", placeholder: "e.g. Sarah Chen", value: name, onChange: setName },
+            { label: "Full Name *", placeholder: "e.g. Sarah Chen", value: name, onChange: setName },
             { label: "Company", placeholder: "e.g. Nexus Labs", value: company, onChange: setCompany },
             { label: "Email", placeholder: "e.g. sarah@nexus.io", value: email, onChange: setEmail },
             { label: "Phone", placeholder: "e.g. +1 (415) 555-0101", value: phone, onChange: setPhone },
-            { label: "Deal Value", placeholder: "e.g. 8200", value: dealValue, onChange: setDealValue },
+            { label: "Website", placeholder: "e.g. https://nexus.io", value: website, onChange: setWebsite },
+            { label: "Deal Value ($)", placeholder: "e.g. 8200", value: dealValue, onChange: setDealValue },
+            { label: "Lead Source", placeholder: "e.g. Referral, LinkedIn", value: source, onChange: setSource },
           ].map((field) => (
             <div key={field.label} className="space-y-1.5">
               <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
@@ -624,6 +764,162 @@ function AddLeadDrawer({ onClose }: { onClose: () => void }) {
             disabled={!name.trim() || createLead.isPending}
           >
             {createLead.isPending ? "Creating…" : "Create Lead"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** ─── Edit Lead Drawer ─── */
+function EditLeadDrawer({
+  lead,
+  onClose,
+}: {
+  lead: PipelineLead;
+  onClose: () => void;
+}) {
+  const updateLead = useUpdatePipelineLead();
+  const [name, setName] = React.useState(lead.name);
+  const [company, setCompany] = React.useState(lead.company);
+  const [email, setEmail] = React.useState(lead.email);
+  const [phone, setPhone] = React.useState(lead.phone);
+  const [website, setWebsite] = React.useState(lead.website);
+  const [dealValue, setDealValue] = React.useState(
+    lead.numericValue > 0 ? String(lead.numericValue) : ""
+  );
+  const [source, setSource] = React.useState(lead.source);
+  const [priority, setPriority] = React.useState<"high" | "medium" | "low">(lead.priority);
+  const [tagInput, setTagInput] = React.useState("");
+  const [tags, setTags] = React.useState<string[]>(lead.tags);
+
+  const addTag = () => {
+    const t = tagInput.trim();
+    if (t && !tags.includes(t)) {
+      setTags([...tags, t]);
+    }
+    setTagInput("");
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return;
+    await updateLead.mutateAsync({
+      id: lead.id,
+      name: name.trim(),
+      company: company.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      website: website.trim(),
+      dealValue: dealValue ? Number(dealValue.replace(/[^0-9.]/g, "")) : 0,
+      priority,
+      source: source.trim() || "Manual Entry",
+      tags,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-y-0 right-0 w-full max-w-sm bg-white border-l border-zinc-200 z-[55] overflow-y-auto">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <Muted className="text-[10px] uppercase tracking-widest font-bold">Edit Lead</Muted>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            { label: "Full Name *", placeholder: "e.g. Sarah Chen", value: name, onChange: setName },
+            { label: "Company", placeholder: "e.g. Nexus Labs", value: company, onChange: setCompany },
+            { label: "Email", placeholder: "e.g. sarah@nexus.io", value: email, onChange: setEmail },
+            { label: "Phone", placeholder: "e.g. +1 (415) 555-0101", value: phone, onChange: setPhone },
+            { label: "Website", placeholder: "e.g. https://nexus.io", value: website, onChange: setWebsite },
+            { label: "Deal Value ($)", placeholder: "e.g. 8200", value: dealValue, onChange: setDealValue },
+            { label: "Lead Source", placeholder: "e.g. Referral", value: source, onChange: setSource },
+          ].map((field) => (
+            <div key={field.label} className="space-y-1.5">
+              <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+                {field.label}
+              </label>
+              <Input
+                placeholder={field.placeholder}
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
+                className="h-9 bg-white border-zinc-200 text-sm"
+              />
+            </div>
+          ))}
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+              Priority
+            </label>
+            <div className="flex items-center gap-2">
+              {(["high", "medium", "low"] as const).map((p) => (
+                <button
+                  key={p}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-widest transition-colors",
+                    priority === p
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                  )}
+                  onClick={() => setPriority(p)}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
+              Tags
+            </label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add tag…"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addTag()}
+                className="h-9 bg-white border-zinc-200 text-sm flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 border-zinc-200 px-3"
+                onClick={addTag}
+                disabled={!tagInput.trim()}
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {tags.map((tag) => (
+                  <TagBadge key={tag} tag={tag} removable onRemove={() => removeTag(tag)} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
+          <Button variant="outline" className="flex-1 border-zinc-200" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            className="flex-1 font-semibold"
+            onClick={handleSubmit}
+            disabled={!name.trim() || updateLead.isPending}
+          >
+            {updateLead.isPending ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </div>
@@ -775,15 +1071,33 @@ const ALL_TAGS = ["Design", "Development", "Branding", "Marketing", "Retainer", 
 export default function PipelinePage() {
   const { data: stages = [], isLoading } = usePipelineStages();
   const moveLeadMutation = useMovePipelineLead();
+  const archiveLeadMutation = useArchivePipelineLead();
 
   const [viewMode, setViewMode] = React.useState<ViewMode>("board");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [priorityFilter, setPriorityFilter] = React.useState("all");
   const [tagFilter, setTagFilter] = React.useState("all");
   const [selectedLead, setSelectedLead] = React.useState<PipelineLead | null>(null);
+  const [editingLead, setEditingLead] = React.useState<PipelineLead | null>(null);
+  const [archivingLead, setArchivingLead] = React.useState<PipelineLead | null>(null);
   const [addLeadOpen, setAddLeadOpen] = React.useState(false);
+  const [addLeadInitialStage, setAddLeadInitialStage] = React.useState("inquiry");
   const [priorityFilterOpen, setPriorityFilterOpen] = React.useState(false);
   const [tagFilterOpen, setTagFilterOpen] = React.useState(false);
+
+  // Drag-and-drop state
+  const [dragOverStageId, setDragOverStageId] = React.useState<string | null>(null);
+  const draggingLeadRef = React.useRef<{ leadId: string; fromStageId: string } | null>(null);
+
+  // Close dropdowns when clicking outside
+  React.useEffect(() => {
+    const handler = () => {
+      setPriorityFilterOpen(false);
+      setTagFilterOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
 
   // Filter leads within stages for the board view
   const filteredStages = React.useMemo(() => {
@@ -806,6 +1120,57 @@ export default function PipelinePage() {
     setSelectedLead(null);
   };
 
+  const handleArchiveConfirm = async () => {
+    if (!archivingLead) return;
+    await archiveLeadMutation.mutateAsync(archivingLead.id);
+    setArchivingLead(null);
+    setSelectedLead(null);
+  };
+
+  const handleOpenAddLead = (stageId = "inquiry") => {
+    setAddLeadInitialStage(stageId);
+    setAddLeadOpen(true);
+  };
+
+  const handleEditLead = (lead: PipelineLead) => {
+    setSelectedLead(null);
+    setEditingLead(lead);
+  };
+
+  const handleArchiveLead = (lead: PipelineLead) => {
+    setArchivingLead(lead);
+  };
+
+  const handleReviewHotLeads = () => {
+    setPriorityFilter("high");
+    // Also scroll to board/list
+  };
+
+  // Drag handlers
+  const handleDragStart = (leadId: string, fromStageId: string) => {
+    draggingLeadRef.current = { leadId, fromStageId };
+  };
+
+  const handleDragEnd = () => {
+    draggingLeadRef.current = null;
+    setDragOverStageId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, stageId: string) => {
+    e.preventDefault();
+    setDragOverStageId(stageId);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetStageId: string) => {
+    e.preventDefault();
+    setDragOverStageId(null);
+    const dragging = draggingLeadRef.current;
+    if (!dragging) return;
+    if (dragging.fromStageId === targetStageId) return;
+    moveLeadMutation.mutate({ leadId: dragging.leadId, stageId: targetStageId });
+    draggingLeadRef.current = null;
+  };
+
   const totalLeads = stages.flatMap((s) => s.leads).length;
 
   return (
@@ -821,7 +1186,7 @@ export default function PipelinePage() {
           </div>
           <Button
             className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto"
-            onClick={() => setAddLeadOpen(true)}
+            onClick={() => handleOpenAddLead()}
           >
             <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
             <span className="hidden sm:inline">Add Lead</span>
@@ -833,7 +1198,9 @@ export default function PipelinePage() {
         <PipelineMetrics stages={stages} isLoading={isLoading} />
 
         {/* AI Priority Banner */}
-        {!isLoading && <AIPriorityBanner stages={stages} />}
+        {!isLoading && (
+          <AIPriorityBanner stages={stages} onReview={handleReviewHotLeads} />
+        )}
 
         {/* Toolbar: Search + Filters + View Toggle */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -848,7 +1215,7 @@ export default function PipelinePage() {
           </div>
 
           {/* Priority Filter */}
-          <div className="relative">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
@@ -856,7 +1223,10 @@ export default function PipelinePage() {
                 "h-9 border-zinc-200 gap-1.5",
                 priorityFilter !== "all" && "border-zinc-900"
               )}
-              onClick={() => setPriorityFilterOpen(!priorityFilterOpen)}
+              onClick={() => {
+                setPriorityFilterOpen(!priorityFilterOpen);
+                setTagFilterOpen(false);
+              }}
             >
               <Filter className="h-3.5 w-3.5" />
               Priority{priorityFilter !== "all" ? `: ${priorityFilter}` : ""}
@@ -883,7 +1253,7 @@ export default function PipelinePage() {
           </div>
 
           {/* Tag Filter */}
-          <div className="relative">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="outline"
               size="sm"
@@ -891,7 +1261,10 @@ export default function PipelinePage() {
                 "h-9 border-zinc-200 gap-1.5",
                 tagFilter !== "all" && "border-zinc-900"
               )}
-              onClick={() => setTagFilterOpen(!tagFilterOpen)}
+              onClick={() => {
+                setTagFilterOpen(!tagFilterOpen);
+                setPriorityFilterOpen(false);
+              }}
             >
               <Tag className="h-3.5 w-3.5" />
               Tag{tagFilter !== "all" ? `: ${tagFilter}` : ""}
@@ -987,8 +1360,20 @@ export default function PipelinePage() {
                 ))
               : filteredStages.map((stage) => {
                   const stageTotal = stage.leads.reduce((s, l) => s + l.numericValue, 0);
+                  const isDropTarget = dragOverStageId === stage.id;
                   return (
-                    <KanbanColumn key={stage.id} title="" count={undefined}>
+                    <KanbanColumn
+                      key={stage.id}
+                      title=""
+                      count={undefined}
+                      onDragOver={(e) => handleDragOver(e, stage.id)}
+                      onDragLeave={() => setDragOverStageId(null)}
+                      onDrop={(e) => handleDrop(e, stage.id)}
+                      className={cn(
+                        "transition-colors rounded-lg",
+                        isDropTarget && "bg-zinc-50 ring-1 ring-zinc-300"
+                      )}
+                    >
                       {/* Custom Column Header */}
                       <div className="-mt-4 -mb-1">
                         <div className="flex items-center justify-between px-1 mb-2">
@@ -1001,6 +1386,13 @@ export default function PipelinePage() {
                               {stage.leads.length}
                             </span>
                           </div>
+                          <button
+                            className="h-5 w-5 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+                            onClick={() => handleOpenAddLead(stage.id)}
+                            title={`Add lead to ${stage.title}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
                         </div>
                         <div className="flex items-center justify-between px-1 mb-3">
                           <Muted className="text-[10px] uppercase tracking-widest">
@@ -1012,7 +1404,12 @@ export default function PipelinePage() {
 
                       {/* Lead Cards */}
                       {stage.leads.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div
+                          className={cn(
+                            "flex flex-col items-center justify-center py-12 text-center rounded-md border-2 border-dashed border-transparent transition-colors",
+                            isDropTarget && "border-zinc-300 bg-zinc-50/50"
+                          )}
+                        >
                           <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mb-3">
                             <User className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
                           </div>
@@ -1021,17 +1418,31 @@ export default function PipelinePage() {
                             variant="ghost"
                             size="sm"
                             className="mt-3 text-xs text-zinc-400 gap-1"
-                            onClick={() => setAddLeadOpen(true)}
+                            onClick={() => handleOpenAddLead(stage.id)}
                           >
                             <Plus className="h-3 w-3" /> Add Lead
                           </Button>
                         </div>
                       ) : (
-                        stage.leads.map((lead) => (
-                          <KanbanCard key={lead.id} id={lead.id}>
-                            <LeadCardContent lead={lead} onSelect={setSelectedLead} />
-                          </KanbanCard>
-                        ))
+                        stage.leads.map((lead) => {
+                          const fromStageId = stages.find((s) =>
+                            s.leads.some((l) => l.id === lead.id)
+                          )?.id ?? stage.id;
+                          return (
+                            <KanbanCard
+                              key={lead.id}
+                              id={lead.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("leadId", lead.id);
+                                handleDragStart(lead.id, fromStageId);
+                              }}
+                              onDragEnd={handleDragEnd}
+                            >
+                              <LeadCardContent lead={lead} onSelect={setSelectedLead} />
+                            </KanbanCard>
+                          );
+                        })
                       )}
                     </KanbanColumn>
                   );
@@ -1063,6 +1474,18 @@ export default function PipelinePage() {
         )}
       </div>
 
+      {/* Overlay backdrop for drawers */}
+      {(selectedLead || addLeadOpen || editingLead) && (
+        <div
+          className="fixed inset-0 bg-black/10 z-40"
+          onClick={() => {
+            setSelectedLead(null);
+            setAddLeadOpen(false);
+            setEditingLead(null);
+          }}
+        />
+      )}
+
       {/* Lead Detail Drawer */}
       {selectedLead && (
         <LeadDetailDrawer
@@ -1070,11 +1493,36 @@ export default function PipelinePage() {
           stages={stages}
           onClose={() => setSelectedLead(null)}
           onMoveStage={handleMoveLeadToStage}
+          onEdit={handleEditLead}
+          onArchive={handleArchiveLead}
         />
       )}
 
       {/* Add Lead Drawer */}
-      {addLeadOpen && <AddLeadDrawer onClose={() => setAddLeadOpen(false)} />}
+      {addLeadOpen && (
+        <AddLeadDrawer
+          onClose={() => setAddLeadOpen(false)}
+          initialStage={addLeadInitialStage}
+        />
+      )}
+
+      {/* Edit Lead Drawer */}
+      {editingLead && (
+        <EditLeadDrawer
+          lead={editingLead}
+          onClose={() => setEditingLead(null)}
+        />
+      )}
+
+      {/* Archive Confirmation Modal */}
+      {archivingLead && (
+        <ArchiveConfirmModal
+          lead={archivingLead}
+          onConfirm={handleArchiveConfirm}
+          onCancel={() => setArchivingLead(null)}
+          isLoading={archiveLeadMutation.isPending}
+        />
+      )}
     </>
   );
 }

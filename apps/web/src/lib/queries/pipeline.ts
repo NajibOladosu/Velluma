@@ -1,7 +1,7 @@
 /**
  * TanStack Query hooks for the Sales Pipeline.
  *
- * Data strategy: Pipeline leads are stored in the `clients` table.
+ * Data strategy: Pipeline leads are stored in the `pipeline_leads` table.
  * The `metadata` JSONB column stores pipeline-specific fields:
  *   - pipeline_stage: "inquiry" | "proposal_sent" | "contract_signed" | "active"
  *   - deal_value: number
@@ -10,8 +10,9 @@
  *   - ai_priority: "hot" | "likely" | null
  *   - last_action_at: ISO string
  *   - enrichment: { company_size, industry, confidence }
+ *   - archived: boolean (soft-delete)
  *
- * RLS on `clients` ensures users only see their own rows.
+ * RLS on `pipeline_leads` ensures users only see their own rows (tenant_id = auth.uid()).
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
@@ -162,7 +163,7 @@ export function usePipelineStages() {
     queryFn: async (): Promise<PipelineStageData[]> => {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from("clients")
+        .from("pipeline_leads")
         .select("*")
         .order("created_at", { ascending: false })
 
@@ -177,6 +178,7 @@ export function usePipelineStages() {
       }
 
       for (const row of rows) {
+        if (row.metadata?.archived === true) continue // skip archived
         const stageId = (row.metadata?.pipeline_stage as string) || "inquiry"
         const target = STAGE_ORDER.includes(stageId) ? stageId : "inquiry"
         stageMap[target].push(mapRowToLead(row))
@@ -201,7 +203,7 @@ export function useMovePipelineLead() {
 
       // Fetch current metadata first
       const { data: current } = await supabase
-        .from("clients")
+        .from("pipeline_leads")
         .select("metadata")
         .eq("id", leadId)
         .single()
@@ -209,7 +211,7 @@ export function useMovePipelineLead() {
       const merged = { ...(current?.metadata ?? {}), pipeline_stage: stageId, last_action_at: new Date().toISOString() }
 
       const { error } = await supabase
-        .from("clients")
+        .from("pipeline_leads")
         .update({ metadata: merged, updated_at: new Date().toISOString() })
         .eq("id", leadId)
 
@@ -221,12 +223,109 @@ export function useMovePipelineLead() {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Update lead
+// ---------------------------------------------------------------------------
+
+export interface UpdateLeadPayload {
+  id: string
+  name?: string
+  company?: string
+  email?: string
+  phone?: string
+  website?: string
+  dealValue?: number
+  priority?: "high" | "medium" | "low"
+  source?: string
+  tags?: string[]
+}
+
+export function useUpdatePipelineLead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: UpdateLeadPayload) => {
+      const supabase = createClient()
+
+      const { data: current } = await supabase
+        .from("pipeline_leads")
+        .select("metadata")
+        .eq("id", payload.id)
+        .single()
+
+      const meta = current?.metadata ?? {}
+      const merged: Record<string, unknown> = {
+        ...meta,
+        ...(payload.dealValue !== undefined && { deal_value: payload.dealValue }),
+        ...(payload.priority !== undefined && { priority: payload.priority }),
+        ...(payload.source !== undefined && { source: payload.source }),
+      }
+
+      const updateData: Record<string, unknown> = {
+        metadata: merged,
+        updated_at: new Date().toISOString(),
+      }
+      if (payload.name !== undefined) updateData.name = payload.name
+      if (payload.company !== undefined) updateData.company_name = payload.company
+      if (payload.email !== undefined) updateData.email = payload.email || null
+      if (payload.phone !== undefined) updateData.phone = payload.phone || null
+      if (payload.website !== undefined) updateData.website = payload.website || null
+      if (payload.tags !== undefined) updateData.tags = payload.tags
+
+      const { error } = await supabase
+        .from("pipeline_leads")
+        .update(updateData)
+        .eq("id", payload.id)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipelineKeys.stages() })
+    },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Archive lead (soft delete)
+// ---------------------------------------------------------------------------
+
+export function useArchivePipelineLead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (leadId: string) => {
+      const supabase = createClient()
+
+      const { data: current } = await supabase
+        .from("pipeline_leads")
+        .select("metadata")
+        .eq("id", leadId)
+        .single()
+
+      const merged = { ...(current?.metadata ?? {}), archived: true }
+
+      const { error } = await supabase
+        .from("pipeline_leads")
+        .update({ metadata: merged, updated_at: new Date().toISOString() })
+        .eq("id", leadId)
+
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipelineKeys.stages() })
+    },
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Create lead
+// ---------------------------------------------------------------------------
+
 /** Create a new pipeline lead (client record). */
 export interface CreateLeadPayload {
   name: string
   company: string
   email?: string
   phone?: string
+  website?: string
   dealValue?: number
   priority?: "high" | "medium" | "low"
   tags?: string[]
@@ -243,13 +342,14 @@ export function useCreatePipelineLead() {
       if (!user) throw new Error("Not authenticated")
 
       const { error } = await supabase
-        .from("clients")
+        .from("pipeline_leads")
         .insert({
           tenant_id: user.id,
           name: payload.name,
           email: payload.email ?? null,
           phone: payload.phone ?? null,
           company_name: payload.company ?? null,
+          website: payload.website ?? null,
           tags: payload.tags ?? [],
           metadata: {
             pipeline_stage: payload.stageId ?? "inquiry",
