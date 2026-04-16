@@ -19,24 +19,22 @@ import {
   DollarSign,
   Heart,
   TrendingUp,
-  Mail,
-  Phone,
   Bot,
   AlertCircle,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { useClients, useCreateClient, type ClientRow } from "@/lib/queries/clients";
 
 /* ═══════════════════════════════════════════════════════
-   HELPERS — map DB row ➜ display shape
+   HELPERS
    ═══════════════════════════════════════════════════════ */
 
-/** Derive a display-friendly status from the DB metadata field. */
 function getClientStatus(client: ClientRow): "active" | "lead" | "past" {
   const meta = client.metadata as Record<string, unknown> | null;
   const raw = meta?.status;
   if (raw === "active" || raw === "lead" || raw === "past") return raw;
-  return "active"; // safe default
+  return "active";
 }
 
 function formatRevenue(client: ClientRow): string {
@@ -70,10 +68,10 @@ function ClientMetrics({ clients }: { clients: ClientRow[] }) {
       : 0;
 
   const metrics = [
-    { label: "Total Clients",     value: totalClients.toString(),         sub: `${clients.filter((c) => getClientStatus(c) === "lead").length} leads`, icon: Users },
-    { label: "Active",            value: activeClients.toString(),         sub: "Currently engaged",  icon: TrendingUp },
-    { label: "Lifetime Revenue",  value: `$${lifetimeRevenue.toLocaleString()}`, sub: "All-time earnings", icon: DollarSign },
-    { label: "Avg Health Score",  value: avgHealth.toString(),             sub: "Relationship health", icon: Heart },
+    { label: "Total Clients",    value: totalClients.toString(),               sub: `${clients.filter((c) => getClientStatus(c) === "lead").length} leads`, icon: Users },
+    { label: "Active",           value: activeClients.toString(),              sub: "Currently engaged",   icon: TrendingUp },
+    { label: "Lifetime Revenue", value: `$${lifetimeRevenue.toLocaleString()}`, sub: "All-time earnings",  icon: DollarSign },
+    { label: "Avg Health Score", value: avgHealth.toString(),                  sub: "Relationship health", icon: Heart },
   ];
 
   return (
@@ -115,21 +113,31 @@ function TagBadge({ tag }: { tag: string }) {
 }
 
 function AddClientDrawer({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = React.useState({ name: "", email: "", company: "", phone: "" });
   const createClient = useCreateClient();
+  const [name, setName] = React.useState("");
+  const [company, setCompany] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [website, setWebsite] = React.useState("");
+  const [source, setSource] = React.useState("Manual Entry");
+  const [status, setStatus] = React.useState<"active" | "lead" | "past">("lead");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.name) return;
+    if (!name.trim()) return;
     try {
       await createClient.mutateAsync({
-        name: form.name,
-        email: form.email || undefined,
-        company_name: form.company || undefined,
+        name: name.trim(),
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
+        company_name: company.trim() || undefined,
+        website: website.trim() || undefined,
+        source: source.trim() || "Manual Entry",
+        status,
       });
       onClose();
     } catch {
-      // Error is captured by createClient.error and displayed in the form UI
+      // Error displayed in the form via createClient.error
     }
   }
 
@@ -144,25 +152,48 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {([
-            { key: "name",    label: "Full Name",  placeholder: "e.g. David Frost",     required: true  },
-            { key: "company", label: "Company",    placeholder: "e.g. Acme Corp",       required: false },
-            { key: "email",   label: "Email",      placeholder: "e.g. david@acme.co",  required: false },
-            { key: "phone",   label: "Phone",      placeholder: "e.g. +1 (415) 555-0199", required: false },
-          ] as const).map((field) => (
-            <div key={field.key} className="space-y-1.5">
+          {[
+            { label: "Full Name *",  placeholder: "e.g. David Frost",        value: name,    onChange: setName },
+            { label: "Company",      placeholder: "e.g. Acme Corp",          value: company, onChange: setCompany },
+            { label: "Email",        placeholder: "e.g. david@acme.co",      value: email,   onChange: setEmail },
+            { label: "Phone",        placeholder: "e.g. +1 (415) 555-0199",  value: phone,   onChange: setPhone },
+            { label: "Website",      placeholder: "e.g. https://acme.co",    value: website, onChange: setWebsite },
+            { label: "Lead Source",  placeholder: "e.g. Referral, LinkedIn", value: source,  onChange: setSource },
+          ].map((field) => (
+            <div key={field.label} className="space-y-1.5">
               <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">
                 {field.label}
               </label>
               <Input
                 placeholder={field.placeholder}
-                value={form[field.key]}
-                onChange={(e) => setForm((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                value={field.value}
+                onChange={(e) => field.onChange(e.target.value)}
                 className="h-9 bg-white border-zinc-200 text-sm"
-                required={field.required}
               />
             </div>
           ))}
+
+          {/* Status */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500">Status</label>
+            <div className="flex items-center gap-2">
+              {(["lead", "active", "past"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={cn(
+                    "px-3 py-1.5 rounded-md border text-[10px] font-bold uppercase tracking-widest transition-colors capitalize",
+                    status === s
+                      ? "border-zinc-900 bg-zinc-900 text-white"
+                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                  )}
+                  onClick={() => setStatus(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {createClient.error && (
             <div className="flex items-start gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
@@ -175,7 +206,7 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
             <Button type="button" variant="outline" className="flex-1 border-zinc-200" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="flex-1 font-semibold" disabled={createClient.isPending}>
+            <Button type="submit" className="flex-1 font-semibold" disabled={!name.trim() || createClient.isPending}>
               {createClient.isPending && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
               Create Client
             </Button>
@@ -198,13 +229,20 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
    ═══════════════════════════════════════════════════════ */
 
 export default function ClientsPage() {
-  const [searchQuery,    setSearchQuery]    = React.useState("");
-  const [statusTab,      setStatusTab]      = React.useState<StatusTab>("all");
-  const [tagFilter,      setTagFilter]      = React.useState("all");
-  const [tagFilterOpen,  setTagFilterOpen]  = React.useState(false);
-  const [addClientOpen,  setAddClientOpen]  = React.useState(false);
+  const [searchQuery,   setSearchQuery]   = React.useState("");
+  const [statusTab,     setStatusTab]     = React.useState<StatusTab>("all");
+  const [tagFilter,     setTagFilter]     = React.useState("all");
+  const [tagFilterOpen, setTagFilterOpen] = React.useState(false);
+  const [addClientOpen, setAddClientOpen] = React.useState(false);
 
   const { data: clients = [], isLoading, isError, error, refetch } = useClients();
+
+  // Close tag dropdown on outside click
+  React.useEffect(() => {
+    const handler = () => setTagFilterOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
 
   const filtered = React.useMemo(() => {
     return clients.filter((c) => {
@@ -212,7 +250,8 @@ export default function ClientsPage() {
       const matchesSearch =
         searchQuery === "" ||
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (c.company_name ?? "").toLowerCase().includes(searchQuery.toLowerCase());
+        (c.company_name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.email ?? "").toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusTab === "all" || status === statusTab;
       const matchesTag    = tagFilter === "all" || (c.tags ?? []).includes(tagFilter);
       return matchesSearch && matchesStatus && matchesTag;
@@ -240,7 +279,7 @@ export default function ClientsPage() {
               {isLoading ? "Loading…" : `${clients.length} contacts in your rolodex.`}
             </Muted>
           </div>
-          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0" onClick={() => setAddClientOpen(true)}>
+          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
             <Plus className="h-4 w-4" strokeWidth={1.5} />
             Add Client
           </Button>
@@ -257,7 +296,7 @@ export default function ClientsPage() {
               <p className="text-sm font-medium text-zinc-900 truncate">Failed to load clients</p>
               <p className="text-xs text-zinc-500 mt-0.5 truncate">{(error as Error)?.message}</p>
             </div>
-            <Button variant="outline" size="sm" className="h-7 text-xs border-zinc-200" onClick={() => refetch()}>
+            <Button variant="outline" size="sm" className="h-7 text-xs border-zinc-200 shrink-0" onClick={() => refetch()}>
               Retry
             </Button>
           </div>
@@ -268,22 +307,22 @@ export default function ClientsPage() {
           {/* Status Tabs */}
           <div className="overflow-x-auto">
             <div className="flex items-center gap-1 border-b border-zinc-200 min-w-max">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                className={cn(
-                  "px-4 py-2.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px whitespace-nowrap",
-                  statusTab === tab
-                    ? "border-zinc-900 text-zinc-900"
-                    : "border-transparent text-zinc-400 hover:text-zinc-600"
-                )}
-                onClick={() => setStatusTab(tab)}
-              >
-                {tab === "all" ? "All" : statusLabel[tab] ?? tab}{" "}
-                <span className={cn("ml-1 text-[10px]", statusTab === tab ? "text-zinc-900" : "text-zinc-400")}>
-                  {statusCounts[tab]}
-                </span>
-              </button>
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  className={cn(
+                    "px-4 py-2.5 text-xs font-medium capitalize transition-colors border-b-2 -mb-px whitespace-nowrap",
+                    statusTab === tab
+                      ? "border-zinc-900 text-zinc-900"
+                      : "border-transparent text-zinc-400 hover:text-zinc-600"
+                  )}
+                  onClick={() => setStatusTab(tab)}
+                >
+                  {tab === "all" ? "All" : statusLabel[tab] ?? tab}{" "}
+                  <span className={cn("ml-1 text-[10px]", statusTab === tab ? "text-zinc-900" : "text-zinc-400")}>
+                    {statusCounts[tab]}
+                  </span>
+                </button>
               ))}
             </div>
           </div>
@@ -300,7 +339,7 @@ export default function ClientsPage() {
               />
             </div>
 
-            <div className="relative w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto" onClick={(e) => e.stopPropagation()}>
               <Button
                 variant="outline"
                 size="sm"
@@ -309,9 +348,10 @@ export default function ClientsPage() {
               >
                 <Tag className="h-3.5 w-3.5" />
                 Tag{tagFilter !== "all" ? `: ${tagFilter}` : ""}
+                <ChevronDown className="h-3 w-3 ml-0.5" />
               </Button>
               {tagFilterOpen && (
-                <div className="absolute left-0 top-11 z-50 w-40 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 max-h-52 overflow-y-auto">
+                <div className="absolute left-0 top-11 z-50 w-44 bg-white border border-zinc-200 rounded-lg shadow-lg py-1 max-h-52 overflow-y-auto">
                   <button
                     className={cn("w-full px-3 py-2 text-left text-xs hover:bg-zinc-50", tagFilter === "all" && "font-bold text-zinc-900")}
                     onClick={() => { setTagFilter("all"); setTagFilterOpen(false); }}
@@ -372,21 +412,11 @@ export default function ClientsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <div className="h-3 w-16 rounded bg-zinc-100" />
-                      </td>
-                      <td className="px-4 py-4 hidden sm:table-cell">
-                        <div className="h-3 w-16 rounded bg-zinc-100" />
-                      </td>
-                      <td className="px-4 py-4 hidden md:table-cell">
-                        <div className="h-3 w-16 rounded bg-zinc-100" />
-                      </td>
-                      <td className="px-4 py-4 hidden lg:table-cell">
-                        <div className="h-3 w-16 rounded bg-zinc-100" />
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="h-3 w-16 rounded bg-zinc-100" />
-                      </td>
+                      <td className="px-4 py-4"><div className="h-3 w-16 rounded bg-zinc-100" /></td>
+                      <td className="px-4 py-4 hidden sm:table-cell"><div className="h-3 w-16 rounded bg-zinc-100" /></td>
+                      <td className="px-4 py-4 hidden md:table-cell"><div className="h-3 w-16 rounded bg-zinc-100" /></td>
+                      <td className="px-4 py-4 hidden lg:table-cell"><div className="h-3 w-16 rounded bg-zinc-100" /></td>
+                      <td className="px-4 py-4"><div className="h-3 w-16 rounded bg-zinc-100" /></td>
                     </tr>
                   ))}
 
@@ -484,7 +514,7 @@ export default function ClientsPage() {
       {/* Add Client Drawer */}
       {addClientOpen && (
         <>
-          <div className="fixed inset-0 bg-zinc-900/10 z-40" onClick={() => setAddClientOpen(false)} />
+          <div className="fixed inset-0 bg-black/10 z-40" onClick={() => setAddClientOpen(false)} />
           <AddClientDrawer onClose={() => setAddClientOpen(false)} />
         </>
       )}
