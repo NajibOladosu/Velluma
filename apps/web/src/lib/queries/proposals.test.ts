@@ -64,7 +64,7 @@ const sampleProjectRow: ProjectRow = {
   },
   created_at: "2026-03-01T00:00:00Z",
   updated_at: "2026-03-06T00:00:00Z",
-  clients: { name: "Acme Corp", email: "acme@example.com" },
+  crm_clients: { name: "Acme Corp", email: "acme@example.com" },
 }
 
 // ---------------------------------------------------------------------------

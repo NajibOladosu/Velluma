@@ -7,12 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTierCard } from "@/components/ui/pricing-tier";
 import { SignatureBlock } from "@/components/ui/signature-block";
 import { MinimalEditor } from "@/components/editor/editor";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  useProposal,
+  useSaveProposalContent,
+  useUpdateProposalStatus,
+  type AddOnItem,
+} from "@/lib/queries/proposals";
 import {
   ArrowLeft,
   Save,
@@ -31,7 +38,6 @@ import {
   Shield,
   Wallet,
   Zap,
-  ChevronRight,
   Briefcase,
   Mail,
   Receipt,
@@ -45,6 +51,7 @@ import {
   AlertCircle,
   Download,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
@@ -52,35 +59,6 @@ import {
    ═══════════════════════════════════════════════════════ */
 
 type ProposalStatus = "draft" | "sent" | "viewed" | "signed" | "expired";
-
-interface ProposalDetail {
-  id: string;
-  title: string;
-  client: string;
-  clientId: string;
-  clientEmail: string;
-  status: ProposalStatus;
-  value: number;
-  createdAt: string;
-  sentAt: string | null;
-  viewedAt: string | null;
-  signedAt: string | null;
-  expiresAt: string | null;
-  viewCount: number;
-  avgTimeSpent: string;
-  template: string;
-  depositPercent: number;
-  milestones: number;
-  welcomeMessage: string;
-  scopeContent: string;
-}
-
-interface AddOn {
-  id: string;
-  label: string;
-  price: number;
-  enabled: boolean;
-}
 
 interface LegalClause {
   id: string;
@@ -100,105 +78,24 @@ interface Automation {
 type SectionKey = "welcome" | "scope" | "packages" | "agreement" | "payment";
 
 /* ═══════════════════════════════════════════════════════
-   MOCK DATA
+   STATIC CONFIG
    ═══════════════════════════════════════════════════════ */
 
-const proposalDatabase: Record<string, ProposalDetail> = {
-  "1": {
-    id: "1",
-    title: "Website Overhaul — Full Redesign",
-    client: "Acme Corp",
-    clientId: "1",
-    clientEmail: "david@acmecorp.com",
-    status: "signed",
-    value: 12500,
-    createdAt: "Feb 28, 2026",
-    sentAt: "Mar 01, 2026",
-    viewedAt: "Mar 01, 2026",
-    signedAt: "Mar 03, 2026",
-    expiresAt: null,
-    viewCount: 8,
-    avgTimeSpent: "4m 32s",
-    template: "Website Project",
-    depositPercent: 50,
-    milestones: 3,
-    welcomeMessage:
-      "Hi David, thank you for choosing Velluma for your website overhaul. We're excited to partner with Acme Corp on this transformation.",
-    scopeContent: "",
-  },
-  "2": {
-    id: "2",
-    title: "Brand Identity Package",
-    client: "Vesper AI",
-    clientId: "3",
-    clientEmail: "lena@vesperai.com",
-    status: "viewed",
-    value: 8500,
-    createdAt: "Mar 05, 2026",
-    sentAt: "Mar 06, 2026",
-    viewedAt: "Mar 10, 2026",
-    signedAt: null,
-    expiresAt: "Mar 20, 2026",
-    viewCount: 4,
-    avgTimeSpent: "2m 15s",
-    template: "Brand Package",
-    depositPercent: 40,
-    milestones: 2,
-    welcomeMessage:
-      "Hi Lena, we've prepared a comprehensive brand identity package designed to position Vesper AI as a market leader.",
-    scopeContent: "",
-  },
-  "3": {
-    id: "3",
-    title: "E-Commerce Platform Build",
-    client: "Terra Finance",
-    clientId: "2",
-    clientEmail: "sarah@terrafinance.com",
-    status: "sent",
-    value: 22000,
-    createdAt: "Mar 08, 2026",
-    sentAt: "Mar 09, 2026",
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: "Mar 23, 2026",
-    viewCount: 0,
-    avgTimeSpent: "—",
-    template: "Website Project",
-    depositPercent: 50,
-    milestones: 4,
-    welcomeMessage:
-      "Hi Sarah, this proposal outlines our approach to building a best-in-class e-commerce platform for Terra Finance.",
-    scopeContent: "",
-  },
-  "4": {
-    id: "4",
-    title: "Mobile App MVP — Phase 1",
-    client: "Orbit Systems",
-    clientId: "4",
-    clientEmail: "james@orbitsystems.io",
-    status: "draft",
-    value: 18000,
-    createdAt: "Mar 10, 2026",
-    sentAt: null,
-    viewedAt: null,
-    signedAt: null,
-    expiresAt: null,
-    viewCount: 0,
-    avgTimeSpent: "—",
-    template: "Blank",
-    depositPercent: 50,
-    milestones: 3,
-    welcomeMessage:
-      "Hi James, this proposal details our plan for the Orbit Systems mobile app MVP.",
-    scopeContent: "",
-  },
-};
-
-const defaultAddOns: AddOn[] = [
+const defaultAddOns: AddOnItem[] = [
   { id: "rush", label: "Rush Delivery (2-week)", price: 1500, enabled: false },
   { id: "seo", label: "SEO Audit & Optimization", price: 800, enabled: false },
-  { id: "copywriting", label: "Professional Copywriting", price: 1200, enabled: false },
-  { id: "analytics", label: "Analytics Dashboard Setup", price: 600, enabled: false },
+  {
+    id: "copywriting",
+    label: "Professional Copywriting",
+    price: 1200,
+    enabled: false,
+  },
+  {
+    id: "analytics",
+    label: "Analytics Dashboard Setup",
+    price: 600,
+    enabled: false,
+  },
 ];
 
 const legalClauses: LegalClause[] = [
@@ -240,20 +137,33 @@ const contractTemplates = [
   { id: "t3", name: "Web Development SOW", type: "custom" },
 ];
 
-const sections: { key: SectionKey; label: string; icon: React.ElementType }[] = [
-  { key: "welcome", label: "Welcome", icon: FileText },
-  { key: "scope", label: "Scope", icon: LayoutTemplate },
-  { key: "packages", label: "Packages", icon: CreditCard },
-  { key: "agreement", label: "Agreement", icon: Shield },
-  { key: "payment", label: "Payment", icon: Wallet },
-];
+const sections: { key: SectionKey; label: string; icon: React.ElementType }[] =
+  [
+    { key: "welcome", label: "Welcome", icon: FileText },
+    { key: "scope", label: "Scope", icon: LayoutTemplate },
+    { key: "packages", label: "Packages", icon: CreditCard },
+    { key: "agreement", label: "Agreement", icon: Shield },
+    { key: "payment", label: "Payment", icon: Wallet },
+  ];
 
-const statusConfig: Record<ProposalStatus, { label: string; className: string }> = {
+const statusConfig: Record<
+  ProposalStatus,
+  { label: string; className: string }
+> = {
   draft: { label: "Draft", className: "text-zinc-500 border-zinc-200" },
   sent: { label: "Sent", className: "text-zinc-700 border-zinc-300" },
   viewed: { label: "Viewed", className: "text-zinc-700 border-zinc-300" },
-  signed: { label: "Signed", className: "text-zinc-900 border-zinc-900 font-bold" },
+  signed: {
+    label: "Signed",
+    className: "text-zinc-900 border-zinc-900 font-bold",
+  },
   expired: { label: "Expired", className: "text-zinc-400 border-zinc-200" },
+};
+
+const tierPrices: Record<string, number> = {
+  foundation: 2500,
+  scale: 5500,
+  enterprise: 9500,
 };
 
 /* ═══════════════════════════════════════════════════════
@@ -263,25 +173,104 @@ const statusConfig: Record<ProposalStatus, { label: string; className: string }>
 export default function ProposalBuilderPage() {
   const params = useParams();
   const proposalId = params.id as string;
-  const proposal = proposalDatabase[proposalId] || proposalDatabase["1"];
 
-  const [activeSection, setActiveSection] = React.useState<SectionKey>("welcome");
+  // ── Data ────────────────────────────────────────────
+  const { data: proposalData, isLoading, isError } = useProposal(proposalId);
+  const saveDraft = useSaveProposalContent();
+  const updateStatus = useUpdateProposalStatus();
+
+  // ── Local state ──────────────────────────────────────
+  const [initialized, setInitialized] = React.useState(false);
+  const [activeSection, setActiveSection] =
+    React.useState<SectionKey>("welcome");
+  const [welcomeMessage, setWelcomeMessage] = React.useState("");
+  const [scopeContent, setScopeContent] = React.useState("");
   const [selectedTier, setSelectedTier] = React.useState<string | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>("t1");
-  const [addOns, setAddOns] = React.useState<AddOn[]>(defaultAddOns);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    React.useState<string>("t1");
+  const [addOns, setAddOns] = React.useState<AddOnItem[]>(defaultAddOns);
   const [enabledClauses, setEnabledClauses] = React.useState<string[]>(
     legalClauses.map((c) => c.id)
   );
-  const [aiSuggestions, setAiSuggestions] = React.useState<boolean>(false);
+  const [depositPercent, setDepositPercent] = React.useState(50);
+  const [milestonesCount, setMilestonesCount] = React.useState(3);
+  const [aiSuggestions, setAiSuggestions] = React.useState(false);
   const [automations, setAutomations] = React.useState<Automation[]>([
-    { id: "project", label: "Create Project", description: "Auto-create a project in the Kanban board", enabled: true, icon: Briefcase },
-    { id: "template", label: "Apply Task Template", description: "Pre-populate tasks from template", enabled: true, icon: LayoutTemplate },
-    { id: "email", label: "Send Welcome Email", description: "Trigger onboarding email to client", enabled: true, icon: Mail },
-    { id: "invoice", label: "Generate First Invoice", description: "Create deposit invoice automatically", enabled: false, icon: Receipt },
+    {
+      id: "project",
+      label: "Create Project",
+      description: "Auto-create a project in the Kanban board",
+      enabled: true,
+      icon: Briefcase,
+    },
+    {
+      id: "template",
+      label: "Apply Task Template",
+      description: "Pre-populate tasks from template",
+      enabled: true,
+      icon: LayoutTemplate,
+    },
+    {
+      id: "email",
+      label: "Send Welcome Email",
+      description: "Trigger onboarding email to client",
+      enabled: true,
+      icon: Mail,
+    },
+    {
+      id: "invoice",
+      label: "Generate First Invoice",
+      description: "Create deposit invoice automatically",
+      enabled: false,
+      icon: Receipt,
+    },
   ]);
   const [reminderEnabled, setReminderEnabled] = React.useState(true);
   const [exportingPdf, setExportingPdf] = React.useState(false);
+  const [sendConfirmOpen, setSendConfirmOpen] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<string | null>(null);
 
+  // ── Initialize local state from DB once ─────────────
+  React.useEffect(() => {
+    if (proposalData && !initialized) {
+      setWelcomeMessage(proposalData.welcomeMessage ?? "");
+      setDepositPercent(proposalData.depositPercent ?? 50);
+      setMilestonesCount(proposalData.milestones ?? 3);
+
+      const meta = proposalData.metadata ?? {};
+
+      const savedScope = meta.scope_content as string | undefined;
+      if (savedScope) setScopeContent(savedScope);
+
+      const savedTier = meta.selected_tier as string | undefined;
+      if (savedTier) setSelectedTier(savedTier);
+
+      const savedAddOns = meta.add_ons as AddOnItem[] | undefined;
+      if (savedAddOns && savedAddOns.length > 0) setAddOns(savedAddOns);
+
+      const savedClauses = meta.enabled_clauses as string[] | undefined;
+      if (savedClauses) setEnabledClauses(savedClauses);
+
+      const savedAutomations = meta.automations as
+        | Array<{ id: string; enabled: boolean }>
+        | undefined;
+      if (savedAutomations) {
+        setAutomations((prev) =>
+          prev.map((a) => {
+            const saved = savedAutomations.find((s) => s.id === a.id);
+            return saved ? { ...a, enabled: saved.enabled } : a;
+          })
+        );
+      }
+
+      const savedReminder = meta.reminder_enabled as boolean | undefined;
+      if (savedReminder !== undefined) setReminderEnabled(savedReminder);
+
+      setInitialized(true);
+    }
+  }, [proposalData, initialized]);
+
+  /* ── PDF export ────────────────────────────────────── */
   const handleExportPdf = React.useCallback(async () => {
     setExportingPdf(true);
     try {
@@ -301,17 +290,66 @@ export default function ProposalBuilderPage() {
     }
   }, [proposalId]);
 
-  /* ── Pricing Calculations ─────────────────── */
-  const tierPrices: Record<string, number> = {
-    foundation: 2500,
-    scale: 5500,
-    enterprise: 9500,
-  };
+  /* ── Preview (open PDF in new tab) ─────────────────── */
+  const handlePreview = React.useCallback(() => {
+    window.open(`/api/proposals/${proposalId}/pdf`, "_blank");
+  }, [proposalId]);
 
-  const selectedTierPrice = selectedTier ? tierPrices[selectedTier] || 0 : 0;
-  const addOnsTotal = addOns.filter((a) => a.enabled).reduce((s, a) => s + a.price, 0);
+  /* ── Save Draft ────────────────────────────────────── */
+  const handleSaveDraft = React.useCallback(async () => {
+    try {
+      await saveDraft.mutateAsync({
+        id: proposalId,
+        welcomeMessage,
+        scopeContent,
+        selectedTier,
+        addOns,
+        enabledClauses,
+        depositPercent,
+        milestones: milestonesCount,
+        automations: automations.map((a) => ({ id: a.id, enabled: a.enabled })),
+        reminderEnabled,
+      });
+      setSavedAt(
+        new Date().toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      );
+    } catch (err) {
+      console.error("[save draft]", err);
+    }
+  }, [
+    proposalId,
+    welcomeMessage,
+    scopeContent,
+    selectedTier,
+    addOns,
+    enabledClauses,
+    depositPercent,
+    milestonesCount,
+    automations,
+    reminderEnabled,
+    saveDraft,
+  ]);
+
+  /* ── Send to Client ────────────────────────────────── */
+  const handleConfirmSend = React.useCallback(async () => {
+    try {
+      await updateStatus.mutateAsync({ id: proposalId, status: "sent" });
+      setSendConfirmOpen(false);
+    } catch (err) {
+      console.error("[send proposal]", err);
+    }
+  }, [proposalId, updateStatus]);
+
+  /* ── Pricing calculations ───────────────────────────── */
+  const selectedTierPrice = selectedTier ? (tierPrices[selectedTier] ?? 0) : 0;
+  const addOnsTotal = addOns
+    .filter((a) => a.enabled)
+    .reduce((s, a) => s + a.price, 0);
   const subtotal = selectedTierPrice + addOnsTotal;
-  const deposit = Math.round(subtotal * (proposal.depositPercent / 100));
+  const deposit = Math.round(subtotal * (depositPercent / 100));
   const balance = subtotal - deposit;
 
   const toggleAddOn = (id: string) => {
@@ -332,13 +370,49 @@ export default function ProposalBuilderPage() {
     );
   };
 
+  /* ── Loading state ──────────────────────────────────── */
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-8 w-80" />
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_280px] gap-6">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-96" />
+          <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Error state ────────────────────────────────────── */
+  if (isError || !proposalData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <AlertTriangle className="h-8 w-8 text-zinc-400" strokeWidth={1.5} />
+        <p className="text-sm text-zinc-500">Proposal not found.</p>
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/proposals">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Proposals
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const proposal = proposalData;
+  const proposalStatus = proposal.status as ProposalStatus;
+
   return (
     <div className="space-y-6 pb-20">
       {/* ── Header ─────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
         {/* LEFT: back link + title + badge + meta */}
         <div className="flex flex-col min-w-0 flex-1 w-full">
-          {/* Back link */}
           <Link
             href="/proposals"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
@@ -347,37 +421,59 @@ export default function ProposalBuilderPage() {
             Back to Proposals
           </Link>
 
-          {/* Title + badge inline */}
           <div className="flex items-center gap-2 min-w-0 mb-1">
             <H1 className="text-2xl font-medium truncate min-w-0">
               {proposal.title}
             </H1>
             <Badge
               variant="outline"
-              className={cn("flex-shrink-0 bg-transparent shrink-0", statusConfig[proposal.status].className)}
+              className={cn(
+                "flex-shrink-0 bg-transparent shrink-0",
+                statusConfig[proposalStatus]?.className
+              )}
             >
-              {statusConfig[proposal.status].label}
+              {statusConfig[proposalStatus]?.label}
             </Badge>
           </div>
 
-          {/* Meta row */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
-            <Link
-              href={`/clients/${proposal.clientId}`}
-              className="inline-flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
-            >
-              <Building className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{proposal.client}</span>
-              <ExternalLink className="h-3 w-3 shrink-0" />
-            </Link>
+            {proposal.clientId ? (
+              <Link
+                href={`/clients/${proposal.clientId}`}
+                className="inline-flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                <Building className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{proposal.client}</span>
+                <ExternalLink className="h-3 w-3 shrink-0" />
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <User className="h-3.5 w-3.5 shrink-0" />
+                No client assigned
+              </span>
+            )}
             <span className="flex-shrink-0 text-zinc-300">•</span>
-            <span className="whitespace-nowrap">Created {proposal.createdAt}</span>
+            <span className="whitespace-nowrap">
+              Created {proposal.createdAt}
+            </span>
+            {savedAt && (
+              <>
+                <span className="flex-shrink-0 text-zinc-300">•</span>
+                <span className="whitespace-nowrap text-zinc-400">
+                  Saved at {savedAt}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none h-9">
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none h-9"
+            onClick={handlePreview}
+          >
             <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
             <span className="hidden sm:inline">Preview</span>
           </Button>
@@ -396,14 +492,35 @@ export default function ProposalBuilderPage() {
               {exportingPdf ? "Generating…" : "Export PDF"}
             </span>
           </Button>
-          <Button variant="outline" className="flex-1 sm:flex-none h-9">
-            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Save Draft</span>
+          <Button
+            variant="outline"
+            className="flex-1 sm:flex-none h-9"
+            onClick={handleSaveDraft}
+            disabled={saveDraft.isPending}
+          >
+            {saveDraft.isPending ? (
+              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+            )}
+            <span className="hidden sm:inline">
+              {saveDraft.isPending ? "Saving…" : "Save Draft"}
+            </span>
             <span className="inline sm:hidden">Save</span>
           </Button>
-          <Button className="flex-1 sm:flex-none h-9">
+          <Button
+            className="flex-1 sm:flex-none h-9"
+            onClick={() => setSendConfirmOpen(true)}
+            disabled={
+              proposalStatus === "signed" || proposalStatus === "expired"
+            }
+          >
             <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Send to Client</span>
+            <span className="hidden sm:inline">
+              {proposalStatus === "sent" || proposalStatus === "viewed"
+                ? "Resend"
+                : "Send to Client"}
+            </span>
             <span className="inline sm:hidden">Send</span>
           </Button>
         </div>
@@ -432,7 +549,9 @@ export default function ProposalBuilderPage() {
                 <div
                   className={cn(
                     "flex items-center justify-center h-7 w-7 rounded-md text-xs font-bold",
-                    isActive ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500"
+                    isActive
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-100 text-zinc-500"
                   )}
                 >
                   {i + 1}
@@ -459,16 +578,25 @@ export default function ProposalBuilderPage() {
               <div className="space-y-1.5">
                 {selectedTier && (
                   <div className="flex justify-between text-xs text-zinc-600 gap-2">
-                    <span className="capitalize truncate min-w-0">{selectedTier} Package</span>
-                    <span className="shrink-0">${selectedTierPrice.toLocaleString()}</span>
+                    <span className="capitalize truncate min-w-0">
+                      {selectedTier} Package
+                    </span>
+                    <span className="shrink-0">
+                      ${selectedTierPrice.toLocaleString()}
+                    </span>
                   </div>
                 )}
                 {addOns
                   .filter((a) => a.enabled)
                   .map((a) => (
-                    <div key={a.id} className="flex justify-between text-xs text-zinc-600 gap-2">
+                    <div
+                      key={a.id}
+                      className="flex justify-between text-xs text-zinc-600 gap-2"
+                    >
                       <span className="truncate min-w-0">{a.label}</span>
-                      <span className="shrink-0">+${a.price.toLocaleString()}</span>
+                      <span className="shrink-0">
+                        +${a.price.toLocaleString()}
+                      </span>
                     </div>
                   ))}
                 <Separator />
@@ -477,7 +605,9 @@ export default function ProposalBuilderPage() {
                   <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500 gap-2">
-                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="truncate min-w-0">
+                    Deposit ({depositPercent}%)
+                  </span>
                   <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500 gap-2">
@@ -494,7 +624,6 @@ export default function ProposalBuilderPage() {
           {/* ── Welcome Section ─────────────── */}
           {activeSection === "welcome" && (
             <>
-              {/* Hero image placeholder */}
               <Surface className="p-0 overflow-hidden">
                 <div className="h-48 bg-zinc-100 flex items-center justify-center border-b border-zinc-200 border-dashed">
                   <div className="flex flex-col items-center gap-2 text-zinc-400">
@@ -516,9 +645,13 @@ export default function ProposalBuilderPage() {
                     <label className="text-xs font-medium text-zinc-700 uppercase tracking-widest">
                       Welcome Message
                     </label>
-                    <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 leading-relaxed">
-                      <P>{proposal.welcomeMessage}</P>
-                    </div>
+                    <textarea
+                      value={welcomeMessage}
+                      onChange={(e) => setWelcomeMessage(e.target.value)}
+                      placeholder="Write a personalized welcome message for your client…"
+                      rows={5}
+                      className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 focus-visible:ring-2"
+                    />
                   </div>
                 </div>
               </Surface>
@@ -532,7 +665,9 @@ export default function ProposalBuilderPage() {
                 <div className="h-32 rounded-md border border-dashed border-zinc-200 bg-zinc-50 flex items-center justify-center">
                   <div className="flex flex-col items-center gap-2 text-zinc-400">
                     <Video className="h-6 w-6" strokeWidth={1.5} />
-                    <span className="text-xs">Paste a YouTube or Loom URL</span>
+                    <span className="text-xs">
+                      Paste a YouTube or Loom URL
+                    </span>
                     <Input
                       placeholder="https://www.loom.com/share/..."
                       className="max-w-sm h-8 text-xs mt-1"
@@ -544,19 +679,38 @@ export default function ProposalBuilderPage() {
               {/* Smart Fields Preview */}
               <Surface className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
+                  <Sparkles
+                    className="h-4 w-4 text-zinc-500"
+                    strokeWidth={1.5}
+                  />
                   <H3 className="text-sm">Smart Fields</H3>
-                  <Badge variant="outline" className="text-[10px] ml-auto">Auto-populated</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] ml-auto"
+                  >
+                    Auto-populated
+                  </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { token: "{{client.name}}", value: proposal.client },
-                    { token: "{{client.email}}", value: proposal.clientEmail },
-                    { token: "{{project.startDate}}", value: "Mar 15, 2026" },
-                    { token: "{{project.endDate}}", value: "May 30, 2026" },
+                    {
+                      token: "{{client.email}}",
+                      value: proposal.clientEmail ?? "—",
+                    },
+                    {
+                      token: "{{project.startDate}}",
+                      value: "Set after signing",
+                    },
+                    { token: "{{project.endDate}}", value: "Set after signing" },
                   ].map((field) => (
-                    <div key={field.token} className="rounded-md border border-zinc-200 bg-zinc-50 p-3 min-w-0 flex flex-col">
-                      <Muted className="text-[10px] font-mono truncate">{field.token}</Muted>
+                    <div
+                      key={field.token}
+                      className="rounded-md border border-zinc-200 bg-zinc-50 p-3 min-w-0 flex flex-col"
+                    >
+                      <Muted className="text-[10px] font-mono truncate">
+                        {field.token}
+                      </Muted>
                       <div className="text-sm font-medium text-zinc-900 mt-0.5 truncate">
                         {field.value}
                       </div>
@@ -571,10 +725,12 @@ export default function ProposalBuilderPage() {
           {activeSection === "scope" && (
             <Surface className="p-8 space-y-6">
               <div className="space-y-2">
-                <H2 className="text-2xl tracking-tight">Project Scope & Deliverables</H2>
+                <H2 className="text-2xl tracking-tight">
+                  Project Scope & Deliverables
+                </H2>
                 <Muted>
-                  Detail your deliverables, timelines, and milestones. Smart Fields
-                  like{" "}
+                  Detail your deliverables, timelines, and milestones. Smart
+                  Fields like{" "}
                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-100 rounded text-[10px] font-mono text-zinc-600">
                     <Sparkles className="h-2.5 w-2.5" />
                     {"{{client.name}}"}
@@ -584,6 +740,8 @@ export default function ProposalBuilderPage() {
               </div>
               <Separator />
               <MinimalEditor
+                content={scopeContent}
+                onChange={setScopeContent}
                 className="border-none p-0"
                 placeholder="Describe the project scope, deliverables, timeline, and milestones..."
               />
@@ -613,7 +771,11 @@ export default function ProposalBuilderPage() {
                       "2 Revision Rounds",
                     ]}
                     isSelected={selectedTier === "foundation"}
-                    onSelect={() => setSelectedTier("foundation")}
+                    onSelect={() =>
+                      setSelectedTier(
+                        selectedTier === "foundation" ? null : "foundation"
+                      )
+                    }
                   />
                   <PricingTierCard
                     title="Scale"
@@ -626,7 +788,11 @@ export default function ProposalBuilderPage() {
                       "Priority Support",
                     ]}
                     isSelected={selectedTier === "scale"}
-                    onSelect={() => setSelectedTier("scale")}
+                    onSelect={() =>
+                      setSelectedTier(
+                        selectedTier === "scale" ? null : "scale"
+                      )
+                    }
                   />
                   <PricingTierCard
                     title="Enterprise"
@@ -639,7 +805,11 @@ export default function ProposalBuilderPage() {
                       "Unlimited Revisions",
                     ]}
                     isSelected={selectedTier === "enterprise"}
-                    onSelect={() => setSelectedTier("enterprise")}
+                    onSelect={() =>
+                      setSelectedTier(
+                        selectedTier === "enterprise" ? null : "enterprise"
+                      )
+                    }
                   />
                 </div>
                 <Button variant="outline" className="w-full border-dashed">
@@ -678,7 +848,10 @@ export default function ProposalBuilderPage() {
                           )}
                         >
                           {addon.enabled && (
-                            <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                            <Check
+                              className="h-3 w-3 text-white"
+                              strokeWidth={3}
+                            />
                           )}
                         </div>
                         <span className="text-sm font-medium text-zinc-900 truncate min-w-0">
@@ -704,7 +877,9 @@ export default function ProposalBuilderPage() {
                   <span className="shrink-0">${subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm text-zinc-500 gap-2">
-                  <span className="truncate min-w-0">Deposit ({proposal.depositPercent}%)</span>
+                  <span className="truncate min-w-0">
+                    Deposit ({depositPercent}%)
+                  </span>
                   <span className="shrink-0">${deposit.toLocaleString()}</span>
                 </div>
               </Surface>
@@ -718,12 +893,15 @@ export default function ProposalBuilderPage() {
                 <div className="space-y-1">
                   <H2 className="text-2xl tracking-tight">Legal Agreement</H2>
                   <Muted>
-                    Select a base template from your library. Legally-vetted clauses are locked. Toggle clauses on or off as needed.
+                    Select a base template from your library. Toggle clauses on
+                    or off as needed.
                   </Muted>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-xs font-semibold text-zinc-700 uppercase tracking-widest">Selected Template</label>
+                  <label className="text-xs font-semibold text-zinc-700 uppercase tracking-widest">
+                    Selected Template
+                  </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {contractTemplates.map((t) => (
                       <div
@@ -760,7 +938,6 @@ export default function ProposalBuilderPage() {
 
                 <Separator />
 
-                {/* AI suggestion button */}
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -775,7 +952,6 @@ export default function ProposalBuilderPage() {
                   </Muted>
                 </div>
 
-                {/* AI suggestions */}
                 {aiSuggestions && (
                   <Surface className="p-4 space-y-3 bg-zinc-50 border-dashed">
                     <div className="flex items-center gap-2">
@@ -808,11 +984,19 @@ export default function ProposalBuilderPage() {
                             </p>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <Button variant="outline" size="sm" className="h-7 text-[10px]">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[10px]"
+                            >
                               <Plus className="h-3 w-3 mr-1" />
                               Add
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                            >
                               <X className="h-3 w-3 text-zinc-400" />
                             </Button>
                           </div>
@@ -822,7 +1006,6 @@ export default function ProposalBuilderPage() {
                   </Surface>
                 )}
 
-                {/* Locked Clause Blocks */}
                 <div className="space-y-3">
                   {legalClauses.map((clause) => {
                     const isEnabled = enabledClauses.includes(clause.id);
@@ -838,11 +1021,17 @@ export default function ProposalBuilderPage() {
                       >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Lock className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0" strokeWidth={1.5} />
+                            <Lock
+                              className="h-3.5 w-3.5 text-zinc-400 flex-shrink-0"
+                              strokeWidth={1.5}
+                            />
                             <span className="text-sm font-semibold text-zinc-900 truncate">
                               {clause.title}
                             </span>
-                            <Badge variant="outline" className="text-[9px] border-zinc-300 text-zinc-500">
+                            <Badge
+                              variant="outline"
+                              className="text-[9px] border-zinc-300 text-zinc-500"
+                            >
                               Legally Vetted
                             </Badge>
                           </div>
@@ -871,12 +1060,11 @@ export default function ProposalBuilderPage() {
                 </div>
               </Surface>
 
-              {/* Signature Blocks */}
               <Surface className="p-8 space-y-6">
                 <H3>E-Signatures</H3>
                 <P className="text-sm text-zinc-500 italic">
-                  This document is cryptographically hashed (SHA-256) once signed.
-                  IP address and UTC timestamp are recorded.
+                  This document is cryptographically hashed (SHA-256) once
+                  signed. IP address and UTC timestamp are recorded.
                 </P>
                 <div className="flex flex-wrap gap-8 pt-2">
                   <SignatureBlock label="Freelancer Signature" />
@@ -894,42 +1082,93 @@ export default function ProposalBuilderPage() {
             <>
               <Surface className="p-8 space-y-6">
                 <div className="space-y-1">
-                  <H2 className="text-2xl tracking-tight">Payment & Escrow</H2>
+                  <H2 className="text-2xl tracking-tight">
+                    Payment & Escrow
+                  </H2>
                   <Muted>
-                    Configure the deposit and milestone payment structure. Funds are
-                    held securely via Stripe Connect.
+                    Configure the deposit and milestone payment structure. Funds
+                    are held securely via Stripe Connect.
                   </Muted>
                 </div>
                 <Separator />
 
-                {/* Escrow Split Visualizer */}
+                {/* Deposit % slider */}
                 <div className="space-y-3">
-                  <Muted className="text-[10px] uppercase tracking-widest font-bold">
-                    Payment Structure
-                  </Muted>
+                  <div className="flex items-center justify-between">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold">
+                      Deposit Percentage
+                    </Muted>
+                    <span className="text-sm font-semibold text-zinc-900">
+                      {depositPercent}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={depositPercent}
+                    onChange={(e) => setDepositPercent(Number(e.target.value))}
+                    className="w-full accent-zinc-900"
+                  />
+                </div>
+
+                {/* Milestones */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Muted className="text-[10px] uppercase tracking-widest font-bold">
+                      Number of Milestones
+                    </Muted>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          setMilestonesCount((n) => Math.max(1, n - 1))
+                        }
+                        className="h-6 w-6 rounded border border-zinc-200 flex items-center justify-center text-zinc-600 hover:bg-zinc-50"
+                      >
+                        –
+                      </button>
+                      <span className="text-sm font-semibold text-zinc-900 w-4 text-center">
+                        {milestonesCount}
+                      </span>
+                      <button
+                        onClick={() =>
+                          setMilestonesCount((n) => Math.min(10, n + 1))
+                        }
+                        className="h-6 w-6 rounded border border-zinc-200 flex items-center justify-center text-zinc-600 hover:bg-zinc-50"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Escrow Split Visualizer */}
                   <div className="h-3 w-full bg-zinc-100 rounded-full overflow-hidden flex">
                     <div
                       className="bg-zinc-900 rounded-l-full transition-all"
-                      style={{ width: `${proposal.depositPercent}%` }}
+                      style={{ width: `${depositPercent}%` }}
                     />
-                    {Array.from({ length: proposal.milestones - 1 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "transition-all",
-                          i % 2 === 0 ? "bg-zinc-400" : "bg-zinc-300"
-                        )}
-                        style={{
-                          width: `${(100 - proposal.depositPercent) / (proposal.milestones - 1)}%`,
-                        }}
-                      />
-                    ))}
+                    {milestonesCount > 1 &&
+                      Array.from({ length: milestonesCount - 1 }).map(
+                        (_, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "transition-all",
+                              i % 2 === 0 ? "bg-zinc-400" : "bg-zinc-300"
+                            )}
+                            style={{
+                              width: `${(100 - depositPercent) / (milestonesCount - 1)}%`,
+                            }}
+                          />
+                        )
+                      )}
                   </div>
                   <div className="flex justify-between text-xs text-zinc-500">
-                    <span>Deposit ({proposal.depositPercent}%)</span>
+                    <span>Deposit ({depositPercent}%)</span>
                     <span>
-                      {proposal.milestones - 1} Milestone
-                      {proposal.milestones - 1 > 1 ? "s" : ""}
+                      {milestonesCount - 1} Milestone
+                      {milestonesCount - 1 !== 1 ? "s" : ""}
                     </span>
                   </div>
                 </div>
@@ -939,22 +1178,24 @@ export default function ProposalBuilderPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-600">Subtotal</span>
                     <span className="font-semibold text-zinc-900">
-                      ${subtotal > 0 ? subtotal.toLocaleString() : "—"}
+                      {subtotal > 0 ? `$${subtotal.toLocaleString()}` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-zinc-600">
-                      Deposit Due ({proposal.depositPercent}%)
+                      Deposit Due ({depositPercent}%)
                     </span>
                     <span className="font-bold text-zinc-900">
-                      ${deposit > 0 ? deposit.toLocaleString() : "—"}
+                      {deposit > 0 ? `$${deposit.toLocaleString()}` : "—"}
                     </span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-sm">
-                    <span className="text-zinc-600">Balance (on milestones)</span>
+                    <span className="text-zinc-600">
+                      Balance (on milestones)
+                    </span>
                     <span className="text-zinc-700">
-                      ${balance > 0 ? balance.toLocaleString() : "—"}
+                      {balance > 0 ? `$${balance.toLocaleString()}` : "—"}
                     </span>
                   </div>
                 </Surface>
@@ -962,7 +1203,8 @@ export default function ProposalBuilderPage() {
                 {subtotal === 0 && (
                   <div className="flex items-center gap-2 text-xs text-zinc-400">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    Select a package in the Packages section to calculate totals.
+                    Select a package in the Packages section to calculate
+                    totals.
                   </div>
                 )}
               </Surface>
@@ -1006,8 +1248,8 @@ export default function ProposalBuilderPage() {
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
                     <span className="text-xs text-zinc-400">
-                      Encrypted via Stripe · PCI-DSS Compliant · Funds escrowed
-                      until milestone approval
+                      Encrypted via Stripe · PCI-DSS Compliant · Funds
+                      escrowed until milestone approval
                     </span>
                   </div>
                 </Surface>
@@ -1048,7 +1290,8 @@ export default function ProposalBuilderPage() {
                 </label>
                 <div className="flex items-center gap-2 text-sm text-zinc-700">
                   <Wallet className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
-                  {proposal.depositPercent}% Deposit · {proposal.milestones} Milestones
+                  {depositPercent}% Deposit · {milestonesCount} Milestone
+                  {milestonesCount !== 1 ? "s" : ""}
                 </div>
               </div>
             </div>
@@ -1133,7 +1376,8 @@ export default function ProposalBuilderPage() {
               </Muted>
             </div>
             <Muted className="text-[10px] leading-relaxed">
-              These actions trigger automatically when the client signs and pays.
+              These actions trigger automatically when the client signs and
+              pays.
             </Muted>
             <div className="space-y-2">
               {automations.map((auto) => {
@@ -1145,7 +1389,10 @@ export default function ProposalBuilderPage() {
                     className="flex items-center justify-between cursor-pointer group"
                   >
                     <div className="flex items-center gap-2">
-                      <Icon className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
+                      <Icon
+                        className="h-3.5 w-3.5 text-zinc-400"
+                        strokeWidth={1.5}
+                      />
                       <div>
                         <span className="text-xs font-medium text-zinc-900 block">
                           {auto.label}
@@ -1170,32 +1417,74 @@ export default function ProposalBuilderPage() {
               Version History
             </Muted>
             <div className="space-y-2">
-              {[
-                { version: "v3", date: "Mar 14, 10:30 AM", label: "Current" },
-                { version: "v2", date: "Mar 12, 4:15 PM", label: null },
-                { version: "v1", date: "Mar 10, 9:00 AM", label: "Initial" },
-              ].map((v) => (
-                <div
-                  key={v.version}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-semibold text-zinc-900">
-                      {v.version}
-                    </span>
-                    {v.label && (
-                      <Badge variant="outline" className="text-[9px]">
-                        {v.label}
-                      </Badge>
-                    )}
-                  </div>
-                  <Muted className="text-[10px]">{v.date}</Muted>
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-zinc-900">
+                    v1
+                  </span>
+                  <Badge variant="outline" className="text-[9px]">
+                    Current
+                  </Badge>
                 </div>
-              ))}
+                <Muted className="text-[10px]">{proposal.createdAt}</Muted>
+              </div>
             </div>
           </Surface>
         </div>
       </div>
+
+      {/* ── Send Confirmation Modal ──────────── */}
+      {sendConfirmOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-zinc-900/30"
+            onClick={() => setSendConfirmOpen(false)}
+          />
+          <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                <Send className="h-4 w-4 text-zinc-700" strokeWidth={1.5} />
+              </div>
+              <div>
+                <H3 className="text-base">Send Proposal?</H3>
+                <Muted className="text-xs mt-1 leading-relaxed">
+                  This will mark the proposal as sent.
+                  {proposal.clientEmail && (
+                    <> Client email: {proposal.clientEmail}.</>
+                  )}
+                  {!proposal.clientEmail && (
+                    <> No client email on file — share the proposal link manually.</>
+                  )}
+                </Muted>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setSendConfirmOpen(false)}
+                disabled={updateStatus.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={updateStatus.isPending}
+                onClick={handleConfirmSend}
+              >
+                {updateStatus.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending…
+                  </>
+                ) : (
+                  "Send Proposal"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
