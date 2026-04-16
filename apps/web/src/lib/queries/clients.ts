@@ -2,22 +2,35 @@
  * TanStack Query hooks for the Clients CRM.
  *
  * Data strategy: query Supabase directly from the browser client using
- * the authenticated session cookie. RLS policies on the `clients` table
- * ensure users can only read rows belonging to their own tenant.
+ * the authenticated session cookie. RLS policies on `crm_clients` ensure
+ * users can only read rows where tenant_id = auth.uid().
+ *
+ * metadata JSONB keys:
+ *   status:              "active" | "lead" | "past"
+ *   total_revenue:       number
+ *   source:              string
+ *   enrichment:          { company_size, industry, confidence, linkedin, twitter }
+ *   notes:               string[]
+ *   secondary_contacts:  { name, role, email, portal_access }[]
+ *   custom_fields:       { label, value, type }[]
+ *   timeline:            { action, time, type }[]
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { createClient } from "@/utils/supabase/client"
 
 // ---------------------------------------------------------------------------
-// DB row type (matches Supabase `clients` table)
+// DB row type
 // ---------------------------------------------------------------------------
 export interface ClientRow {
   id: string
   tenant_id: string
   created_at: string
+  updated_at: string
   name: string
   email: string | null
+  phone: string | null
   company_name: string | null
+  website: string | null
   linkedin_profile: string | null
   health_score: number | null
   tags: string[] | null
@@ -25,13 +38,30 @@ export interface ClientRow {
 }
 
 // ---------------------------------------------------------------------------
-// Insert payload
+// Payload types
 // ---------------------------------------------------------------------------
 export interface CreateClientPayload {
   name: string
   email?: string
+  phone?: string
   company_name?: string
+  website?: string
   tags?: string[]
+  status?: "active" | "lead" | "past"
+  source?: string
+}
+
+export interface UpdateClientPayload {
+  id: string
+  name?: string
+  email?: string
+  phone?: string
+  company_name?: string
+  website?: string
+  linkedin_profile?: string
+  tags?: string[]
+  health_score?: number
+  metadata?: Record<string, unknown>
 }
 
 // ---------------------------------------------------------------------------
@@ -47,18 +77,14 @@ export const clientKeys = {
 // Hooks
 // ---------------------------------------------------------------------------
 
-/**
- * Fetch all clients for the current user's tenant.
- * The user's tenant is resolved via RLS — the `clients` table is filtered
- * to rows where `tenant_id` matches the authenticated user's tenant.
- */
+/** Fetch all clients for the current user's tenant. */
 export function useClients() {
   return useQuery({
     queryKey: clientKeys.lists(),
     queryFn: async (): Promise<ClientRow[]> => {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from("clients")
+        .from("crm_clients")
         .select("*")
         .order("created_at", { ascending: false })
 
@@ -68,16 +94,14 @@ export function useClients() {
   })
 }
 
-/**
- * Fetch a single client by ID.
- */
+/** Fetch a single client by ID. */
 export function useClient(id: string) {
   return useQuery({
     queryKey: clientKeys.detail(id),
     queryFn: async (): Promise<ClientRow> => {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from("clients")
+        .from("crm_clients")
         .select("*")
         .eq("id", id)
         .single()
@@ -89,40 +113,35 @@ export function useClient(id: string) {
   })
 }
 
-/**
- * Create a new client. Invalidates the list query on success.
- */
+/** Create a new client. tenant_id = auth.uid() (profiles.id = auth.uid()). */
 export function useCreateClient() {
   const queryClient = useQueryClient()
-  const supabase = createClient()
-
   return useMutation({
     mutationFn: async (payload: CreateClientPayload) => {
-      // Resolve tenant_id from the current user's profile
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("id", user.id)
-        .single()
-
-      if (profileError || !profile?.tenant_id) {
-        throw new Error("Could not resolve tenant — make sure your profile is set up.")
-      }
-
       const { data, error } = await supabase
-        .from("clients")
+        .from("crm_clients")
         .insert({
-          tenant_id: profile.tenant_id,
+          tenant_id: user.id,
           name: payload.name,
           email: payload.email ?? null,
+          phone: payload.phone ?? null,
           company_name: payload.company_name ?? null,
+          website: payload.website ?? null,
           tags: payload.tags ?? [],
+          metadata: {
+            status: payload.status ?? "lead",
+            total_revenue: 0,
+            source: payload.source ?? "Manual Entry",
+            enrichment: { company_size: "Unknown", industry: "Unknown", confidence: 0 },
+            notes: [],
+            secondary_contacts: [],
+            custom_fields: [],
+            timeline: [],
+          },
         })
         .select()
         .single()
@@ -136,26 +155,47 @@ export function useCreateClient() {
   })
 }
 
-/** Update an existing client record. */
-export interface UpdateClientPayload {
-  id: string
-  name?: string
-  email?: string
-  company_name?: string
-  tags?: string[]
-  health_score?: number
-  linkedin_profile?: string
-  metadata?: Record<string, unknown>
-}
-
+/** Update top-level fields on a client. */
 export function useUpdateClient() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...updates }: UpdateClientPayload) => {
       const supabase = createClient()
       const { data, error } = await supabase
-        .from("clients")
-        .update(updates)
+        .from("crm_clients")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single()
+
+      if (error) throw new Error(error.message)
+      return data as ClientRow
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: clientKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: clientKeys.lists() })
+    },
+  })
+}
+
+/** Patch a subset of metadata keys (merges with existing metadata). */
+export function useUpdateClientMeta() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, metaPatch }: { id: string; metaPatch: Record<string, unknown> }) => {
+      const supabase = createClient()
+
+      const { data: current } = await supabase
+        .from("crm_clients")
+        .select("metadata")
+        .eq("id", id)
+        .single()
+
+      const merged = { ...(current?.metadata ?? {}), ...metaPatch }
+
+      const { data, error } = await supabase
+        .from("crm_clients")
+        .update({ metadata: merged, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select()
         .single()
@@ -177,7 +217,7 @@ export function useDeleteClient() {
     mutationFn: async (id: string) => {
       const supabase = createClient()
       const { error } = await supabase
-        .from("clients")
+        .from("crm_clients")
         .delete()
         .eq("id", id)
 
