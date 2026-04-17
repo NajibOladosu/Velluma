@@ -68,6 +68,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  // /p/[id] is the public client-facing proposal view — no auth required
+  if (pathname.startsWith("/p/")) {
+    return supabaseResponse
+  }
+
   // --- Protect portal routes (magic-link auth, separate from dashboard) ---
   // /portal/login is always accessible so clients can authenticate.
   const isPortalRoute = pathname.startsWith("/portal")

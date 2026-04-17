@@ -19,3 +19,40 @@
 
   /* Reset outline to electric purple/blue focus ring globally if needed, though Tailwind ring utilities are better */
 }
+
+/* ── Proposal HTML content (rendered from TipTap) ─────────────────────── */
+.proposal-content {
+  color: #52525b; /* zinc-600 */
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+.proposal-content h1,
+.proposal-content h2,
+.proposal-content h3,
+.proposal-content h4 {
+  color: #18181b; /* zinc-900 */
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+.proposal-content h1 { font-size: 1.5rem; }
+.proposal-content h2 { font-size: 1.25rem; }
+.proposal-content h3 { font-size: 1.125rem; }
+.proposal-content p  { margin-bottom: 1em; }
+.proposal-content ul,
+.proposal-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1em;
+}
+.proposal-content ul { list-style-type: disc; }
+.proposal-content ol { list-style-type: decimal; }
+.proposal-content li { margin-bottom: 0.25em; }
+.proposal-content strong { color: #18181b; font-weight: 600; }
+.proposal-content em    { font-style: italic; }
+.proposal-content blockquote {
+  border-left: 2px solid #e4e4e7;
+  padding-left: 1rem;
+  color: #71717a;
+  margin: 1em 0;
+}

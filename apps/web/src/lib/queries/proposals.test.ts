@@ -48,6 +48,7 @@ function wrapper(queryClient: QueryClient) {
 const sampleProjectRow: ProjectRow = {
   id: "proj-1",
   tenant_id: "t1",
+  user_id: "u1",
   client_id: "cl1",
   title: "Website Redesign Proposal",
   description: "Full site overhaul",
@@ -206,7 +207,7 @@ describe("useProposals", () => {
   })
 
   it("uses client email as fallback when name is null", async () => {
-    const row = { ...sampleProjectRow, clients: { name: null as unknown as string, email: "fallback@example.com" } }
+    const row = { ...sampleProjectRow, crm_clients: { name: null as unknown as string, email: "fallback@example.com" } }
     vi.mocked(createClient).mockReturnValue({
       from: vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -321,8 +322,14 @@ describe("useDeleteProposal", () => {
     vi.clearAllMocks()
   })
 
-  it("calls api.delete with the proposal id", async () => {
-    vi.mocked(api.delete).mockResolvedValue(undefined)
+  it("calls supabase delete with the proposal id", async () => {
+    const mockDelete = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    })
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({ delete: mockDelete }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
 
     const { result } = renderHook(() => useDeleteProposal(), {
       wrapper: wrapper(queryClient),
@@ -333,11 +340,18 @@ describe("useDeleteProposal", () => {
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(api.delete).toHaveBeenCalledWith("/proposals/proj-1")
+    expect(mockDelete).toHaveBeenCalled()
   })
 
-  it("throws when the API returns an error", async () => {
-    vi.mocked(api.delete).mockRejectedValue(new Error("API error"))
+  it("throws when Supabase returns an error", async () => {
+    vi.mocked(createClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        delete: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ error: { message: "DB delete error" } }),
+        }),
+      }),
+      auth: { getUser: vi.fn() },
+    } as ReturnType<typeof createClient>)
 
     const { result } = renderHook(() => useDeleteProposal(), {
       wrapper: wrapper(queryClient),
@@ -348,6 +362,6 @@ describe("useDeleteProposal", () => {
     })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
-    expect((result.current.error as Error).message).toBe("API error")
+    expect((result.current.error as Error).message).toBe("DB delete error")
   })
 })
