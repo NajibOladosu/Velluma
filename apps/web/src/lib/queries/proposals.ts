@@ -58,6 +58,14 @@ export interface AddOnItem {
   enabled: boolean
 }
 
+export interface CustomTierItem {
+  id: string
+  title: string
+  price: number
+  description: string
+  features: string[]
+}
+
 export interface Proposal {
   id: string
   title: string
@@ -81,6 +89,10 @@ export interface Proposal {
   milestones: number
   avgTimeSpent: string
   metadata: Record<string, unknown>
+  videoUrl: string
+  customTiers: CustomTierItem[]
+  extraClauses: Array<{ title: string; body: string }>
+  acceptedPaymentMethods: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +170,12 @@ function mapRowToProposal(row: ProjectRow): Proposal {
     milestones: Number(meta.milestones) || 3,
     avgTimeSpent: (meta.avg_time_spent as string) ?? "—",
     metadata: meta,
+    videoUrl: (meta.video_url as string) ?? "",
+    customTiers: (meta.custom_tiers as CustomTierItem[]) ?? [],
+    extraClauses:
+      (meta.extra_clauses as Array<{ title: string; body: string }>) ?? [],
+    acceptedPaymentMethods:
+      (meta.accepted_payment_methods as string[]) ?? [],
   }
 }
 
@@ -218,11 +236,16 @@ export interface SaveProposalContentPayload {
   scopeContent?: string
   selectedTier?: string | null
   addOns?: AddOnItem[]
+  customTiers?: CustomTierItem[]
   enabledClauses?: string[]
+  extraClauses?: Array<{ title: string; body: string }>
   depositPercent?: number
   milestones?: number
   automations?: Array<{ id: string; enabled: boolean }>
   reminderEnabled?: boolean
+  expiresAt?: string | null
+  videoUrl?: string
+  acceptedPaymentMethods?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -319,8 +342,14 @@ export function useSaveProposalContent() {
           selected_tier: payload.selectedTier,
         }),
         ...(payload.addOns !== undefined && { add_ons: payload.addOns }),
+        ...(payload.customTiers !== undefined && {
+          custom_tiers: payload.customTiers,
+        }),
         ...(payload.enabledClauses !== undefined && {
           enabled_clauses: payload.enabledClauses,
+        }),
+        ...(payload.extraClauses !== undefined && {
+          extra_clauses: payload.extraClauses,
         }),
         ...(payload.depositPercent !== undefined && {
           deposit_percent: payload.depositPercent,
@@ -333,6 +362,16 @@ export function useSaveProposalContent() {
         }),
         ...(payload.reminderEnabled !== undefined && {
           reminder_enabled: payload.reminderEnabled,
+        }),
+        // null clears the expiry, undefined leaves it unchanged
+        ...(payload.expiresAt !== undefined && {
+          expires_at: payload.expiresAt ?? null,
+        }),
+        ...(payload.videoUrl !== undefined && {
+          video_url: payload.videoUrl,
+        }),
+        ...(payload.acceptedPaymentMethods !== undefined && {
+          accepted_payment_methods: payload.acceptedPaymentMethods,
         }),
       }
 
