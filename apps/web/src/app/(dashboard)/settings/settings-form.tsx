@@ -1,191 +1,761 @@
 "use client";
 
 import * as React from "react";
-import { Building2, Palette, CreditCard, Plug, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  Briefcase,
+  CreditCard,
+  Plug,
+  AlertTriangle,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Sparkles,
+  Calendar,
+  MessageSquare,
+  Check,
+  X,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
+import { H1, H3, Muted, P } from "@/components/ui/typography";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { DetailPageHeader } from "@/components/ui/detail-page-header";
 import { createClient } from "@/utils/supabase/client";
+import { cn } from "@/lib/utils";
 
-interface WorkspaceData {
-  name: string;
-  slug: string;
-  currency: string;
+/* ────────────────── Types ────────────────── */
+
+type PlanTier = "free" | "professional" | "business";
+type Section = "workspace" | "billing" | "integrations" | "danger";
+
+interface SettingsData {
+  email: string;
+  workspace: {
+    name: string;
+    slug: string;
+    currency: string;
+    timezone: string;
+    dateFormat: string;
+  };
+  plan: {
+    tier: PlanTier;
+    renewsAt: string | null;
+  };
+  integrations: {
+    stripe: boolean;
+    googleCalendar: boolean;
+    slack: boolean;
+  };
 }
 
+type FeedbackState =
+  | { kind: "idle" }
+  | { kind: "saving" }
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string };
+
+/* ────────────────── Constants ────────────────── */
+
 const CURRENCIES = [
-  "USD ($) - United States Dollar",
-  "EUR (€) - Euro",
-  "GBP (£) - British Pound",
-  "CAD ($) - Canadian Dollar",
+  { value: "USD", label: "USD ($) — US Dollar" },
+  { value: "EUR", label: "EUR (€) — Euro" },
+  { value: "GBP", label: "GBP (£) — British Pound" },
+  { value: "CAD", label: "CAD ($) — Canadian Dollar" },
+  { value: "AUD", label: "AUD ($) — Australian Dollar" },
+  { value: "NGN", label: "NGN (₦) — Nigerian Naira" },
 ];
 
-export default function SettingsForm({ workspace }: { workspace: WorkspaceData }) {
-  const [form, setForm] = React.useState(workspace);
-  const [saving, setSaving] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
-  const [activeSection, setActiveSection] = React.useState<"general" | "branding" | "billing" | "integrations">("general");
+const DATE_FORMATS = [
+  { value: "MMM d, yyyy", label: "Mar 14, 2026" },
+  { value: "d MMM yyyy", label: "14 Mar 2026" },
+  { value: "yyyy-MM-dd", label: "2026-03-14" },
+  { value: "MM/dd/yyyy", label: "03/14/2026" },
+];
 
-  async function handleSave(e: React.FormEvent) {
+const COMMON_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Africa/Lagos",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
+
+const PLAN_COPY: Record<
+  PlanTier,
+  { label: string; description: string; price: string; features: string[] }
+> = {
+  free: {
+    label: "Free",
+    description: "For solo freelancers just getting started.",
+    price: "$0",
+    features: ["Up to 3 active clients", "Unlimited proposals", "Basic templates"],
+  },
+  professional: {
+    label: "Professional",
+    description: "For full-time freelancers running serious operations.",
+    price: "$19",
+    features: [
+      "Unlimited clients & proposals",
+      "Escrow + Stripe Connect",
+      "AI contract wizard",
+      "Custom branding",
+    ],
+  },
+  business: {
+    label: "Business",
+    description: "For agencies and teams billing at scale.",
+    price: "$49",
+    features: [
+      "Everything in Professional",
+      "Team seats & roles",
+      "Priority support",
+      "Audit log & SSO",
+    ],
+  },
+};
+
+/* ────────────────── Utility ────────────────── */
+
+function slugify(v: string): string {
+  return v
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 48);
+}
+
+function Feedback({ state }: { state: FeedbackState }) {
+  if (state.kind === "idle" || state.kind === "saving") return null;
+  const isError = state.kind === "error";
+  return (
+    <span
+      className={cn(
+        "text-xs font-medium inline-flex items-center gap-1",
+        isError ? "text-red-600" : "text-emerald-600"
+      )}
+    >
+      {isError ? (
+        <AlertCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
+      ) : (
+        <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+      )}
+      {state.message}
+    </span>
+  );
+}
+
+/* ────────────────── Main ────────────────── */
+
+export default function SettingsForm({ data }: { data: SettingsData }) {
+  const supabase = React.useMemo(() => createClient(), []);
+
+  const [form, setForm] = React.useState(data);
+  const [activeSection, setActiveSection] = React.useState<Section>("workspace");
+  const [workspaceState, setWorkspaceState] = React.useState<FeedbackState>({ kind: "idle" });
+  const [integrationState, setIntegrationState] = React.useState<FeedbackState>({ kind: "idle" });
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [deleteConfirm, setDeleteConfirm] = React.useState("");
+  const [deleting, setDeleting] = React.useState(false);
+  const [slugTouched, setSlugTouched] = React.useState(Boolean(data.workspace.slug));
+
+  const sections: { key: Section; label: string; icon: React.ElementType; hint: string }[] = [
+    { key: "workspace", label: "Workspace", icon: Briefcase, hint: "Name, currency, locale" },
+    { key: "billing", label: "Billing & Plan", icon: CreditCard, hint: "Subscription and invoices" },
+    { key: "integrations", label: "Integrations", icon: Plug, hint: "Stripe, Calendar, Slack" },
+    { key: "danger", label: "Danger Zone", icon: AlertTriangle, hint: "Destructive actions" },
+  ];
+
+  async function handleSaveWorkspace(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
-    setSaved(false);
-    try {
-      const supabase = createClient();
-      await supabase.auth.updateUser({
-        data: {
-          workspace_name: form.name,
-          workspace_slug: form.slug,
-          default_currency: form.currency,
-        },
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      // Error silently handled
-    } finally {
-      setSaving(false);
+    setWorkspaceState({ kind: "saving" });
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        workspace_name: form.workspace.name,
+        workspace_slug: form.workspace.slug,
+        default_currency: form.workspace.currency,
+        timezone: form.workspace.timezone,
+        date_format: form.workspace.dateFormat,
+      },
+    });
+    if (error) {
+      setWorkspaceState({ kind: "error", message: error.message });
+    } else {
+      setWorkspaceState({ kind: "success", message: "Saved" });
+      setTimeout(() => setWorkspaceState({ kind: "idle" }), 2500);
     }
   }
 
+  async function toggleIntegration(key: keyof SettingsData["integrations"]) {
+    const next = { ...form.integrations, [key]: !form.integrations[key] };
+    setForm((p) => ({ ...p, integrations: next }));
+    setIntegrationState({ kind: "saving" });
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        integrations: {
+          stripe: next.stripe,
+          google_calendar: next.googleCalendar,
+          slack: next.slack,
+        },
+      },
+    });
+    if (error) {
+      setIntegrationState({ kind: "error", message: error.message });
+    } else {
+      setIntegrationState({ kind: "success", message: "Updated" });
+      setTimeout(() => setIntegrationState({ kind: "idle" }), 2000);
+    }
+  }
+
+  async function handleDeleteWorkspace() {
+    if (deleteConfirm !== form.workspace.name) return;
+    setDeleting(true);
+    // Stub: in production this hits an API to archive the workspace and sign the user out.
+    await new Promise((r) => setTimeout(r, 800));
+    setDeleting(false);
+    setDeleteModalOpen(false);
+    setDeleteConfirm("");
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
-        <div className="flex flex-col min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-2xl font-medium truncate min-w-0">Settings</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-            <span className="flex items-center gap-1.5 text-sm text-zinc-500 whitespace-nowrap">
-              Manage your workspace, billing, and team configuration.
-            </span>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6 pb-20">
+      <DetailPageHeader
+        backHref="/dashboard"
+        backLabel="Back to Dashboard"
+        title={<H1 className="text-2xl font-medium truncate min-w-0">Settings</H1>}
+        meta={
+          <span className="whitespace-nowrap">
+            Workspace, billing, integrations, and account controls.
+          </span>
+        }
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Column - Navigation */}
-        <div className="lg:col-span-1">
-          <nav className="flex flex-col space-y-1 sticky top-6">
-            {([
-              { key: "general" as const, label: "General", icon: Building2 },
-              { key: "branding" as const, label: "Branding", icon: Palette },
-              { key: "billing" as const, label: "Billing & Plans", icon: CreditCard },
-              { key: "integrations" as const, label: "Integrations", icon: Plug },
-            ]).map((item) => (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+        {/* ── Sidebar ── */}
+        <aside className="space-y-1">
+          <div className="px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-2">
+            Sections
+          </div>
+          {sections.map((s) => {
+            const isActive = activeSection === s.key;
+            const Icon = s.icon;
+            const isDanger = s.key === "danger";
+            return (
               <button
-                key={item.key}
-                onClick={() => setActiveSection(item.key)}
-                className={`flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                  activeSection === item.key
-                    ? "bg-zinc-100 text-zinc-900"
-                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                }`}
+                key={s.key}
+                type="button"
+                onClick={() => setActiveSection(s.key)}
+                className={cn(
+                  "w-full flex items-start gap-3 px-3 py-2.5 rounded-md text-left transition-colors",
+                  isActive
+                    ? isDanger
+                      ? "bg-red-50 text-red-700"
+                      : "bg-zinc-100 text-zinc-900"
+                    : "text-zinc-600 hover:bg-zinc-100/60"
+                )}
               >
-                <item.icon className="h-4 w-4" strokeWidth={1.5} />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Right Column - Content */}
-        <div className="lg:col-span-3 space-y-8 min-w-0">
-
-          {/* Section: Workspace Settings */}
-          <section className="space-y-4 min-w-0">
-            <div>
-              <h2 className="text-lg font-medium text-zinc-900">Workspace Settings</h2>
-              <p className="text-sm text-zinc-500">Manage your organization&apos;s core details.</p>
-            </div>
-
-            <div className="rounded-lg border border-zinc-200 bg-white">
-              <form onSubmit={handleSave}>
-                <div className="p-6 space-y-6">
-                  <div className="space-y-4 min-w-0">
-                    <div className="space-y-2 min-w-0">
-                      <label htmlFor="workspaceName" className="block text-sm font-medium text-zinc-700">Workspace Name</label>
-                      <input
-                        type="text"
-                        id="workspaceName"
-                        value={form.name}
-                        onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                        className="flex h-10 w-full max-w-md rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 transition-colors"
-                      />
-                    </div>
-
-                    <div className="space-y-2 min-w-0">
-                      <label htmlFor="workspaceUrl" className="block text-sm font-medium text-zinc-700">Workspace URL</label>
-                      <div className="flex max-w-md rounded-md">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-zinc-200 bg-zinc-50 text-zinc-500 sm:text-sm">
-                          velluma.com/
-                        </span>
-                        <input
-                          type="text"
-                          id="workspaceUrl"
-                          value={form.slug}
-                          onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
-                          placeholder="your-workspace"
-                          className="flex-1 block w-full min-w-0 rounded-none rounded-r-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 transition-colors"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-zinc-100 space-y-4">
-                    <div className="space-y-2 min-w-0">
-                      <label htmlFor="currency" className="block text-sm font-medium text-zinc-700">Default Currency</label>
-                      <select
-                        id="currency"
-                        value={form.currency}
-                        onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))}
-                        className="flex h-10 w-full max-w-xs rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 transition-colors"
-                      >
-                        {CURRENCIES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-zinc-500 mt-1">This currency will be used as default for new proposals and invoices.</p>
-                    </div>
+                <Icon
+                  className={cn(
+                    "h-4 w-4 mt-0.5 flex-shrink-0",
+                    isActive
+                      ? isDanger
+                        ? "text-red-600"
+                        : "text-zinc-900"
+                      : "text-zinc-400"
+                  )}
+                  strokeWidth={1.5}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate">{s.label}</div>
+                  <div
+                    className={cn(
+                      "text-[11px] truncate",
+                      isActive && isDanger ? "text-red-500" : "text-zinc-500"
+                    )}
+                  >
+                    {s.hint}
                   </div>
                 </div>
-                <div className="border-t border-zinc-200 bg-zinc-50/50 px-6 py-4 flex items-center justify-end gap-3">
-                  {saved && (
-                    <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Saved
-                    </span>
-                  )}
-                  <Button type="submit" className="bg-zinc-900 text-white hover:bg-zinc-800 h-9 px-4" disabled={saving}>
-                    {saving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
-                    Save Configuration
+              </button>
+            );
+          })}
+        </aside>
+
+        {/* ── Content ── */}
+        <div className="min-w-0 space-y-6">
+          {activeSection === "workspace" && (
+            <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-6 py-4 border-b border-zinc-200">
+                <H3 className="text-base">Workspace</H3>
+                <Muted className="text-xs">
+                  Shown on proposals, invoices, and the client portal.
+                </Muted>
+              </div>
+              <form onSubmit={handleSaveWorkspace}>
+                <div className="p-6 space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <Field label="Workspace name">
+                      <Input
+                        value={form.workspace.name}
+                        onChange={(v) => {
+                          setForm((p) => ({
+                            ...p,
+                            workspace: {
+                              ...p.workspace,
+                              name: v,
+                              slug: slugTouched ? p.workspace.slug : slugify(v),
+                            },
+                          }));
+                        }}
+                      />
+                    </Field>
+                    <Field
+                      label="URL slug"
+                      hint={
+                        form.workspace.slug
+                          ? `velluma.app/w/${form.workspace.slug}`
+                          : "Used in client-facing links."
+                      }
+                    >
+                      <Input
+                        value={form.workspace.slug}
+                        onChange={(v) => {
+                          setSlugTouched(true);
+                          setForm((p) => ({
+                            ...p,
+                            workspace: { ...p.workspace, slug: slugify(v) },
+                          }));
+                        }}
+                        placeholder="your-workspace"
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <Field label="Default currency">
+                      <Select
+                        value={form.workspace.currency}
+                        onChange={(v) =>
+                          setForm((p) => ({
+                            ...p,
+                            workspace: { ...p.workspace, currency: v },
+                          }))
+                        }
+                        options={CURRENCIES}
+                      />
+                    </Field>
+                    <Field label="Timezone">
+                      <Select
+                        value={form.workspace.timezone}
+                        onChange={(v) =>
+                          setForm((p) => ({
+                            ...p,
+                            workspace: { ...p.workspace, timezone: v },
+                          }))
+                        }
+                        options={COMMON_TIMEZONES.map((t) => ({ value: t, label: t }))}
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Date format">
+                    <Select
+                      value={form.workspace.dateFormat}
+                      onChange={(v) =>
+                        setForm((p) => ({
+                          ...p,
+                          workspace: { ...p.workspace, dateFormat: v },
+                        }))
+                      }
+                      options={DATE_FORMATS}
+                    />
+                  </Field>
+                </div>
+                <div className="border-t border-zinc-200 bg-zinc-50/50 px-6 py-3 flex items-center justify-end gap-3">
+                  <Feedback state={workspaceState} />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-9"
+                    disabled={workspaceState.kind === "saving"}
+                  >
+                    {workspaceState.kind === "saving" && (
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    )}
+                    Save changes
                   </Button>
                 </div>
               </form>
-            </div>
-          </section>
+            </Surface>
+          )}
 
-          {/* Section: Danger Zone */}
-          <section className="space-y-4 min-w-0 pt-8 mt-8 border-t border-zinc-200">
-            <div>
-              <h2 className="text-lg font-medium text-red-600">Danger Zone</h2>
-              <p className="text-sm text-zinc-500">Irreversible destructive actions.</p>
-            </div>
-
-            <div className="rounded-lg border border-red-200 bg-white overflow-hidden">
-              <div className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
-                  <div className="space-y-1 min-w-0">
-                    <h3 className="text-sm font-medium text-zinc-900">Delete Workspace</h3>
-                    <p className="text-sm text-zinc-500">Permanently delete this workspace and all of its data. This cannot be undone.</p>
+          {activeSection === "billing" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <Surface className="p-6 space-y-5">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <H3 className="text-base">{PLAN_COPY[form.plan.tier].label} plan</H3>
+                      <Badge
+                        variant={form.plan.tier === "free" ? "outline" : "emerald"}
+                        className="uppercase text-[10px]"
+                      >
+                        {form.plan.tier === "free" ? "Current" : "Active"}
+                      </Badge>
+                    </div>
+                    <Muted className="text-xs mt-0.5">
+                      {PLAN_COPY[form.plan.tier].description}
+                    </Muted>
                   </div>
-                  <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 flex-shrink-0">
-                    Delete Workspace
+                  <div className="text-right shrink-0">
+                    <div className="text-2xl font-semibold text-zinc-900 tracking-tight">
+                      {PLAN_COPY[form.plan.tier].price}
+                      <span className="text-sm font-normal text-zinc-500">/mo</span>
+                    </div>
+                    {form.plan.renewsAt && (
+                      <Muted className="text-[11px]">
+                        Renews {new Date(form.plan.renewsAt).toLocaleDateString()}
+                      </Muted>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {PLAN_COPY[form.plan.tier].features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-zinc-700">
+                      <Check className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={2} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  {form.plan.tier !== "business" && (
+                    <Button size="sm" className="h-9">
+                      <Sparkles className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />
+                      {form.plan.tier === "free" ? "Upgrade plan" : "Upgrade to Business"}
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-9">
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />
+                    View invoices
+                  </Button>
+                </div>
+              </Surface>
+
+              <Surface className="p-6 space-y-4">
+                <div>
+                  <H3 className="text-base">Payment method</H3>
+                  <Muted className="text-xs">Card on file for subscription billing.</Muted>
+                </div>
+                <div className="flex items-center justify-between gap-4 rounded-md border border-zinc-200 bg-zinc-50/50 p-4 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-12 rounded-md bg-white border border-zinc-200 flex items-center justify-center shrink-0">
+                      <CreditCard className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
+                    </div>
+                    <div className="min-w-0">
+                      <P className="text-sm font-medium">No card on file</P>
+                      <Muted className="text-xs">Add a card to upgrade.</Muted>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-8 shrink-0">
+                    Add card
+                  </Button>
+                </div>
+              </Surface>
+            </div>
+          )}
+
+          {activeSection === "integrations" && (
+            <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-6 py-4 border-b border-zinc-200 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <H3 className="text-base">Integrations</H3>
+                  <Muted className="text-xs">Extend Velluma with the tools you already use.</Muted>
+                </div>
+                <Feedback state={integrationState} />
+              </div>
+              <div className="divide-y divide-zinc-100">
+                <IntegrationRow
+                  icon={CreditCard}
+                  name="Stripe"
+                  description="Accept payments and escrow milestones via Stripe Connect."
+                  connected={form.integrations.stripe}
+                  onToggle={() => toggleIntegration("stripe")}
+                  docsHref="/finance"
+                />
+                <IntegrationRow
+                  icon={Calendar}
+                  name="Google Calendar"
+                  description="Sync project deadlines and client meetings to your calendar."
+                  connected={form.integrations.googleCalendar}
+                  onToggle={() => toggleIntegration("googleCalendar")}
+                />
+                <IntegrationRow
+                  icon={MessageSquare}
+                  name="Slack"
+                  description="Get proposal activity and payment pings in a channel."
+                  connected={form.integrations.slack}
+                  onToggle={() => toggleIntegration("slack")}
+                />
+              </div>
+            </Surface>
+          )}
+
+          {activeSection === "danger" && (
+            <Surface className="border-red-200 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-6 py-4 border-b border-red-200 bg-red-50/50">
+                <H3 className="text-base text-red-700">Danger zone</H3>
+                <Muted className="text-xs text-red-600/80">
+                  These actions are permanent and cannot be undone.
+                </Muted>
+              </div>
+              <div className="divide-y divide-zinc-100">
+                <div className="flex items-start justify-between gap-4 p-6 flex-wrap">
+                  <div className="min-w-0">
+                    <P className="text-sm font-medium">Transfer workspace ownership</P>
+                    <Muted className="text-xs">
+                      Hand off this workspace to another member. Requires at least one other admin.
+                    </Muted>
+                  </div>
+                  <Button variant="outline" size="sm" className="h-9 shrink-0" disabled>
+                    Transfer
+                  </Button>
+                </div>
+                <div className="flex items-start justify-between gap-4 p-6 flex-wrap">
+                  <div className="min-w-0">
+                    <P className="text-sm font-medium text-red-700">Delete workspace</P>
+                    <Muted className="text-xs">
+                      Permanently remove{" "}
+                      <span className="font-medium text-zinc-700">{form.workspace.name}</span> and all
+                      associated data.
+                    </Muted>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 shrink-0 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                    onClick={() => setDeleteModalOpen(true)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />
+                    Delete workspace
                   </Button>
                 </div>
               </div>
-            </div>
-          </section>
-
+            </Surface>
+          )}
         </div>
+      </div>
+
+      {/* ── Delete confirm modal ── */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/20"
+            onClick={() => !deleting && setDeleteModalOpen(false)}
+          />
+          <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg p-6 max-w-md w-full space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-md bg-red-50 border border-red-200 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="h-4 w-4 text-red-600" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <H3 className="text-base">Delete workspace</H3>
+                <Muted className="text-xs mt-1">
+                  This will permanently delete{" "}
+                  <span className="font-medium text-zinc-700">{form.workspace.name}</span>, all
+                  contracts, clients, and files. This cannot be undone.
+                </Muted>
+              </div>
+              <button
+                type="button"
+                onClick={() => !deleting && setDeleteModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0"
+              >
+                <X className="h-4 w-4" strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <Field label={`Type "${form.workspace.name}" to confirm`}>
+              <Input
+                value={deleteConfirm}
+                onChange={setDeleteConfirm}
+                placeholder={form.workspace.name}
+              />
+            </Field>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-9 bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleDeleteWorkspace}
+                disabled={deleting || deleteConfirm !== form.workspace.name}
+              >
+                {deleting && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+                Delete permanently
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────── Small building blocks ────────────────── */
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5 min-w-0">
+      <label className="block text-sm font-medium text-zinc-700">{label}</label>
+      {children}
+      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
+    </div>
+  );
+}
+
+function Input({
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+  disabled,
+  className,
+}: {
+  value: string;
+  onChange?: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+      className={cn(
+        "flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 transition-colors disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500",
+        className
+      )}
+    />
+  );
+}
+
+function Select({
+  value,
+  onChange,
+  options,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  className?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn(
+        "flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 transition-colors",
+        className
+      )}
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function IntegrationRow({
+  icon: Icon,
+  name,
+  description,
+  connected,
+  onToggle,
+  docsHref,
+}: {
+  icon: React.ElementType;
+  name: string;
+  description: string;
+  connected: boolean;
+  onToggle: () => void;
+  docsHref?: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 px-6 py-4 flex-wrap">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className="h-10 w-10 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center flex-shrink-0">
+          <Icon className="h-4 w-4 text-zinc-700" strokeWidth={1.5} />
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <P className="text-sm font-medium">{name}</P>
+            <Badge
+              variant={connected ? "emerald" : "outline"}
+              className="text-[10px] uppercase tracking-wide"
+            >
+              {connected ? "Connected" : "Not connected"}
+            </Badge>
+          </div>
+          <Muted className="text-xs">{description}</Muted>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {docsHref && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs" asChild>
+            <a href={docsHref}>
+              Manage
+              <ExternalLink className="h-3 w-3 ml-1" strokeWidth={1.5} />
+            </a>
+          </Button>
+        )}
+        <Button
+          variant={connected ? "outline" : "default"}
+          size="sm"
+          className="h-8"
+          onClick={onToggle}
+        >
+          {connected ? "Disconnect" : "Connect"}
+        </Button>
       </div>
     </div>
   );
