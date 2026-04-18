@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { PORTAL_SESSION_COOKIE, verifyPortalSession } from "@/lib/portal/session"
 
 /**
  * Middleware — runs on every matching request.
@@ -8,7 +9,8 @@ import { NextResponse, type NextRequest } from "next/server"
  * 1. Refresh the Supabase session cookie so it doesn't expire mid-session.
  * 2. Protect all routes under /(dashboard) — redirect unauthenticated users to /login.
  * 3. Redirect authenticated users away from /login back to /dashboard.
- * 4. Protect /portal routes — redirect unauthenticated clients to /portal/login.
+ * 4. Protect /portal routes — require a scoped portal session cookie
+ *    (set by /pt/[token]). No password sign-in for clients.
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -73,15 +75,29 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse
   }
 
-  // --- Protect portal routes (magic-link auth, separate from dashboard) ---
-  // /portal/login is always accessible so clients can authenticate.
-  const isPortalRoute = pathname.startsWith("/portal")
-  const isPortalLoginRoute = pathname === "/portal/login"
+  // /pt/[token] is the share-link redeem route — no auth required; the
+  // handler validates the token and sets the portal session cookie itself.
+  if (pathname.startsWith("/pt/")) {
+    return supabaseResponse
+  }
 
-  if (isPortalRoute && !isPortalLoginRoute && !user) {
-    const portalLoginUrl = request.nextUrl.clone()
-    portalLoginUrl.pathname = "/portal/login"
-    return NextResponse.redirect(portalLoginUrl)
+  // --- Portal routes — scoped cookie, no sign-in screen ---
+  // Clients arrive via a share link (/pt/[token]) which sets
+  // velluma_portal_session. Certain sub-paths are always public:
+  //   /portal/unavailable — shown when a link is invalid / expired / revoked
+  const isPortalRoute = pathname.startsWith("/portal")
+  const isPortalPublic =
+    pathname === "/portal/unavailable" || pathname.startsWith("/portal/unavailable")
+
+  if (isPortalRoute && !isPortalPublic) {
+    const raw = request.cookies.get(PORTAL_SESSION_COOKIE)?.value
+    const portalSession = await verifyPortalSession(raw)
+    if (!portalSession || portalSession.engagements.length === 0) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/portal/unavailable"
+      url.search = "?reason=no-session"
+      return NextResponse.redirect(url)
+    }
   }
 
   // --- Redirect logged-in users away from auth pages ---

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTierCard } from "@/components/ui/pricing-tier";
 import { SignatureBlock } from "@/components/ui/signature-block";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
+import { SharePortalLink } from "@/components/portal/share-portal-link";
 import { MinimalEditor } from "@/components/editor/editor";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -549,6 +550,13 @@ export default function ProposalBuilderPage() {
               <Eye className="mr-2 h-4 w-4" strokeWidth={1.5} />
               Preview
             </Button>
+            <SharePortalLink
+              engagementType="proposal"
+              engagementId={proposal.id}
+              engagementTitle={proposal.title}
+              defaultClientEmail={proposal.clientEmail ?? undefined}
+              className="flex-1 sm:flex-none"
+            />
             <Button
               variant="outline"
               size="sm"
