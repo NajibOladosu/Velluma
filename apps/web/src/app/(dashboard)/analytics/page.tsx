@@ -176,7 +176,7 @@ export default function AnalyticsPage() {
         <div className="space-y-6">
           <Surface className="p-6 space-y-6">
             <div className="flex items-center gap-2 min-w-0">
-              <Zap className="h-4 w-4 text-blue-600 flex-shrink-0" />
+              <Zap className="h-4 w-4 text-zinc-700 flex-shrink-0" strokeWidth={1.5} />
               <H3 className="text-sm uppercase tracking-wider font-semibold truncate">Insights</H3>
             </div>
             <div className="space-y-4">
@@ -202,16 +202,16 @@ export default function AnalyticsPage() {
             </div>
           </Surface>
 
-          <Surface className="bg-blue-600 border-none p-6 space-y-2 text-white shadow-lg shadow-blue-500/10">
-            <Target className="h-5 w-5 mb-2" />
-            <P className="font-semibold text-sm truncate">Goal: $100K Revenue</P>
+          <Surface className="bg-zinc-900 border-zinc-800 p-6 space-y-2 text-white">
+            <Target className="h-5 w-5 mb-2 text-white" strokeWidth={1.5} />
+            <P className="font-semibold text-sm truncate text-white">Goal: $100K Revenue</P>
             <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
               <div className="bg-white h-full transition-all" style={{ width: `${goalProgress}%` }} />
             </div>
             {isLoading ? (
               <Skeleton className="h-3 w-40 bg-white/20 mt-2" />
             ) : (
-              <Muted className="text-blue-100 text-[10px] block pt-2 truncate">
+              <Muted className="text-zinc-400 text-[10px] block pt-2 truncate">
                 {goalProgress}% of your $100K annual target reached.
               </Muted>
             )}

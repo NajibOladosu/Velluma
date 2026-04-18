@@ -10,10 +10,12 @@ const badgeVariants = cva(
             variant: {
                 default:
                     "border-zinc-200 bg-zinc-100 text-zinc-900 hover:bg-zinc-200/80",
-                blue:
-                    "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100/80",
                 emerald:
                     "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80",
+                amber:
+                    "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100/80",
+                red:
+                    "border-red-200 bg-red-50 text-red-700 hover:bg-red-100/80",
                 outline: "text-zinc-900 border-zinc-200",
             },
         },

@@ -1477,7 +1477,7 @@ export default function PipelinePage() {
       {/* Overlay backdrop for drawers */}
       {(selectedLead || addLeadOpen || editingLead) && (
         <div
-          className="fixed inset-0 bg-black/10 z-40"
+          className="fixed inset-0 bg-black/20 z-40"
           onClick={() => {
             setSelectedLead(null);
             setAddLeadOpen(false);

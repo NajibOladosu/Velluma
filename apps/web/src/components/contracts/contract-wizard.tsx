@@ -930,10 +930,10 @@ function StepGenerating({ stage }: { stage: string }) {
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] px-8 text-center space-y-6">
       {/* Pulsing icon */}
       <div className="relative">
-        <div className="h-16 w-16 rounded-2xl bg-zinc-900 flex items-center justify-center">
+        <div className="h-16 w-16 rounded-lg bg-zinc-900 flex items-center justify-center">
           <Sparkles className="h-8 w-8 text-white" strokeWidth={1.5} />
         </div>
-        <div className="absolute inset-0 rounded-2xl bg-zinc-900 animate-ping opacity-20" />
+        <div className="absolute inset-0 rounded-lg bg-zinc-900 animate-ping opacity-20" />
       </div>
 
       <div className="space-y-2">

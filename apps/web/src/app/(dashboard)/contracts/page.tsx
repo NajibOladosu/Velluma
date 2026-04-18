@@ -137,10 +137,10 @@ export default function ContractsDirectoryPage() {
           <button
             onClick={() => { setViewMode("active"); setSearchQuery(""); }}
             className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-sm",
+              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium transition-colors",
               viewMode === "active"
-                ? "bg-white text-zinc-900 border border-zinc-200/50"
-                : "text-zinc-500 hover:text-zinc-700 shadow-none border border-transparent"
+                ? "bg-white text-zinc-900 border border-zinc-200"
+                : "text-zinc-500 hover:text-zinc-700 border border-transparent"
             )}
           >
             <Briefcase className="h-4 w-4" />
@@ -149,10 +149,10 @@ export default function ContractsDirectoryPage() {
           <button
             onClick={() => { setViewMode("templates"); setSearchQuery(""); }}
             className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-semibold transition-all shadow-sm",
+              "flex items-center gap-2 px-6 py-2 rounded-md text-sm font-medium transition-colors",
               viewMode === "templates"
-                ? "bg-white text-zinc-900 border border-zinc-200/50"
-                : "text-zinc-500 hover:text-zinc-700 shadow-none border border-transparent"
+                ? "bg-white text-zinc-900 border border-zinc-200"
+                : "text-zinc-500 hover:text-zinc-700 border border-transparent"
             )}
           >
             <Library className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default function ContractsDirectoryPage() {
               <Surface key={template.id} className="flex flex-col p-0 overflow-hidden group">
                 <div className="p-5 border-b border-zinc-100 bg-zinc-50/50 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="h-10 w-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="h-10 w-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0">
                       {template.type === "standard" ? (
                         <ShieldCheck className="h-5 w-5 text-zinc-700" />
                       ) : (

@@ -34,10 +34,10 @@ import {
    STATUS BADGE
    ═══════════════════════════════════════════════════════ */
 
-const statusVariantMap: Record<TimeEntry["status"], "default" | "blue" | "outline"> = {
+const statusVariantMap: Record<TimeEntry["status"], "default" | "emerald" | "outline"> = {
   draft:     "outline",
   submitted: "default",
-  approved:  "blue",
+  approved:  "emerald",
   rejected:  "outline",
 };
 
@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: TimeEntry["status"] }) {
       className={cn(
         "shrink-0 whitespace-nowrap capitalize text-[10px]",
         status === "rejected" && "border-red-200 text-red-600",
-        status === "approved" && "text-blue-700",
+        status === "approved" && "text-emerald-700 border-emerald-200",
       )}
     >
       {label}

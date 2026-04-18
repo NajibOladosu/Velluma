@@ -109,7 +109,7 @@ const columns = [
       const isRejected = status === "rejected"
       return (
         <Badge
-          variant={status === "approved" || status === "reimbursed" ? "blue" : "default"}
+          variant={status === "approved" || status === "reimbursed" ? "emerald" : "default"}
           className={isRejected ? "border-red-200 text-red-600" : ""}
         >
           {label}
@@ -157,7 +157,7 @@ export default function ExpensesPage() {
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">Export</span>
           </Button>
-          <Button variant="blue" className="flex-1 sm:flex-none shrink-0">
+          <Button className="flex-1 sm:flex-none shrink-0">
             <Plus className="h-4 w-4 sm:mr-2 shrink-0" />
             <span className="hidden sm:inline">Add Expense</span>
             <span className="sm:hidden">Add</span>

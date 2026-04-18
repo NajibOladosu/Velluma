@@ -434,7 +434,7 @@ export default function ProposalsDirectoryPage() {
       {showNewDrawer && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="absolute inset-0 bg-zinc-900/20"
+            className="absolute inset-0 bg-black/20"
             onClick={resetDrawer}
           />
           <div className="relative w-full max-w-md bg-white border-l border-zinc-200 shadow-lg p-8 space-y-6 overflow-y-auto">

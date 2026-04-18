@@ -514,7 +514,7 @@ export default function ClientsPage() {
       {/* Add Client Drawer */}
       {addClientOpen && (
         <>
-          <div className="fixed inset-0 bg-black/10 z-40" onClick={() => setAddClientOpen(false)} />
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setAddClientOpen(false)} />
           <AddClientDrawer onClose={() => setAddClientOpen(false)} />
         </>
       )}

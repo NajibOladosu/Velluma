@@ -159,7 +159,7 @@ export function CommandPalette() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
                         transition={{ duration: 0.15, ease: "easeOut" }}
-                        className="relative w-full max-w-xl overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl"
+                        className="relative w-full max-w-xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg"
                     >
                         <div className="flex items-center px-4 h-14 border-b border-zinc-100">
                             <Search className="h-4 w-4 text-zinc-400 shrink-0" />

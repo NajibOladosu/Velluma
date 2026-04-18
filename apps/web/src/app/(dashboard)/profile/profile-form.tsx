@@ -80,7 +80,7 @@ export default function ProfileForm({ profile }: { profile: ProfileData }) {
                     <User className="h-10 w-10 text-zinc-400" strokeWidth={1.5} />
                   )}
                 </div>
-                <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full border border-zinc-200 bg-white shadow-sm flex items-center justify-center text-zinc-500 hover:text-zinc-900 transition-colors">
+                <button className="absolute bottom-0 right-0 h-8 w-8 rounded-md border border-zinc-200 bg-white flex items-center justify-center text-zinc-500 hover:text-zinc-900 transition-colors">
                   <Camera className="h-4 w-4" strokeWidth={1.5} />
                 </button>
               </div>

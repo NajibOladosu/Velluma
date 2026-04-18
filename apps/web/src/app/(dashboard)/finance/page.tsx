@@ -46,8 +46,8 @@ export default function FinancePage() {
       {/* Onboarding Banner (Stripe Connect) */}
       <Surface className="bg-zinc-900 border-zinc-800 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 group overflow-hidden relative">
         <div className="flex items-start sm:items-center gap-4 relative z-10 min-w-0">
-          <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-full bg-blue-600/10 flex items-center justify-center border border-blue-500/20">
-            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+          <div className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-md bg-white/10 flex items-center justify-center border border-white/20">
+            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-white" strokeWidth={1.5} />
           </div>
           <div className="space-y-1 min-w-0">
             <P className="text-white font-medium truncate">Verify your business for Escrow payouts</P>
@@ -59,7 +59,7 @@ export default function FinancePage() {
         <Button className="bg-white text-zinc-900 hover:bg-zinc-100 relative z-10 shrink-0 w-full sm:w-auto">
           Complete Onboarding
         </Button>
-        <div className="absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-blue-600/10 to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-white/5 to-transparent pointer-events-none" />
       </Surface>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -134,7 +134,7 @@ export default function FinancePage() {
                     <div className="flex flex-col items-end text-right min-w-0">
                       <P className="text-sm font-semibold truncate">{fmt(pos.amount)}</P>
                       <Badge
-                        variant={pos.status === "released" ? "emerald" : "blue"}
+                        variant={pos.status === "released" ? "emerald" : "outline"}
                         className="text-[10px] py-0 px-1.5 h-4 shrink-0 mt-0.5 sm:mt-0 capitalize"
                       >
                         {pos.status}
@@ -154,8 +154,8 @@ export default function FinancePage() {
             <H3 className="text-sm uppercase tracking-wider font-semibold">Financial Velocity</H3>
             <div className="space-y-4">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-8 w-8 rounded bg-blue-50 flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                <div className="h-8 w-8 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-4 w-4 text-zinc-700" strokeWidth={1.5} />
                 </div>
                 <div className="min-w-0">
                   <P className="text-sm font-medium truncate">Pending Release</P>
