@@ -1,16 +1,12 @@
 /**
  * TanStack Query hooks for the Client Portal.
  *
- * Data strategy: query Supabase directly from the browser. The client is
- * authenticated via Supabase magic-link (OTP), so auth.uid() = their user ID.
- * RLS on `contracts` surfaces rows where client_id = auth.uid() or
- * client_email matches their verified email address.
- *
- * No API Gateway calls are made from the portal — all reads go through
- * Supabase directly. Writes (e.g., signing) route through the API Gateway.
+ * Clients authenticate via a scoped share-link cookie (no Supabase user).
+ * These hooks call /api/portal/* routes which validate the cookie server-
+ * side using a service-role Supabase client and filter rows by the
+ * allowlist embedded in the session. See lib/portal/session.ts.
  */
 import { useQuery } from "@tanstack/react-query"
-import { createClient } from "@/utils/supabase/client"
 
 // ---------------------------------------------------------------------------
 // Query key factory
@@ -18,6 +14,7 @@ import { createClient } from "@/utils/supabase/client"
 
 export const portalKeys = {
   all: ["portal"] as const,
+  session: () => [...portalKeys.all, "session"] as const,
   contracts: () => [...portalKeys.all, "contracts"] as const,
   milestones: (contractId: string) =>
     [...portalKeys.all, "milestones", contractId] as const,
@@ -89,6 +86,12 @@ interface DocumentRow {
 // UI-facing types
 // ---------------------------------------------------------------------------
 
+export interface PortalSession {
+  email: string
+  engagements: { type: "proposal" | "contract" | "project"; id: string }[]
+  expiresAt: string
+}
+
 export interface PortalContract {
   id: string
   title: string
@@ -144,36 +147,35 @@ export interface PortalDocument {
 }
 
 // ---------------------------------------------------------------------------
+// Fetch helper
+// ---------------------------------------------------------------------------
+
+async function fetchJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url, { credentials: "include" })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `Request failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
 // Hooks
 // ---------------------------------------------------------------------------
 
-/**
- * Fetch all contracts where the authenticated user is the client.
- * Matches on both client_id (UUID) and client_email to cover contracts
- * created before the client's Supabase account existed.
- */
+export function usePortalSession() {
+  return useQuery({
+    queryKey: portalKeys.session(),
+    queryFn: () => fetchJSON<PortalSession>("/api/portal/session"),
+  })
+}
+
 export function usePortalContracts() {
   return useQuery({
     queryKey: portalKeys.contracts(),
     queryFn: async (): Promise<PortalContract[]> => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
-
-      const { data, error } = await supabase
-        .from("contracts")
-        .select(
-          "id, title, status, total_amount, currency, client_email, " +
-            "signed_by_client, signed_by_freelancer, created_at, updated_at",
-        )
-        .or(`client_id.eq.${user.id},client_email.eq.${user.email}`)
-        .order("created_at", { ascending: false })
-
-      if (error) throw new Error(error.message)
-
-      return ((data ?? []) as unknown as ContractRow[]).map((row) => ({
+      const { data } = await fetchJSON<{ data: ContractRow[] }>("/api/portal/contracts")
+      return (data ?? []).map((row) => ({
         id: row.id,
         title: row.title,
         status: row.status,
@@ -189,21 +191,14 @@ export function usePortalContracts() {
   })
 }
 
-/** Fetch milestones for a contract, ordered by due date ascending. */
 export function usePortalMilestones(contractId: string) {
   return useQuery({
     queryKey: portalKeys.milestones(contractId),
     queryFn: async (): Promise<PortalMilestone[]> => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("milestones")
-        .select("id, title, description, amount, due_date, status, completed_at")
-        .eq("contract_id", contractId)
-        .order("due_date", { ascending: true })
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row: MilestoneRow) => ({
+      const { data } = await fetchJSON<{ data: MilestoneRow[] }>(
+        `/api/portal/contracts/${contractId}/milestones`,
+      )
+      return (data ?? []).map((row) => ({
         id: row.id,
         title: row.title,
         description: row.description,
@@ -217,23 +212,14 @@ export function usePortalMilestones(contractId: string) {
   })
 }
 
-/** Fetch contract_payments for a contract (escrow deposits + releases). */
 export function usePortalPayments(contractId: string) {
   return useQuery({
     queryKey: portalKeys.payments(contractId),
     queryFn: async (): Promise<PortalPayment[]> => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("contract_payments")
-        .select(
-          "id, amount, currency, payment_type, status, created_at, completed_at, metadata",
-        )
-        .eq("contract_id", contractId)
-        .order("created_at", { ascending: true })
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row: PaymentRow) => ({
+      const { data } = await fetchJSON<{ data: PaymentRow[] }>(
+        `/api/portal/contracts/${contractId}/payments`,
+      )
+      return (data ?? []).map((row) => ({
         id: row.id,
         amount: Number(row.amount) || 0,
         currency: row.currency ?? "USD",
@@ -248,21 +234,14 @@ export function usePortalPayments(contractId: string) {
   })
 }
 
-/** Fetch escrow records for a contract (funds held on behalf of the client). */
 export function usePortalEscrow(contractId: string) {
   return useQuery({
     queryKey: portalKeys.escrow(contractId),
     queryFn: async (): Promise<PortalEscrow[]> => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("contract_escrows")
-        .select("id, funded_amount, currency, status, funded_at, released_at")
-        .eq("contract_id", contractId)
-        .order("funded_at", { ascending: false })
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row: EscrowRow) => ({
+      const { data } = await fetchJSON<{ data: EscrowRow[] }>(
+        `/api/portal/contracts/${contractId}/escrow`,
+      )
+      return (data ?? []).map((row) => ({
         id: row.id,
         fundedAmount: Number(row.funded_amount) || 0,
         currency: row.currency ?? "USD",
@@ -275,21 +254,14 @@ export function usePortalEscrow(contractId: string) {
   })
 }
 
-/** Fetch generated contract documents (PDFs, markdown versions). */
 export function usePortalDocuments(contractId: string) {
   return useQuery({
     queryKey: portalKeys.documents(contractId),
     queryFn: async (): Promise<PortalDocument[]> => {
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from("contract_documents")
-        .select("id, version, content, format, storage_url, generated_at")
-        .eq("contract_id", contractId)
-        .order("version", { ascending: false })
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row: DocumentRow) => ({
+      const { data } = await fetchJSON<{ data: DocumentRow[] }>(
+        `/api/portal/contracts/${contractId}/documents`,
+      )
+      return (data ?? []).map((row) => ({
         id: row.id,
         version: row.version,
         content: row.content,

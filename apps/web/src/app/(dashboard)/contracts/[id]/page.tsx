@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
+import { SharePortalLink } from "@/components/portal/share-portal-link";
 import {
   resolveContractMeta,
   resolveContractDescription,
@@ -426,6 +427,17 @@ export default function ContractBuilderPage() {
                 <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Duplicate</span>
               </Button>
+            )}
+            {!isTemplate && fetchFromDB && dbContract && (
+              <SharePortalLink
+                engagementType="contract"
+                engagementId={dbContract.id}
+                engagementTitle={contractTitle}
+                defaultClientEmail={
+                  /\S+@\S+\.\S+/.test(dbContract.client) ? dbContract.client : undefined
+                }
+                className="flex-1 sm:flex-none"
+              />
             )}
             <Button size="sm" className="flex-1 sm:flex-none h-9">
               <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
