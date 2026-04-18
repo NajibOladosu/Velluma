@@ -6,9 +6,8 @@ import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import Link from "next/link";
+import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import {
-  ArrowLeft,
   Plus,
   MoreHorizontal,
   CheckCircle2,
@@ -84,7 +83,7 @@ const priorityDot: Record<string, string> = {
 function TaskCard({ task, onSelect }: { task: Task; onSelect: (task: Task) => void }) {
   return (
     <Surface
-      className="p-4 space-y-3 cursor-pointer hover:border-zinc-300 transition-colors group"
+      className="p-3 sm:p-4 space-y-3 cursor-pointer hover:border-zinc-300 transition-colors group"
       onClick={() => onSelect(task)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -199,55 +198,43 @@ export default function ProjectDetailPage() {
   return (
     <>
       <div className="space-y-8">
-        {/* Back + Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
-          {/* LEFT: back link + title + badge + meta */}
-          <div className="flex flex-col min-w-0 flex-1 w-full">
-            {/* Back link */}
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Projects
-            </Link>
-
-            {/* Title + badge inline */}
-            <div className="flex items-center gap-2 min-w-0 mb-1">
+        <DetailPageHeader
+          backHref="/projects"
+          backLabel="Back to Projects"
+          title={
+            <>
               <H1 className="text-2xl font-medium truncate min-w-0">
                 E-commerce Redesign
               </H1>
               <Badge
                 variant="outline"
-                className="flex-shrink-0 bg-zinc-50 text-zinc-600 border-zinc-200"
+                className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200"
               >
                 In Progress
               </Badge>
-            </div>
-
-            {/* Meta row */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground truncate min-w-0">
-              <span className="truncate min-w-0 flex-shrink-0">Acme Corp</span>
-              <span className="flex-shrink-0 text-zinc-300">•</span>
-              <span className="truncate min-w-0 flex-shrink-0">$18,500</span>
-              <span className="flex-shrink-0 text-zinc-300">•</span>
-              <span className="truncate min-w-0 flex-shrink-0">65% complete</span>
-            </div>
-          </div>
-
-          {/* RIGHT: Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-            <Button className="w-full sm:w-auto font-semibold px-5 gap-2">
+            </>
+          }
+          meta={
+            <>
+              <span className="whitespace-nowrap">Acme Corp</span>
+              <MetaSeparator />
+              <span className="whitespace-nowrap">$18,500</span>
+              <MetaSeparator />
+              <span className="whitespace-nowrap">65% complete</span>
+            </>
+          }
+          actions={
+            <Button size="sm" className="w-full sm:w-auto h-9 gap-2">
               <Plus className="h-4 w-4" strokeWidth={1.5} />
               Add Task
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Kanban Board */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-4 md:[grid-template-columns:repeat(4,minmax(0,1fr))]">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kanbanData.map((column) => (
-            <div key={column.id} className="space-y-3">
+            <div key={column.id} className="space-y-3 min-w-0">
               {/* Column Header */}
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2 min-w-0">
@@ -255,16 +242,16 @@ export default function ProjectDetailPage() {
                   <span className="text-xs font-bold uppercase tracking-widest text-zinc-900 truncate">
                     {column.title}
                   </span>
-                  <span className="text-[10px] font-bold text-zinc-400">
+                  <span className="text-[10px] font-bold text-zinc-400 shrink-0">
                     {column.tasks.length}
                   </span>
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Plus className="h-3.5 w-3.5 text-zinc-400" />
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                  <Plus className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
                 </Button>
               </div>
 
-              <div className="h-[2px] bg-zinc-200" />
+              <div className="h-px bg-zinc-200" />
 
               {/* Task Cards */}
               <div className="space-y-2">
@@ -280,7 +267,7 @@ export default function ProjectDetailPage() {
       {/* Task Drawer Overlay */}
       {selectedTask && (
         <>
-          <div className="fixed inset-0 bg-zinc-900/10 z-40" onClick={() => setSelectedTask(null)} />
+          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setSelectedTask(null)} />
           <TaskDrawer task={selectedTask} onClose={() => setSelectedTask(null)} />
         </>
       )}

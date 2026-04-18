@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTierCard } from "@/components/ui/pricing-tier";
 import { SignatureBlock } from "@/components/ui/signature-block";
+import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { MinimalEditor } from "@/components/editor/editor";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -466,10 +467,10 @@ export default function ProposalBuilderPage() {
           <Skeleton className="h-4 w-32" />
         </div>
         <Skeleton className="h-8 w-80" />
-        <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_280px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_280px] gap-6">
           <Skeleton className="h-64" />
           <Skeleton className="h-96" />
-          <Skeleton className="h-64" />
+          <Skeleton className="h-64 lg:col-span-2 xl:col-span-1" />
         </div>
       </div>
     );
@@ -498,18 +499,11 @@ export default function ProposalBuilderPage() {
      ═══════════════════════════════════════════════════════ */
   return (
     <div className="space-y-6 pb-20">
-      {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
-        <div className="flex flex-col min-w-0 flex-1 w-full">
-          <Link
-            href="/proposals"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Proposals
-          </Link>
-
-          <div className="flex items-center gap-2 min-w-0 mb-1">
+      <DetailPageHeader
+        backHref="/proposals"
+        backLabel="Back to Proposals"
+        title={
+          <>
             <H1 className="text-2xl font-medium truncate min-w-0">{proposal.title}</H1>
             <Badge
               variant="outline"
@@ -517,87 +511,92 @@ export default function ProposalBuilderPage() {
             >
               {statusConfig[proposalStatus]?.label}
             </Badge>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground min-w-0">
+          </>
+        }
+        meta={
+          <>
             {proposal.clientId ? (
               <Link
                 href={`/clients/${proposal.clientId}`}
                 className="inline-flex items-center gap-1 hover:text-foreground transition-colors whitespace-nowrap"
               >
-                <Building className="h-3.5 w-3.5 shrink-0" />
+                <Building className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                 <span className="truncate">{proposal.client}</span>
-                <ExternalLink className="h-3 w-3 shrink-0" />
+                <ExternalLink className="h-3 w-3 shrink-0" strokeWidth={1.5} />
               </Link>
             ) : (
               <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                <User className="h-3.5 w-3.5 shrink-0" />
+                <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                 No client assigned
               </span>
             )}
-            <span className="flex-shrink-0 text-zinc-300">•</span>
+            <MetaSeparator />
             <span className="whitespace-nowrap">Created {proposal.createdAt}</span>
             {savedAt && (
               <>
-                <span className="flex-shrink-0 text-zinc-300">•</span>
-                <span className="whitespace-nowrap text-zinc-400 flex items-center gap-1">
-                  <Check className="h-3 w-3" />
+                <MetaSeparator />
+                <span className="whitespace-nowrap text-zinc-400 inline-flex items-center gap-1">
+                  <Check className="h-3 w-3" strokeWidth={1.5} />
                   Saved {savedAt}
                 </span>
               </>
             )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none h-9" onClick={handlePreview}>
-            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Preview</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 sm:flex-none h-9"
-            onClick={handleExportPdf}
-            disabled={exportingPdf}
-          >
-            {exportingPdf ? (
-              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            )}
-            <span className="hidden sm:inline">
-              {exportingPdf ? "Generating…" : "Export PDF"}
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 sm:flex-none h-9"
-            onClick={handleSaveDraft}
-            disabled={saveDraft.isPending}
-          >
-            {saveDraft.isPending ? (
-              <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            )}
-            <span className="hidden sm:inline">
-              {saveDraft.isPending ? "Saving…" : "Save Draft"}
-            </span>
-            <span className="inline sm:hidden">Save</span>
-          </Button>
-          <Button
-            className="flex-1 sm:flex-none h-9"
-            onClick={() => setSendConfirmOpen(true)}
-            disabled={proposalStatus === "signed" || proposalStatus === "expired"}
-          >
-            <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">
-              {proposalStatus === "sent" || proposalStatus === "viewed" ? "Resend" : "Send to Client"}
-            </span>
-            <span className="inline sm:hidden">Send</span>
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex h-9" onClick={handlePreview}>
+              <Eye className="mr-2 h-4 w-4" strokeWidth={1.5} />
+              Preview
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none h-9"
+              onClick={handleExportPdf}
+              disabled={exportingPdf}
+            >
+              {exportingPdf ? (
+                <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              )}
+              <span className="hidden sm:inline">
+                {exportingPdf ? "Generating…" : "PDF"}
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none h-9"
+              onClick={handleSaveDraft}
+              disabled={saveDraft.isPending}
+            >
+              {saveDraft.isPending ? (
+                <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              )}
+              <span className="hidden sm:inline">
+                {saveDraft.isPending ? "Saving…" : "Save"}
+              </span>
+              <span className="inline sm:hidden">Save</span>
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 sm:flex-none h-9"
+              onClick={() => setSendConfirmOpen(true)}
+              disabled={proposalStatus === "signed" || proposalStatus === "expired"}
+            >
+              <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">
+                {proposalStatus === "sent" || proposalStatus === "viewed" ? "Resend" : "Send to Client"}
+              </span>
+              <span className="inline sm:hidden">Send</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* ── Export error banner ─────────────────── */}
       {exportError && (
@@ -616,8 +615,8 @@ export default function ProposalBuilderPage() {
         </div>
       )}
 
-      {/* ── 3-column grid ───────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_280px] gap-6">
+      {/* ── Adaptive grid: 1-col → 2-col (lg) → 3-col (xl) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[220px_minmax(0,1fr)_280px] gap-6">
 
         {/* ══ LEFT: Section Navigation ══════════ */}
         <div className="space-y-2">
@@ -1053,7 +1052,7 @@ export default function ProposalBuilderPage() {
                         )}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 shadow-sm flex items-center justify-center flex-shrink-0">
+                          <div className="h-6 w-6 rounded-sm bg-white border border-zinc-200 flex items-center justify-center flex-shrink-0">
                             {t.type === "standard" ? (
                               <Shield className="h-3 w-3 text-zinc-700" />
                             ) : (
@@ -1090,7 +1089,7 @@ export default function ProposalBuilderPage() {
                 </div>
 
                 {aiSuggestions && (
-                  <Surface className="p-4 space-y-3 bg-zinc-50 border-dashed">
+                  <Surface className="p-4 space-y-3 border-dashed">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-zinc-500" />
                       <span className="text-xs font-semibold text-zinc-700">
@@ -1418,20 +1417,16 @@ export default function ProposalBuilderPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-xs">
                               {method.accountName && (
-                                <span className="text-xs text-zinc-500">{method.accountName}</span>
+                                <span className="text-zinc-500">{method.accountName}</span>
                               )}
                               {method.lastFour && (
-                                <span className="text-xs text-zinc-400">····{method.lastFour}</span>
+                                <span className="text-zinc-400">····{method.lastFour}</span>
                               )}
-                              <span className="text-xs text-zinc-400">·</span>
-                              <span className="text-xs text-zinc-400">{method.currency}</span>
+                              <span className="text-zinc-400">{method.currency}</span>
                               {method.supportsInstant && (
-                                <>
-                                  <span className="text-xs text-zinc-400">·</span>
-                                  <span className="text-xs text-emerald-600 font-medium">Instant</span>
-                                </>
+                                <span className="text-emerald-600 font-medium">Instant</span>
                               )}
                             </div>
                           </div>
@@ -1463,8 +1458,8 @@ export default function ProposalBuilderPage() {
           )}
         </div>
 
-        {/* ══ RIGHT: Settings Sidebar ══════════ */}
-        <div className="space-y-4">
+        {/* ══ RIGHT: Settings Sidebar — full-width 2-col at lg, single column at xl+ ══ */}
+        <div className="lg:col-span-2 xl:col-span-1 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
 
           {/* Share link */}
           <Surface className="p-5 space-y-3">
@@ -1669,7 +1664,7 @@ export default function ProposalBuilderPage() {
       {customTierOpen && (
         <div className="fixed inset-0 z-[50] flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-zinc-900/30"
+            className="absolute inset-0 bg-black/20"
             onClick={() => setCustomTierOpen(false)}
           />
           <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg p-6 max-w-sm w-full mx-4 space-y-4">
@@ -1747,7 +1742,7 @@ export default function ProposalBuilderPage() {
       {sendConfirmOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-zinc-900/30"
+            className="absolute inset-0 bg-black/20"
             onClick={() => setSendConfirmOpen(false)}
           />
           <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg p-6 max-w-sm w-full mx-4 space-y-4">

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
@@ -559,59 +560,57 @@ export default function ClientDetailPage() {
   return (
     <>
       <div className="space-y-8">
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
-          <div className="flex flex-col min-w-0 flex-1 w-full">
-            <Link
-              href="/clients"
-              className="inline-flex items-center gap-1 text-sm text-zinc-500 mb-2 hover:text-zinc-900 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to Clients
-            </Link>
-            <div className="flex items-center gap-2 min-w-0 mb-1 flex-wrap">
+        <DetailPageHeader
+          backHref="/clients"
+          backLabel="Back to Clients"
+          title={
+            <>
               <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
                 <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
               </div>
               <H1 className="text-2xl font-medium truncate min-w-0">{client.name}</H1>
-              {enrichment.confidence && enrichment.confidence >= 90 && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex-shrink-0">
-                  <Bot className="h-3 w-3" /> Enriched
-                </span>
-              )}
               <Badge variant="outline" className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200 capitalize">
                 {statusLabel[status] ?? status}
               </Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500 min-w-0">
+              {enrichment.confidence && enrichment.confidence >= 90 && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-widest flex-shrink-0">
+                  <Bot className="h-3 w-3" strokeWidth={1.5} /> Enriched
+                </span>
+              )}
+            </>
+          }
+          meta={
+            <>
               {client.company_name && <span className="whitespace-nowrap">{client.company_name}</span>}
-              {client.company_name && <span className="text-zinc-300">•</span>}
+              {client.company_name && <MetaSeparator />}
               <span className="whitespace-nowrap">
                 Client since {new Date(client.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
               </span>
               {source !== "—" && (
                 <>
-                  <span className="text-zinc-300">•</span>
+                  <MetaSeparator />
                   <span className="whitespace-nowrap text-xs">via {source}</span>
                 </>
               )}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            </>
+          }
+          actions={
+            <>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto flex-1 h-9 border-zinc-200"
+                size="sm"
+                className="flex-1 sm:flex-none h-9"
                 onClick={handleSendEmail}
                 disabled={!client.email}
                 title={client.email ? `Email ${client.email}` : "No email on file"}
               >
                 <Send className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-                <span className="hidden sm:inline">Send Email</span>
+                <span className="hidden sm:inline">Email</span>
               </Button>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto flex-1 h-9 border-zinc-200"
+                size="sm"
+                className="flex-1 sm:flex-none h-9"
                 onClick={handleScheduleCall}
                 disabled={!client.phone}
                 title={client.phone ? `Call ${client.phone}` : "No phone on file"}
@@ -619,30 +618,30 @@ export default function ClientDetailPage() {
                 <Phone className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Call</span>
               </Button>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto flex-1 h-9 border-zinc-200"
+                size="sm"
+                className="flex-1 sm:flex-none h-9"
                 onClick={() => setEditOpen(true)}
               >
                 <PenLine className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Edit</span>
               </Button>
               <Button
-                variant="outline"
-                className="h-9 border-zinc-200 text-zinc-500 hover:text-zinc-900 px-3"
+                variant="ghost"
+                size="sm"
+                className="h-9 text-zinc-500 hover:text-zinc-900 px-3 shrink-0"
                 onClick={() => setDeleteOpen(true)}
                 title="Delete client"
               >
                 <Trash2 className="h-4 w-4" strokeWidth={1.5} />
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {/* ── Metrics Row ── */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           <Surface className="p-5">
             <div className="flex items-center justify-between pb-2">
               <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold">Health Score</Muted>
@@ -864,7 +863,7 @@ export default function ClientDetailPage() {
             {/* Right Column */}
             <div className="md:col-span-5 space-y-6">
               {/* Tags */}
-              <Surface className="p-6 space-y-3">
+              <Surface className="p-5 space-y-3">
                 <Muted className="text-[10px] uppercase tracking-widest font-bold">Tags</Muted>
                 <div className="flex flex-wrap gap-1.5">
                   {(client.tags ?? []).length === 0 && (
@@ -896,17 +895,17 @@ export default function ClientDetailPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2 border-zinc-200"
+                    className="h-8 px-2.5"
                     onClick={handleAddTag}
                     disabled={!tagInput.trim() || updateClient.isPending}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                   </Button>
                 </div>
               </Surface>
 
               {/* Stakeholders */}
-              <Surface className="p-6 space-y-3">
+              <Surface className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <Muted className="text-[10px] uppercase tracking-widest font-bold">Stakeholders</Muted>
                   <Button
@@ -959,7 +958,7 @@ export default function ClientDetailPage() {
               </Surface>
 
               {/* Notes */}
-              <Surface className="p-6 space-y-3">
+              <Surface className="p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <Muted className="text-[10px] uppercase tracking-widest font-bold">Notes</Muted>
                   <Button
@@ -990,23 +989,6 @@ export default function ClientDetailPage() {
                 )}
               </Surface>
 
-              {/* Financial Snapshot */}
-              <Surface className="p-6 space-y-3">
-                <Muted className="text-[10px] uppercase tracking-widest font-bold">Financial Snapshot</Muted>
-                <div className="space-y-2">
-                  {[
-                    { label: "Lifetime Value", value: totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : "$0" },
-                    { label: "Status",         value: statusLabel[status] ?? status },
-                    { label: "Source",         value: source },
-                    { label: "Client Since",   value: new Date(client.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between gap-4">
-                      <Muted className="text-[10px] uppercase tracking-widest min-w-0 truncate">{item.label}</Muted>
-                      <P className="text-sm font-medium shrink-0 whitespace-nowrap">{item.value}</P>
-                    </div>
-                  ))}
-                </div>
-              </Surface>
             </div>
           </div>
         )}
@@ -1098,7 +1080,7 @@ export default function ClientDetailPage() {
       {/* Edit client drawer */}
       {editOpen && (
         <>
-          <div className="fixed inset-0 bg-black/10 z-[54]" onClick={() => setEditOpen(false)} />
+          <div className="fixed inset-0 bg-black/20 z-[54]" onClick={() => setEditOpen(false)} />
           <EditClientDrawer
             clientId={clientId}
             initialName={client.name}

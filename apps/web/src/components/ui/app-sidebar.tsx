@@ -160,7 +160,7 @@ export function AppSidebar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleSidebar}
-                className="absolute -right-3 top-20 h-6 w-6 rounded-md border border-zinc-200 bg-white p-0 hover:bg-zinc-50 md:flex shadow-sm"
+                className="absolute -right-3 top-20 h-6 w-6 rounded-md border border-zinc-200 bg-white p-0 hover:bg-zinc-50 md:flex"
             >
                 {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
             </Button>

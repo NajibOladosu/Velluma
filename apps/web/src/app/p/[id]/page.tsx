@@ -262,7 +262,7 @@ export default async function ProposalViewPage({
         {/* ── Video ────────────────────────────────────────────────── */}
         {videoEmbed && (
           <section>
-            <div className="rounded-xl overflow-hidden border border-zinc-200 bg-black aspect-video">
+            <div className="rounded-lg overflow-hidden border border-zinc-200 bg-black aspect-video">
               <iframe
                 src={videoEmbed}
                 className="w-full h-full"
@@ -275,7 +275,7 @@ export default async function ProposalViewPage({
 
         {/* ── Welcome ──────────────────────────────────────────────── */}
         {welcomeMsg && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-4">
               A message from {freelancerName}
             </p>
@@ -285,7 +285,7 @@ export default async function ProposalViewPage({
 
         {/* ── Scope of Work ────────────────────────────────────────── */}
         {scopeHtml && scopeHtml.replace(/<[^>]+>/g, "").trim() && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-6">
               Scope of Work
             </p>
@@ -298,7 +298,7 @@ export default async function ProposalViewPage({
 
         {/* ── Selected Package ─────────────────────────────────────── */}
         {activeTier && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8 space-y-6">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8 space-y-6">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
               Your Package
             </p>
@@ -350,7 +350,7 @@ export default async function ProposalViewPage({
 
         {/* ── Investment Summary ───────────────────────────────────── */}
         {total > 0 && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-6">
               Investment Summary
             </p>
@@ -413,7 +413,7 @@ export default async function ProposalViewPage({
 
         {/* ── Agreement ────────────────────────────────────────────── */}
         {clauses.length > 0 && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-6">
               Agreement Terms
             </p>
@@ -430,7 +430,7 @@ export default async function ProposalViewPage({
 
         {/* ── How to Pay ───────────────────────────────────────────── */}
         {paymentMethods.length > 0 && (
-          <section className="bg-white rounded-xl border border-zinc-200 p-8">
+          <section className="bg-white rounded-lg border border-zinc-200 p-8">
             <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-6">
               How to Pay
             </p>
@@ -461,7 +461,7 @@ export default async function ProposalViewPage({
         )}
 
         {/* ── Signature ────────────────────────────────────────────── */}
-        <section className="bg-white rounded-xl border border-zinc-200 p-8">
+        <section className="bg-white rounded-lg border border-zinc-200 p-8">
           <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold mb-6">
             Sign &amp; Accept
           </p>

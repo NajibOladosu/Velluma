@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
+import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import {
   resolveContractMeta,
   resolveContractDescription,
@@ -18,7 +19,6 @@ import {
 import { useContract } from "@/lib/queries/contracts";
 import type { ContractSection } from "@/lib/queries/contracts";
 import {
-  ArrowLeft,
   Eye,
   LayoutTemplate,
   ShieldCheck,
@@ -151,7 +151,7 @@ function ClauseBlock({
           aria-label={isLocked ? "Unlock clause" : "Lock clause"}
           onClick={() => onToggleLock(clause.id)}
           className={cn(
-            "absolute -left-[14px] top-6 rounded-full p-1 cursor-pointer shadow-sm hover:scale-110 transition-transform border",
+            "absolute -left-[14px] top-6 rounded-md p-1 cursor-pointer hover:scale-105 transition-transform border shadow-lg",
             isLocked
               ? "bg-white border-zinc-200"
               : "bg-zinc-900 border-zinc-900"
@@ -167,7 +167,7 @@ function ClauseBlock({
 
       {/* Always-locked system clauses — static pin indicator */}
       {clause.alwaysLocked && (
-        <div className="absolute -left-[14px] top-6 bg-white border border-zinc-200 rounded-full p-1 shadow-sm">
+        <div className="absolute -left-[14px] top-6 bg-white border border-zinc-200 rounded-md p-1 shadow-lg">
           <Lock className="h-3.5 w-3.5 text-zinc-400" />
         </div>
       )}
@@ -176,7 +176,7 @@ function ClauseBlock({
       <H3 className="mb-4 flex justify-between items-center">
         {clause.title}
         {clause.alwaysEditable && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs text-blue-600 hover:bg-blue-50">
+          <Button variant="ghost" size="sm" className="h-6 text-xs text-zinc-700 hover:bg-zinc-50">
             <Sparkles className="h-3 w-3 mr-1" /> Enhance
           </Button>
         )}
@@ -336,29 +336,20 @@ export default function ContractBuilderPage() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* ── Header ─────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 min-w-0">
-        {/* LEFT: back link + title + badge + meta */}
-        <div className="flex flex-col min-w-0 flex-1 w-full">
-          <Link
-            href="/contracts"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-1 hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Contracts
-          </Link>
-
-          <div className="flex items-center gap-2 min-w-0 mb-1">
+      <DetailPageHeader
+        backHref="/contracts"
+        backLabel="Back to Contracts"
+        title={
+          <>
             <H1 className="text-2xl font-medium truncate min-w-0">
               {contractTitle}
             </H1>
-            {aiEnhanced && (
+            {!isTemplate && contractStatus && (
               <Badge
                 variant="outline"
-                className="flex-shrink-0 bg-transparent text-violet-600 border-violet-200 gap-1"
+                className={cn("flex-shrink-0 bg-transparent", statusConfig[contractStatus]?.className)}
               >
-                <Sparkles className="h-3 w-3" />
-                AI Generated
+                {statusConfig[contractStatus]?.label}
               </Badge>
             )}
             {isTemplate && (
@@ -372,147 +363,150 @@ export default function ContractBuilderPage() {
                 {staticMeta?.type === "standard" ? "Standard" : "Custom"} Template
               </Badge>
             )}
-            {!isTemplate && contractStatus && (
+            {aiEnhanced && (
               <Badge
                 variant="outline"
-                className={cn("flex-shrink-0 bg-transparent", statusConfig[contractStatus]?.className)}
+                className="flex-shrink-0 bg-transparent text-zinc-700 border-zinc-200 gap-1"
               >
-                {statusConfig[contractStatus]?.label}
+                <Sparkles className="h-3 w-3" strokeWidth={1.5} />
+                AI Generated
               </Badge>
             )}
-          </div>
-
-          <div className="flex items-center gap-3 text-sm text-muted-foreground truncate min-w-0">
+          </>
+        }
+        meta={
+          <>
             {!isTemplate && contractClient && (
               <>
                 {contractClientId ? (
                   <Link
                     href={`/clients/${contractClientId}`}
-                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0 flex-shrink-0"
+                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate min-w-0"
                   >
-                    <Building className="h-3.5 w-3.5 shrink-0" />
+                    <Building className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                     <span className="truncate">{contractClient}</span>
-                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    <ExternalLink className="h-3 w-3 shrink-0" strokeWidth={1.5} />
                   </Link>
                 ) : (
-                  <span className="inline-flex items-center gap-1 truncate min-w-0 flex-shrink-0">
-                    <Building className="h-3.5 w-3.5 shrink-0" />
+                  <span className="inline-flex items-center gap-1 truncate min-w-0">
+                    <Building className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
                     <span className="truncate">{contractClient}</span>
                   </span>
                 )}
-                <span className="flex-shrink-0 text-zinc-300">•</span>
+                <MetaSeparator />
               </>
             )}
             {isTemplate && staticMeta?.usageCount !== undefined && (
               <>
-                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
-                  <ReceiptText className="h-3 w-3 shrink-0" />
+                <span className="inline-flex items-center gap-1">
+                  <ReceiptText className="h-3 w-3 shrink-0" strokeWidth={1.5} />
                   {staticMeta.usageCount} uses
                 </span>
-                <span className="flex-shrink-0 text-zinc-300">•</span>
-                <span className="flex items-center gap-1 truncate min-w-0 flex-shrink-0">
-                  <Lock className="h-3 w-3 shrink-0" />
+                <MetaSeparator />
+                <span className="inline-flex items-center gap-1">
+                  <Lock className="h-3 w-3 shrink-0" strokeWidth={1.5} />
                   {staticMeta.lockedClauses ?? 0} locked clause{(staticMeta.lockedClauses ?? 0) !== 1 ? "s" : ""}
                 </span>
-                <span className="flex-shrink-0 text-zinc-300">•</span>
+                <MetaSeparator />
               </>
             )}
-            <span className="truncate min-w-0 flex-shrink-0">
+            <span>
               {isTemplate ? "Last modified" : "Created"} {contractDate}
             </span>
-          </div>
-        </div>
-
-        {/* RIGHT: Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none h-9">
-            <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Preview</span>
-          </Button>
-          {isTemplate && (
-            <Button variant="outline" className="flex-1 sm:flex-none h-9">
-              <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-              <span className="hidden sm:inline">Duplicate</span>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9">
+              <Eye className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Preview</span>
             </Button>
-          )}
-          <Button className="flex-1 sm:flex-none h-9">
-            <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Save</span>
-            <span className="inline sm:hidden">Template</span>
-          </Button>
-        </div>
-      </div>
+            {isTemplate && (
+              <Button variant="outline" size="sm" className="flex-1 sm:flex-none h-9">
+                <Copy className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+                <span className="hidden sm:inline">Duplicate</span>
+              </Button>
+            )}
+            <Button size="sm" className="flex-1 sm:flex-none h-9">
+              <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+              <span>Save</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* ── Two-column builder layout ── */}
       <div className="flex gap-6 min-h-[calc(100vh-14rem)]">
 
         {/* Left Sidebar */}
-        <aside className="w-64 border-r border-zinc-200 bg-zinc-50 p-4 shrink-0 overflow-y-auto hidden md:block">
-          <div className="mb-6 px-2 text-sm font-medium text-zinc-900 flex justify-between items-center">
+        <aside className="w-60 shrink-0 overflow-y-auto hidden md:block">
+          <div className="sticky top-6 space-y-6">
+          <div className="px-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
             Configuration
           </div>
 
-          <div className="space-y-1 mb-6">
+          <div className="space-y-1">
             <button
               onClick={() => setActiveTab("editor")}
               className={cn(
-                "w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all text-sm font-medium",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm font-medium",
                 activeTab === "editor"
-                  ? "bg-white shadow-sm border border-zinc-200 text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-100/80 border border-transparent"
+                  ? "bg-zinc-100 text-zinc-900"
+                  : "text-zinc-600 hover:bg-zinc-100/60"
               )}
             >
-              <LayoutTemplate className="h-4 w-4" />
+              <LayoutTemplate className="h-4 w-4" strokeWidth={1.5} />
               Template Editor
             </button>
             <button
               onClick={() => setActiveTab("settings")}
               className={cn(
-                "w-full flex items-center gap-3 p-2 rounded-lg text-left transition-all text-sm font-medium",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm font-medium",
                 activeTab === "settings"
-                  ? "bg-white shadow-sm border border-zinc-200 text-zinc-900"
-                  : "text-zinc-600 hover:bg-zinc-100/80 border border-transparent"
+                  ? "bg-zinc-100 text-zinc-900"
+                  : "text-zinc-600 hover:bg-zinc-100/60"
               )}
             >
-              <ShieldCheck className="h-4 w-4" />
+              <ShieldCheck className="h-4 w-4" strokeWidth={1.5} />
               Legal Settings
             </button>
           </div>
 
-          <Separator className="mb-6" />
+          <Separator />
 
           {/* Smart Fields Reference */}
-          <div className="mb-6 px-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 mb-3 block">
+          <div className="space-y-3 px-2">
+            <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
               Smart Fields
             </h3>
-            <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
-              Click to copy and paste into your agreement to auto-populate data when generating a proposal.
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Click to copy — these auto-populate when generating a proposal.
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {["{{client.name}}", "{{client.company}}", "{{project.name}}", "{{project.deliverables}}", "{{payment.total}}"].map((field) => (
-                <Badge
+                <button
                   key={field}
-                  variant="outline"
-                  className="w-full justify-start bg-white border-zinc-200 text-zinc-600 text-[10px] font-mono hover:bg-zinc-50 cursor-pointer"
+                  type="button"
                   onClick={() => navigator.clipboard?.writeText(field)}
+                  className="w-full text-left px-2.5 py-1.5 rounded-md border border-zinc-200 bg-white text-zinc-600 text-[10px] font-mono hover:bg-zinc-50 hover:border-zinc-300 transition-colors"
                 >
                   {field}
-                </Badge>
+                </button>
               ))}
             </div>
+          </div>
           </div>
         </aside>
 
         {/* Editor Area */}
-        <main className="flex-1 overflow-y-auto bg-zinc-50/30">
-          <div className="mx-auto max-w-4xl p-4 py-8 sm:p-8 sm:py-12">
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-4xl pb-8">
 
             {activeTab === "editor" && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
                 {/* Builder Header */}
-                <div className="mb-8 border-b border-zinc-200 pb-6">
+                <div className="pb-6 border-b border-zinc-200">
                   <H2>Agreement {aiEnhanced ? "Sections" : "Template"}</H2>
                   <Muted className="mt-1 text-sm">
                     {contractDescription
@@ -522,7 +516,7 @@ export default function ContractBuilderPage() {
                 </div>
 
                 {/* Clause Locking Banner */}
-                <div className="mb-8 flex flex-wrap sm:flex-nowrap items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="mb-8 flex flex-wrap sm:flex-nowrap items-start gap-3 rounded-lg border border-zinc-200 bg-white p-4">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium text-zinc-900">Clause Locking</h4>
@@ -595,7 +589,7 @@ export default function ContractBuilderPage() {
                       </div>
                     </Surface>
 
-                    <button className="rounded-xl border-dashed border-2 border-zinc-200 flex flex-col items-center justify-center p-6 text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 transition-all min-h-[140px]">
+                    <button className="rounded-lg border-dashed border-2 border-zinc-200 flex flex-col items-center justify-center p-6 text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50 transition-colors min-h-[140px]">
                       <Users className="h-6 w-6 mb-2" />
                       <span className="text-sm font-medium">Require Counter-Signer</span>
                       <span className="text-[10px] text-zinc-400 mt-1">E.g., You or a team member</span>
