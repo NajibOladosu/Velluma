@@ -16,15 +16,42 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/login");
 
-  const userMeta = user.user_metadata ?? {};
-  const fullName = (userMeta.full_name as string) ??
-    [userMeta.first_name, userMeta.last_name].filter(Boolean).join(" ") ?? "";
+  const meta = user.user_metadata ?? {};
+  const integrations = (meta.integrations ?? {}) as Record<string, boolean>;
 
-  const workspace = {
-    name: (userMeta.workspace_name as string) ?? fullName ? `${fullName}'s Workspace` : "My Workspace",
-    slug: (userMeta.workspace_slug as string) ?? "",
-    currency: (userMeta.default_currency as string) ?? "USD ($) - United States Dollar",
+  const fullName =
+    (meta.full_name as string) ??
+    [meta.first_name, meta.last_name].filter(Boolean).join(" ") ??
+    "";
+
+  const data = {
+    email: user.email ?? "",
+    workspace: {
+      name:
+        (meta.workspace_name as string) ||
+        (fullName ? `${fullName}'s Workspace` : "My Workspace"),
+      slug: (meta.workspace_slug as string) ?? "",
+      currency: (meta.default_currency as string) ?? "USD",
+      timezone:
+        (meta.timezone as string) ??
+        (typeof Intl !== "undefined"
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : "UTC"),
+      dateFormat: (meta.date_format as string) ?? "MMM d, yyyy",
+    },
+    plan: {
+      tier: ((meta.subscription_tier as string) ?? "free") as
+        | "free"
+        | "professional"
+        | "business",
+      renewsAt: (meta.subscription_renews_at as string) ?? null,
+    },
+    integrations: {
+      stripe: Boolean(integrations.stripe),
+      googleCalendar: Boolean(integrations.google_calendar),
+      slack: Boolean(integrations.slack),
+    },
   };
 
-  return <SettingsForm workspace={workspace} />;
+  return <SettingsForm data={data} />;
 }

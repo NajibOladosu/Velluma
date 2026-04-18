@@ -16,17 +16,28 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const userMeta = user.user_metadata ?? {};
+  const meta = user.user_metadata ?? {};
+  const notifs = (meta.notification_preferences ?? {}) as Record<string, boolean>;
 
   const profile = {
     email: user.email ?? "",
-    firstName: (userMeta.first_name as string) ?? (userMeta.full_name as string)?.split(" ")[0] ?? "",
-    lastName: (userMeta.last_name as string) ?? (userMeta.full_name as string)?.split(" ").slice(1).join(" ") ?? "",
-    jobTitle: (userMeta.job_title as string) ?? "",
-    phone: (userMeta.phone as string) ?? user.phone ?? "",
-    location: (userMeta.location as string) ?? "",
-    bio: (userMeta.bio as string) ?? "",
-    avatarUrl: (userMeta.avatar_url as string) ?? "",
+    firstName: (meta.first_name as string) ?? (meta.full_name as string)?.split(" ")[0] ?? "",
+    lastName: (meta.last_name as string) ?? (meta.full_name as string)?.split(" ").slice(1).join(" ") ?? "",
+    jobTitle: (meta.job_title as string) ?? "",
+    phone: (meta.phone as string) ?? user.phone ?? "",
+    location: (meta.location as string) ?? "",
+    bio: (meta.bio as string) ?? "",
+    avatarUrl: (meta.avatar_url as string) ?? "",
+    lastSignInAt: user.last_sign_in_at ?? null,
+    createdAt: user.created_at ?? null,
+    provider: (user.app_metadata?.provider as string) ?? "email",
+    notifications: {
+      proposalActivity: notifs.proposal_activity ?? true,
+      invoicePayments: notifs.invoice_payments ?? true,
+      clientMessages: notifs.client_messages ?? true,
+      weeklyDigest: notifs.weekly_digest ?? false,
+      productUpdates: notifs.product_updates ?? false,
+    },
   };
 
   return <ProfileForm profile={profile} />;
