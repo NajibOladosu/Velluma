@@ -24,6 +24,8 @@ export default async function SettingsPage() {
     [meta.first_name, meta.last_name].filter(Boolean).join(" ") ??
     "";
 
+  const branding = (meta.branding ?? {}) as Record<string, string | null>;
+
   const data = {
     email: user.email ?? "",
     workspace: {
@@ -50,6 +52,12 @@ export default async function SettingsPage() {
       stripe: Boolean(integrations.stripe),
       googleCalendar: Boolean(integrations.google_calendar),
       slack: Boolean(integrations.slack),
+    },
+    branding: {
+      logoUrl: branding.logo_url ?? null,
+      coverUrl: branding.cover_url ?? null,
+      accentHex: branding.accent_hex ?? "#18181b",
+      tagline: branding.tagline ?? null,
     },
   };
 

@@ -86,6 +86,8 @@ export interface Contract {
   createdAt: string
   sentAt: string | null
   signedAt: string | null
+  signedByClient: string | null
+  signedByFreelancer: string | null
   expiresAt: string | null
   template: string
   description: string
@@ -181,6 +183,8 @@ function mapRowToContract(row: ContractRow): Contract {
     createdAt: formatDate(row.created_at),
     sentAt: null,
     signedAt: row.signed_by_client ? formatDate(row.signed_by_client) : null,
+    signedByClient: row.signed_by_client,
+    signedByFreelancer: row.signed_by_freelancer,
     expiresAt: null,
     template: "Standard Contract",
     description: row.description ?? "",

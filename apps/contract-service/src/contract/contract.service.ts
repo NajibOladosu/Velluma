@@ -27,7 +27,7 @@ export class ContractService {
       throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is not configured');
     }
     const model = this.gemini.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.25,
         topK: 40,
@@ -95,7 +95,7 @@ Include all standard sections: Parties, Scope of Work, Timeline, Payment Terms, 
           content: { sections },
           generation_status: 'completed',
           generation_metadata: {
-            model: 'gemini-2.0-flash',
+            model: 'gemini-2.5-flash',
             generatedAt: new Date().toISOString(),
           },
         },

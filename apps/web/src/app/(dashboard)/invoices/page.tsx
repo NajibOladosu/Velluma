@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { RecurringInvoicesPanel } from "@/components/invoices/recurring-invoices-panel";
 import {
   Dialog,
   DialogContent,
@@ -559,6 +560,8 @@ export default function InvoicesPage() {
           </table>
         </div>
       </Surface>
+
+      <RecurringInvoicesPanel />
     </div>
   );
 }

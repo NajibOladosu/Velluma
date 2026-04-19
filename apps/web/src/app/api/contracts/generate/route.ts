@@ -52,7 +52,7 @@ export async function POST(request: Request) {
         client_email: input.clientEmail,
         generation_status: "completed",
         generation_metadata: {
-          model: "gemini-2.0-flash",
+          model: "gemini-2.5-flash",
           contractType: input.contractType,
           generatedAt: new Date().toISOString(),
           regeneration: Boolean(input.regenerateFeedback),
