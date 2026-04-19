@@ -449,33 +449,35 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-3">
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-zinc-700">Date</label>
               <input
                 required type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 [color-scheme:light] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-zinc-700">Start</label>
-              <input
-                required type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-zinc-700">End</label>
-              <input
-                required type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-700">Start time</label>
+                <input
+                  required type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 [color-scheme:light] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-700">End time</label>
+                <input
+                  required type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 [color-scheme:light] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                />
+              </div>
             </div>
           </div>
 

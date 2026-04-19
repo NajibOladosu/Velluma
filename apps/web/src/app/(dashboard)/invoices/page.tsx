@@ -163,7 +163,7 @@ function NewInvoiceDialog({
                 onChange={(e) =>
                   setForm((f) => ({ ...f, amount: e.target.value }))
                 }
-                className="h-10 border-zinc-200 bg-white text-sm"
+                className="h-10 border-zinc-200 bg-white text-sm text-zinc-900 [color-scheme:light]"
                 required
               />
             </div>
@@ -192,7 +192,7 @@ function NewInvoiceDialog({
               onChange={(e) =>
                 setForm((f) => ({ ...f, dueDate: e.target.value }))
               }
-              className="h-10 border-zinc-200 bg-white text-sm"
+              className="h-10 border-zinc-200 bg-white text-sm text-zinc-900 [color-scheme:light]"
             />
           </div>
 

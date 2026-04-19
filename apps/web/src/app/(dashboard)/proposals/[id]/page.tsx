@@ -1558,7 +1558,7 @@ export default function ProposalBuilderPage() {
                     type="date"
                     value={expiresAt}
                     onChange={(e) => setExpiresAt(e.target.value)}
-                    className="w-full h-8 pl-8 pr-2 rounded-md border border-zinc-200 bg-white text-xs text-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1"
+                    className="w-full h-8 pl-8 pr-2 rounded-md border border-zinc-200 bg-white text-xs text-zinc-700 [color-scheme:light] focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1"
                     min={new Date().toISOString().slice(0, 10)}
                   />
                 </div>
