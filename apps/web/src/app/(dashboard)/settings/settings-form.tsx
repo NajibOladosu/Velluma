@@ -16,6 +16,9 @@ import {
   Check,
   X,
   Trash2,
+  Palette,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
@@ -29,7 +32,7 @@ import { cn } from "@/lib/utils";
 /* ────────────────── Types ────────────────── */
 
 type PlanTier = "free" | "professional" | "business";
-type Section = "workspace" | "billing" | "integrations" | "danger";
+type Section = "workspace" | "branding" | "billing" | "integrations" | "danger";
 
 interface SettingsData {
   email: string;
@@ -48,6 +51,12 @@ interface SettingsData {
     stripe: boolean;
     googleCalendar: boolean;
     slack: boolean;
+  };
+  branding: {
+    logoUrl: string | null;
+    coverUrl: string | null;
+    accentHex: string;
+    tagline: string | null;
   };
 }
 
@@ -171,9 +180,13 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
   const [deleteConfirm, setDeleteConfirm] = React.useState("");
   const [deleting, setDeleting] = React.useState(false);
   const [slugTouched, setSlugTouched] = React.useState(Boolean(data.workspace.slug));
+  const [brandingState, setBrandingState] = React.useState<FeedbackState>({ kind: "idle" });
+  const [logoUploading, setLogoUploading] = React.useState(false);
+  const [coverUploading, setCoverUploading] = React.useState(false);
 
   const sections: { key: Section; label: string; icon: React.ElementType; hint: string }[] = [
     { key: "workspace", label: "Workspace", icon: Briefcase, hint: "Name, currency, locale" },
+    { key: "branding", label: "Branding", icon: Palette, hint: "Logo, colors, client portal" },
     { key: "billing", label: "Billing & Plan", icon: CreditCard, hint: "Subscription and invoices" },
     { key: "integrations", label: "Integrations", icon: Plug, hint: "Stripe, Calendar, Slack" },
     { key: "danger", label: "Danger Zone", icon: AlertTriangle, hint: "Destructive actions" },
@@ -218,6 +231,50 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
       setIntegrationState({ kind: "success", message: "Updated" });
       setTimeout(() => setIntegrationState({ kind: "idle" }), 2000);
     }
+  }
+
+  async function handleSaveBranding(e: React.FormEvent) {
+    e.preventDefault();
+    setBrandingState({ kind: "saving" });
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        branding: {
+          logo_url: form.branding.logoUrl,
+          cover_url: form.branding.coverUrl,
+          accent_hex: form.branding.accentHex,
+          tagline: form.branding.tagline,
+        },
+      },
+    });
+    if (error) setBrandingState({ kind: "error", message: error.message });
+    else {
+      setBrandingState({ kind: "success", message: "Saved" });
+      setTimeout(() => setBrandingState({ kind: "idle" }), 2500);
+    }
+  }
+
+  async function uploadAsset(file: File, kind: "logo" | "cover"): Promise<string | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const ext = file.name.split(".").pop() ?? "bin";
+    const path = `${user.id}/${kind}-${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from("branding").upload(path, file, { upsert: true, contentType: file.type });
+    if (error) return null;
+    return supabase.storage.from("branding").getPublicUrl(data.path).data.publicUrl;
+  }
+
+  async function handleLogoChange(file: File) {
+    setLogoUploading(true);
+    const url = await uploadAsset(file, "logo");
+    setLogoUploading(false);
+    if (url) setForm((p) => ({ ...p, branding: { ...p.branding, logoUrl: url } }));
+  }
+
+  async function handleCoverChange(file: File) {
+    setCoverUploading(true);
+    const url = await uploadAsset(file, "cover");
+    setCoverUploading(false);
+    if (url) setForm((p) => ({ ...p, branding: { ...p.branding, coverUrl: url } }));
   }
 
   async function handleDeleteWorkspace() {
@@ -396,6 +453,113 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
                       <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                     )}
                     Save changes
+                  </Button>
+                </div>
+              </form>
+            </Surface>
+          )}
+
+          {activeSection === "branding" && (
+            <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="px-6 py-4 border-b border-zinc-200">
+                <H3 className="text-base">Branding</H3>
+                <Muted className="text-xs">Personalize the client portal. Seen by clients on <code className="font-mono text-zinc-700">/portal</code> and share links.</Muted>
+              </div>
+              <form onSubmit={handleSaveBranding}>
+                <div className="p-6 space-y-6">
+                  {/* Cover preview */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-zinc-700">Cover image</label>
+                    <div
+                      className="relative h-32 w-full rounded-md border border-zinc-200 overflow-hidden bg-zinc-100 flex items-center justify-center"
+                      style={{
+                        backgroundImage: form.branding.coverUrl ? `url(${form.branding.coverUrl})` : undefined,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }}
+                    >
+                      {!form.branding.coverUrl && (
+                        <div className="flex flex-col items-center gap-1 text-zinc-400">
+                          <ImageIcon className="h-6 w-6" strokeWidth={1.5} />
+                          <span className="text-xs">No cover uploaded</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="inline-flex items-center gap-1.5 h-8 rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-50 cursor-pointer transition-colors">
+                        {coverUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                        {form.branding.coverUrl ? "Replace" : "Upload cover"}
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only"
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCoverChange(f) }} />
+                      </label>
+                      {form.branding.coverUrl && (
+                        <button type="button"
+                          className="h-8 px-3 text-xs text-zinc-500 hover:text-red-600 transition-colors"
+                          onClick={() => setForm((p) => ({ ...p, branding: { ...p.branding, coverUrl: null } }))}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Logo */}
+                  <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
+                    <div className="h-20 w-20 rounded-md border border-zinc-200 bg-white overflow-hidden flex items-center justify-center">
+                      {form.branding.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={form.branding.logoUrl} alt="Logo" className="max-h-full max-w-full object-contain" />
+                      ) : (
+                        <ImageIcon className="h-6 w-6 text-zinc-300" strokeWidth={1.5} />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-xs font-medium text-zinc-700">Logo</label>
+                      <Muted className="text-xs block">PNG, JPG, SVG, or WebP. Square works best.</Muted>
+                      <div className="flex items-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 h-8 rounded-md border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-50 cursor-pointer transition-colors">
+                          {logoUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                          {form.branding.logoUrl ? "Replace" : "Upload logo"}
+                          <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="sr-only"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoChange(f) }} />
+                        </label>
+                        {form.branding.logoUrl && (
+                          <button type="button" className="h-8 px-3 text-xs text-zinc-500 hover:text-red-600 transition-colors"
+                            onClick={() => setForm((p) => ({ ...p, branding: { ...p.branding, logoUrl: null } }))}>
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accent color */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-zinc-700">Accent color</label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={form.branding.accentHex}
+                          onChange={(e) => setForm((p) => ({ ...p, branding: { ...p.branding, accentHex: e.target.value } }))}
+                          className="h-10 w-14 rounded-md border border-zinc-200 bg-white cursor-pointer" />
+                        <input type="text" value={form.branding.accentHex}
+                          onChange={(e) => setForm((p) => ({ ...p, branding: { ...p.branding, accentHex: e.target.value } }))}
+                          className="flex h-10 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900" />
+                      </div>
+                      <Muted className="text-[11px]">Used for CTAs and highlights on the client portal.</Muted>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-zinc-700">Tagline (optional)</label>
+                      <input type="text" value={form.branding.tagline ?? ""}
+                        onChange={(e) => setForm((p) => ({ ...p, branding: { ...p.branding, tagline: e.target.value || null } }))}
+                        placeholder="Secure project workspace."
+                        className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900" />
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-zinc-200 bg-zinc-50/50 px-6 py-3 flex items-center justify-end gap-3">
+                  <Feedback state={brandingState} />
+                  <Button type="submit" size="sm" className="h-9" disabled={brandingState.kind === "saving"}>
+                    {brandingState.kind === "saving" && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+                    Save branding
                   </Button>
                 </div>
               </form>

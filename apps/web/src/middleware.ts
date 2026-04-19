@@ -61,6 +61,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/automations") ||
     pathname.startsWith("/analytics") ||
     pathname.startsWith("/profitability") ||
+    pathname.startsWith("/services") ||
+    pathname.startsWith("/booking-settings") ||
+    pathname.startsWith("/lead-forms") ||
+    pathname.startsWith("/messages") ||
+    pathname.startsWith("/profile") ||
     pathname.startsWith("/settings")
 
   if (isDashboardRoute && !user) {
@@ -78,6 +83,11 @@ export async function middleware(request: NextRequest) {
   // /pt/[token] is the share-link redeem route — no auth required; the
   // handler validates the token and sets the portal session cookie itself.
   if (pathname.startsWith("/pt/")) {
+    return supabaseResponse
+  }
+
+  // /book/[slug] is the public booking page; /f/[slug] is the public lead form.
+  if (pathname.startsWith("/book/") || pathname.startsWith("/f/")) {
     return supabaseResponse
   }
 

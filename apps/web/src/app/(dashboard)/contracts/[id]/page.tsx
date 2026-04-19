@@ -254,6 +254,76 @@ function ContractDetailSkeleton() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   FREELANCER SIGN BUTTON + MODAL
+   ═══════════════════════════════════════════════════════ */
+
+function FreelancerSignButton({ contractId }: { contractId: string }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = React.useState(false);
+  const [name, setName] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+
+  const signMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/contracts/${contractId}/sign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signedName: name.trim() }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["contracts"] }); qc.invalidateQueries({ queryKey: ["contract", contractId] }); setOpen(false); setName(""); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <>
+      <Button size="sm" variant="default" className="flex-1 sm:flex-none h-9" onClick={() => { setError(null); setOpen(true); }}>
+        <CheckCircle2 className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />
+        <span className="hidden sm:inline">Sign</span>
+      </Button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/20" onClick={() => !signMutation.isPending && setOpen(false)} />
+          <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-md p-6 space-y-5">
+            <div>
+              <H3 className="text-base">Sign contract</H3>
+              <Muted className="text-xs">Type your full legal name. This counts as your binding signature.</Muted>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) signMutation.mutate(); }} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-700">Full legal name</label>
+                <input
+                  autoFocus required type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Najib Oladosu"
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+                />
+              </div>
+              {error && (
+                <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                  {error}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-1 border-t border-zinc-100">
+                <Button type="button" variant="ghost" size="sm" className="h-9" onClick={() => setOpen(false)} disabled={signMutation.isPending}>Cancel</Button>
+                <Button type="submit" size="sm" className="h-9" disabled={signMutation.isPending || !name.trim()}>
+                  {signMutation.isPending && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+                  Sign contract
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
    MILESTONES PANEL
    ═══════════════════════════════════════════════════════ */
 
@@ -624,6 +694,14 @@ export default function ContractBuilderPage() {
                 }
                 className="flex-1 sm:flex-none"
               />
+            )}
+            {!isTemplate && fetchFromDB && dbContract && !dbContract.signedByFreelancer && (
+              <FreelancerSignButton contractId={dbContract.id} />
+            )}
+            {!isTemplate && fetchFromDB && dbContract?.signedByFreelancer && (
+              <Badge variant="emerald" className="text-[10px] uppercase tracking-wide flex items-center gap-1 h-9 px-3">
+                <CheckCircle2 className="h-3 w-3" strokeWidth={2} /> Signed
+              </Badge>
             )}
             <Button size="sm" className="flex-1 sm:flex-none h-9">
               <Save className="sm:mr-2 h-4 w-4" strokeWidth={1.5} />

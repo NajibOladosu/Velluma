@@ -22,6 +22,10 @@ import {
     ReceiptText,
     BarChart3,
     DollarSign,
+    Tag,
+    CalendarClock,
+    Inbox,
+    Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -35,9 +39,11 @@ const navItems = [
     },
     {
         group: "Growth", items: [
-            { name: "Pipeline",  href: "/pipeline",  icon: TrendingUp },
-            { name: "Clients",   href: "/clients",   icon: Users      },
-            { name: "Proposals", href: "/proposals", icon: FileText   },
+            { name: "Pipeline",   href: "/pipeline",   icon: TrendingUp    },
+            { name: "Clients",    href: "/clients",    icon: Users         },
+            { name: "Proposals",  href: "/proposals",  icon: FileText      },
+            { name: "Lead Forms", href: "/lead-forms", icon: Sparkles      },
+            { name: "Bookings",   href: "/booking-settings", icon: CalendarClock },
         ]
     },
     {
@@ -52,7 +58,9 @@ const navItems = [
     {
         group: "Operations", items: [
             { name: "Projects",    href: "/projects",    icon: Briefcase },
+            { name: "Services",    href: "/services",    icon: Tag       },
             { name: "Time",        href: "/time",        icon: Clock     },
+            { name: "Messages",    href: "/messages",    icon: Inbox     },
             { name: "Automations", href: "/automations", icon: Zap       },
         ]
     },

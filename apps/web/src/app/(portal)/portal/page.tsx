@@ -33,6 +33,7 @@ import {
   usePortalDocuments,
   type PortalContract,
 } from "@/lib/queries/portal";
+import { MessageThread } from "@/components/messages/message-thread";
 
 // ---------------------------------------------------------------------------
 // Tab definition
@@ -561,72 +562,16 @@ function BillingTab({ contractId, contract }: BillingTabProps) {
 }
 
 // ---------------------------------------------------------------------------
-// MessagesTab — placeholder (no messaging table in schema yet)
+// MessagesTab — wired to contract_messages
 // ---------------------------------------------------------------------------
 
-function MessagesTab() {
-  const messages = [
-    {
-      from: "Freelancer",
-      content:
-        "Hey! Just uploaded the latest assets to the shared vault. Take a look when you get a chance.",
-      time: "2h ago",
-      isAgent: true,
-    },
-    {
-      from: "You",
-      content:
-        "These look great! Can we adjust the hero section to match the updated brand guidelines?",
-      time: "1h ago",
-      isAgent: false,
-    },
-    {
-      from: "Freelancer",
-      content: "Absolutely. I'll push an update by end of day.",
-      time: "45m ago",
-      isAgent: true,
-    },
-  ];
-
+function MessagesTab({ contractId }: { contractId: string }) {
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        {messages.map((msg, i) => (
-          <div key={i} className={cn("flex", msg.isAgent ? "justify-start" : "justify-end")}>
-            <div className={cn("max-w-md space-y-1", msg.isAgent ? "" : "text-right")}>
-              <div className="flex items-center gap-2">
-                {msg.isAgent && (
-                  <div className="h-6 w-6 rounded bg-zinc-100 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-zinc-600">F</span>
-                  </div>
-                )}
-                <span className="text-xs font-medium text-zinc-900">{msg.from}</span>
-                <Muted className="text-[10px]">{msg.time}</Muted>
-              </div>
-              <Surface className={cn("p-4 inline-block text-left", !msg.isAgent && "bg-zinc-50")}>
-                <P className="text-sm text-zinc-700 leading-relaxed">{msg.content}</P>
-              </Surface>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10 border-zinc-200 flex-shrink-0"
-        >
-          <Upload className="h-4 w-4 text-zinc-400" />
-        </Button>
-        <Input
-          placeholder="Type a message..."
-          className="h-10 bg-white border-zinc-200 text-sm flex-1"
-        />
-        <Button size="icon" className="h-10 w-10 flex-shrink-0">
-          <Send className="h-4 w-4" strokeWidth={1.5} />
-        </Button>
-      </div>
-    </div>
+    <MessageThread
+      apiPath={`/api/portal/contracts/${contractId}/messages`}
+      selfRole="client"
+      counterpartyName="your freelancer"
+    />
   );
 }
 
@@ -887,7 +832,7 @@ export default function ClientPortalPage() {
           {activeTab === "billing" && (
             <BillingTab contractId={contractId} contract={contract} />
           )}
-          {activeTab === "messages" && <MessagesTab />}
+          {activeTab === "messages" && <MessagesTab contractId={contractId} />}
         </>
       ) : (
         <div className="py-16 text-center">
