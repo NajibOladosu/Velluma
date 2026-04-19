@@ -374,3 +374,55 @@ export function useRejectTimeEntry() {
     },
   })
 }
+
+export interface ManualEntryPayload {
+  contractId: string
+  taskDescription: string
+  date: string       // YYYY-MM-DD
+  startTime: string  // HH:MM
+  endTime: string    // HH:MM
+  hourlyRate?: number
+}
+
+/** Create a manual (non-timer) time entry with explicit start/end times. */
+export function useCreateManualEntry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: ManualEntryPayload) => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      const startISO = new Date(`${payload.date}T${payload.startTime}`).toISOString()
+      const endISO   = new Date(`${payload.date}T${payload.endTime}`).toISOString()
+
+      const startMs = new Date(startISO).getTime()
+      const endMs   = new Date(endISO).getTime()
+      if (endMs <= startMs) throw new Error("End time must be after start time")
+
+      const durationMinutes = Math.round((endMs - startMs) / 60_000)
+
+      const { data, error } = await supabase
+        .from("time_entries")
+        .insert({
+          contract_id: payload.contractId,
+          freelancer_id: user.id,
+          tenant_id: user.id,
+          task_description: payload.taskDescription,
+          start_time: startISO,
+          end_time: endISO,
+          duration_minutes: durationMinutes,
+          hourly_rate: payload.hourlyRate ?? 0,
+          status: "draft",
+        })
+        .select("*")
+        .single()
+
+      if (error) throw new Error(error.message)
+      return mapRowToEntry(data as TimeEntryRow)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: timeKeys.lists() })
+    },
+  })
+}

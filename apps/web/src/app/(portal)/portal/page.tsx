@@ -20,6 +20,10 @@ import {
   CheckCircle2,
   Circle,
   AlertCircle,
+  PenLine,
+  CreditCard,
+  Loader2,
+  X,
 } from "lucide-react";
 import {
   usePortalContracts,
@@ -634,7 +638,16 @@ export default function ClientPortalPage() {
   const [activeTab, setActiveTab] = React.useState<TabKey>("overview");
   const [selectedContractId, setSelectedContractId] = React.useState<string | null>(null);
 
-  const { data: contracts, isLoading: contractsLoading } = usePortalContracts();
+  // Sign modal state
+  const [signModalOpen, setSignModalOpen] = React.useState(false);
+  const [signedName, setSignedName] = React.useState("");
+  const [signState, setSignState] = React.useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [signError, setSignError] = React.useState<string | null>(null);
+
+  // Pay state
+  const [payState, setPayState] = React.useState<"idle" | "loading">("idle");
+
+  const { data: contracts, isLoading: contractsLoading, refetch: refetchContracts } = usePortalContracts();
 
   const activeContract = React.useMemo(() => {
     if (!contracts?.length) return null;
@@ -648,8 +661,97 @@ export default function ClientPortalPage() {
 
   const contractId = contract?.id ?? "";
 
+  async function handleSign(e: React.FormEvent) {
+    e.preventDefault();
+    if (!contractId || !signedName.trim()) return;
+    setSignState("submitting");
+    setSignError(null);
+    try {
+      const res = await fetch(`/api/portal/contracts/${contractId}/sign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signedName: signedName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setSignState("error"); setSignError(data.error ?? "Failed to sign"); return; }
+      setSignState("done");
+      setSignModalOpen(false);
+      setSignedName("");
+      await refetchContracts();
+    } catch {
+      setSignState("error");
+      setSignError("Network error. Please try again.");
+    }
+  }
+
+  async function handlePay() {
+    if (!contractId) return;
+    setPayState("loading");
+    try {
+      const res = await fetch(`/api/portal/contracts/${contractId}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.checkoutUrl) { setPayState("idle"); return; }
+      window.location.href = data.checkoutUrl;
+    } catch {
+      setPayState("idle");
+    }
+  }
+
+  const needsSignature = contract && !contract.signedByClient;
+  const needsPayment   = contract && contract.signedByClient && !contract.totalAmount || false;
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-6 space-y-8">
+
+      {/* Sign modal */}
+      {signModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/20" onClick={() => signState !== "submitting" && setSignModalOpen(false)} />
+          <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-md p-6 space-y-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <H3 className="text-base">Sign contract</H3>
+                <Muted className="text-xs">Type your full legal name to sign.</Muted>
+              </div>
+              <button type="button" onClick={() => setSignModalOpen(false)} className="text-zinc-400 hover:text-zinc-700 transition-colors shrink-0">
+                <X className="h-4 w-4" strokeWidth={1.5} />
+              </button>
+            </div>
+            <form onSubmit={handleSign} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-zinc-700">Full legal name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={signedName}
+                  onChange={(e) => setSignedName(e.target.value)}
+                  placeholder="e.g. Alex Johnson"
+                  required
+                  className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
+                />
+              </div>
+              {signError && (
+                <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                  {signError}
+                </div>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-1 border-t border-zinc-100">
+                <Button type="button" variant="ghost" size="sm" className="h-9" onClick={() => setSignModalOpen(false)} disabled={signState === "submitting"}>Cancel</Button>
+                <Button type="submit" size="sm" className="h-9" disabled={signState === "submitting" || !signedName.trim()}>
+                  {signState === "submitting" && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+                  Sign contract
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -702,6 +804,54 @@ export default function ClientPortalPage() {
           ) : null}
         </div>
       </div>
+
+      {/* ── Action banner — sign / pay ─────────────────── */}
+      {!contractsLoading && contract && (
+        <>
+          {needsSignature && (
+            <div className="flex items-start sm:items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-white p-4 flex-wrap">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-md bg-zinc-100 flex items-center justify-center shrink-0">
+                  <PenLine className="h-4 w-4 text-zinc-700" strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0">
+                  <P className="text-sm font-medium">Your signature is required</P>
+                  <Muted className="text-xs">Review the contract then sign to proceed.</Muted>
+                </div>
+              </div>
+              <Button size="sm" className="h-9 shrink-0 w-full sm:w-auto" onClick={() => { setSignState("idle"); setSignError(null); setSignModalOpen(true); }}>
+                <PenLine className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />
+                Sign contract
+              </Button>
+            </div>
+          )}
+
+          {!needsSignature && contract.signedByClient && !contract.totalAmount && (
+            <div className="flex items-start sm:items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-white p-4 flex-wrap">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-md bg-zinc-100 flex items-center justify-center shrink-0">
+                  <CreditCard className="h-4 w-4 text-zinc-700" strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0">
+                  <P className="text-sm font-medium">Secure your project with escrow</P>
+                  <Muted className="text-xs">Funds are held safely until you approve delivery.</Muted>
+                </div>
+              </div>
+              <Button size="sm" className="h-9 shrink-0 w-full sm:w-auto" onClick={handlePay} disabled={payState === "loading"}>
+                {payState === "loading" ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <CreditCard className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />}
+                Pay deposit
+              </Button>
+            </div>
+          )}
+
+          {!needsSignature && contract.signedByClient && contract.totalAmount ? (
+            <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+              Contract signed · Escrow funded — you&apos;re all set.
+            </div>
+          ) : null}
+        </>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 border-b border-zinc-200">

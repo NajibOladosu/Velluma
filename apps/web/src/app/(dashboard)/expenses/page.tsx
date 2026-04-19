@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Upload, Plus, Download, Search, CheckCircle, XCircle, RefreshCw } from "lucide-react"
+import { Upload, Plus, Download, Search, CheckCircle, XCircle, RefreshCw, Loader2, FileText, X } from "lucide-react"
+import { createClient } from "@/utils/supabase/client"
 import {
   useExpenses,
   useExpenseSummary,
@@ -128,6 +129,120 @@ const columns = [
 // Page
 // ---------------------------------------------------------------------------
 
+/* ── Receipt Uploader ─────────────────────────────── */
+
+type UploadState = { kind: "idle" } | { kind: "uploading"; progress: number } | { kind: "done"; url: string; name: string } | { kind: "error"; message: string }
+
+function ReceiptUploader() {
+  const [state, setState] = React.useState<UploadState>({ kind: "idle" })
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const supabase = React.useMemo(() => createClient(), [])
+
+  async function upload(file: File) {
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setState({ kind: "error", message: "File exceeds 10 MB limit" }); return }
+
+    setState({ kind: "uploading", progress: 0 })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setState({ kind: "error", message: "Not authenticated" }); return }
+
+    const ext = file.name.split(".").pop()
+    const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-z0-9.-]/gi, "_")}`
+
+    const { data, error } = await supabase.storage
+      .from("receipts")
+      .upload(path, file, { upsert: false, contentType: file.type })
+
+    if (error) { setState({ kind: "error", message: error.message }); return }
+
+    const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(data.path)
+    setState({ kind: "done", url: publicUrl, name: file.name })
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file) upload(file)
+  }
+
+  return (
+    <div
+      className="rounded-lg border-2 border-dashed border-zinc-200 p-6 flex flex-col items-center justify-center min-h-[200px] text-center bg-zinc-50/50 hover:bg-zinc-50 transition-colors cursor-pointer group space-y-4"
+      onDrop={onDrop}
+      onDragOver={(e) => e.preventDefault()}
+      onClick={() => state.kind !== "uploading" && inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,application/pdf"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f) }}
+      />
+
+      {state.kind === "idle" && (
+        <>
+          <div className="h-10 w-10 rounded-md bg-white border border-zinc-200 flex items-center justify-center group-hover:border-zinc-300 transition-colors">
+            <Upload className="h-5 w-5 text-zinc-400" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <P className="text-sm font-medium">Drop receipt here</P>
+            <Muted className="text-[10px] uppercase tracking-wider">PDF, PNG, JPG · Max 10 MB</Muted>
+          </div>
+        </>
+      )}
+
+      {state.kind === "uploading" && (
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 text-zinc-400 animate-spin" strokeWidth={1.5} />
+          <Muted className="text-xs">Uploading…</Muted>
+        </div>
+      )}
+
+      {state.kind === "done" && (
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-md bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+            <FileText className="h-5 w-5 text-emerald-600" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <P className="text-sm font-medium text-emerald-700">Uploaded</P>
+            <Muted className="text-[10px] truncate max-w-[160px]">{state.name}</Muted>
+          </div>
+          <a
+            href={state.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-600 underline underline-offset-2 hover:text-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            View receipt
+          </a>
+          <button
+            type="button"
+            className="text-[10px] text-zinc-400 hover:text-zinc-700 transition-colors flex items-center gap-1"
+            onClick={(e) => { e.stopPropagation(); setState({ kind: "idle" }) }}
+          >
+            <X className="h-3 w-3" strokeWidth={1.5} /> Upload another
+          </button>
+        </div>
+      )}
+
+      {state.kind === "error" && (
+        <div className="flex flex-col items-center gap-2">
+          <Muted className="text-xs text-red-600">{state.message}</Muted>
+          <button
+            type="button"
+            className="text-[10px] text-zinc-500 underline"
+            onClick={(e) => { e.stopPropagation(); setState({ kind: "idle" }) }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ExpensesPage() {
   const [search, setSearch] = React.useState("")
   const { data: expenses = [], isLoading } = useExpenses()
@@ -198,15 +313,7 @@ export default function ExpensesPage() {
 
         {/* Upload & Summary Sidebar */}
         <div className="space-y-6">
-          <Surface className="p-6 space-y-4 border-dashed border-2 flex flex-col items-center justify-center min-h-[200px] text-center bg-zinc-50/50 hover:bg-zinc-50 transition-colors cursor-pointer group">
-            <div className="h-10 w-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center group-hover:border-zinc-300 transition-colors">
-              <Upload className="h-5 w-5 text-zinc-400" />
-            </div>
-            <div className="space-y-1">
-              <P className="text-sm font-medium">Drop receipts here</P>
-              <Muted className="text-[10px] uppercase tracking-wider">PDF, PNG, JPG (Max 10MB)</Muted>
-            </div>
-          </Surface>
+          <ReceiptUploader />
 
           <Surface className="p-6 space-y-4">
             <H3 className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Quick Summary</H3>
