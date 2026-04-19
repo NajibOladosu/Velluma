@@ -19,6 +19,8 @@ import {
 } from "@/lib/data/contracts";
 import { useContract } from "@/lib/queries/contracts";
 import type { ContractSection } from "@/lib/queries/contracts";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createClient as createSupabaseClient } from "@/utils/supabase/client";
 import {
   Eye,
   LayoutTemplate,
@@ -33,13 +35,19 @@ import {
   Copy,
   Save,
   ReceiptText,
+  Milestone,
+  DollarSign,
+  Loader2,
+  AlertCircle,
+  Clock,
+  Circle,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════
    TYPES
    ═══════════════════════════════════════════════════════ */
 
-type EditorTab = "editor" | "settings";
+type EditorTab = "editor" | "settings" | "milestones";
 
 interface Clause {
   id: string;
@@ -243,6 +251,184 @@ function ContractDetailSkeleton() {
       </div>
     </div>
   )
+}
+
+/* ═══════════════════════════════════════════════════════
+   MILESTONES PANEL
+   ═══════════════════════════════════════════════════════ */
+
+function MilestonesPanel({ contractId }: { contractId: string }) {
+  const qc = useQueryClient();
+  const supabase = React.useMemo(() => createSupabaseClient(), []);
+
+  const { data: milestones, isLoading: mLoading } = useQuery({
+    queryKey: ["milestones", contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("milestones")
+        .select("id, title, description, amount, due_date, status, completed_at")
+        .eq("contract_id", contractId)
+        .order("due_date", { ascending: true });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
+  const { data: escrows, isLoading: eLoading } = useQuery({
+    queryKey: ["contract_escrows", contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contract_escrows")
+        .select("id, funded_amount, currency, status, funded_at")
+        .eq("contract_id", contractId)
+        .order("funded_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const res = await fetch(`/api/contracts/${contractId}/milestones/${milestoneId}/complete`, { method: "POST" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["milestones", contractId] }),
+  });
+
+  const releaseMutation = useMutation({
+    mutationFn: async (escrowId: string) => {
+      const res = await fetch(`/api/contracts/${contractId}/escrow/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ escrowId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["contract_escrows", contractId] }),
+  });
+
+  const activeEscrow = escrows?.find((e) => e.status === "active");
+  const allMilestoneDone = milestones?.length > 0 && milestones.every((m) => m.status === "completed");
+
+  const statusIcon = (status: string) => {
+    if (status === "completed") return <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={1.5} />;
+    if (status === "in_progress") return <Clock className="h-4 w-4 text-zinc-500 shrink-0" strokeWidth={1.5} />;
+    return <Circle className="h-4 w-4 text-zinc-300 shrink-0" strokeWidth={1.5} />;
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className="pb-6 border-b border-zinc-200">
+        <H2>Milestones & Escrow</H2>
+        <Muted className="mt-1 text-sm">Track deliverables and release payments as work completes.</Muted>
+      </div>
+
+      {/* Milestones */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Milestones</h3>
+          {milestones?.length ? (
+            <Muted className="text-xs">{milestones.filter(m => m.status === "completed").length} / {milestones.length} complete</Muted>
+          ) : null}
+        </div>
+
+        {mLoading ? (
+          [1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)
+        ) : !milestones?.length ? (
+          <Surface className="p-6 text-center">
+            <Muted className="text-sm">No milestones yet. Add them to track project phases.</Muted>
+          </Surface>
+        ) : (
+          milestones.map((m) => (
+            <Surface key={m.id} className="p-4 flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3 min-w-0">
+                {statusIcon(m.status)}
+                <div className="min-w-0">
+                  <div className={cn("text-sm font-medium", m.status === "completed" ? "text-zinc-400 line-through" : "text-zinc-900")}>
+                    {m.title}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    {m.due_date && (
+                      <Muted className="text-xs">Due {new Date(m.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</Muted>
+                    )}
+                    {m.amount > 0 && (
+                      <span className="text-xs font-medium text-zinc-700 flex items-center gap-0.5">
+                        <DollarSign className="h-3 w-3" strokeWidth={1.5} />{Number(m.amount).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {m.status !== "completed" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                  disabled={completeMutation.isPending}
+                  onClick={() => completeMutation.mutate(m.id)}
+                >
+                  {completeMutation.isPending && completeMutation.variables === m.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Mark complete"
+                  )}
+                </Button>
+              )}
+            </Surface>
+          ))
+        )}
+      </div>
+
+      {/* Escrow positions */}
+      <div className="space-y-3">
+        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Escrow</h3>
+        {eLoading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : !escrows?.length ? (
+          <Surface className="p-6 text-center">
+            <Muted className="text-sm">No escrow positions. Funds appear here once the client pays the deposit.</Muted>
+          </Surface>
+        ) : (
+          escrows.map((e) => (
+            <Surface key={e.id} className="p-4 flex items-start sm:items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-9 w-9 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center shrink-0">
+                  <DollarSign className="h-4 w-4 text-zinc-600" strokeWidth={1.5} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900">
+                    {Number(e.funded_amount).toLocaleString()} {e.currency}
+                  </div>
+                  <Badge variant={e.status === "released" ? "emerald" : e.status === "active" ? "outline" : "default"} className="text-[10px] uppercase tracking-wide mt-0.5">
+                    {e.status}
+                  </Badge>
+                </div>
+              </div>
+              {e.status === "active" && (
+                <Button
+                  size="sm"
+                  className="h-9 shrink-0"
+                  disabled={releaseMutation.isPending || !allMilestoneDone}
+                  onClick={() => releaseMutation.mutate(e.id)}
+                  title={!allMilestoneDone ? "Complete all milestones before releasing" : undefined}
+                >
+                  {releaseMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
+                  Release payment
+                </Button>
+              )}
+            </Surface>
+          ))
+        )}
+
+        {releaseMutation.isError && (
+          <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+            {releaseMutation.error?.message ?? "Release failed. Try again."}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -482,6 +668,20 @@ export default function ContractBuilderPage() {
               <ShieldCheck className="h-4 w-4" strokeWidth={1.5} />
               Legal Settings
             </button>
+            {!isTemplate && fetchFromDB && (
+              <button
+                onClick={() => setActiveTab("milestones")}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-md text-left transition-colors text-sm font-medium",
+                  activeTab === "milestones"
+                    ? "bg-zinc-100 text-zinc-900"
+                    : "text-zinc-600 hover:bg-zinc-100/60"
+                )}
+              >
+                <Milestone className="h-4 w-4" strokeWidth={1.5} />
+                Milestones
+              </button>
+            )}
           </div>
 
           <Separator />
@@ -610,6 +810,10 @@ export default function ContractBuilderPage() {
                 </div>
 
               </div>
+            )}
+
+            {activeTab === "milestones" && fetchFromDB && id && (
+              <MilestonesPanel contractId={id} />
             )}
 
             {activeTab === "settings" && (

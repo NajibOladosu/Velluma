@@ -14,8 +14,16 @@ import {
   ChevronRight,
   TrendingUp,
   CreditCard,
+  ArrowDownToLine,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
 } from "lucide-react"
 import { useFinanceStats } from "@/lib/queries/dashboard"
+import { usePaymentMethods, RAIL_META } from "@/lib/queries/payment-methods"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { createClient } from "@/utils/supabase/client"
 
 function fmt(n: number) {
   return new Intl.NumberFormat("en-US", {
@@ -190,6 +198,169 @@ export default function FinancePage() {
             </Button>
           </Surface>
         </div>
+      </div>
+
+      {/* ── Withdrawals ─────────────────────────────── */}
+      <PayoutsSection availableBalance={stats?.availableBalance ?? 0} isLoadingBalance={isLoading} />
+    </div>
+  )
+}
+
+/* ── PayoutsSection ────────────────────────────────── */
+
+function PayoutsSection({ availableBalance, isLoadingBalance }: { availableBalance: number; isLoadingBalance: boolean }) {
+  const qc = useQueryClient()
+  const supabase = React.useMemo(() => createClient(), [])
+  const { data: methods = [], isLoading: methodsLoading } = usePaymentMethods()
+
+  const { data: recentPayouts = [], isLoading: payoutsLoading } = useQuery({
+    queryKey: ["payouts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payouts")
+        .select("id, amount, currency, status, rail, requested_at, completed_at, net_amount")
+        .order("requested_at", { ascending: false })
+        .limit(10)
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
+
+  const [selectedMethodId, setSelectedMethodId] = React.useState("")
+  const [amount, setAmount] = React.useState("")
+  const [reqError, setReqError] = React.useState<string | null>(null)
+
+  const requestPayout = useMutation({
+    mutationFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+      const method = methods.find(m => m.id === selectedMethodId)
+      if (!method) throw new Error("Select a withdrawal method")
+      const cents = Math.round(parseFloat(amount) * 100)
+      if (isNaN(cents) || cents < 100) throw new Error("Minimum payout is $1.00")
+      if (cents > availableBalance * 100) throw new Error("Amount exceeds available balance")
+
+      const { error } = await supabase.from("payouts").insert({
+        user_id: user.id,
+        method_id: selectedMethodId,
+        rail: method.rail,
+        amount: cents,
+        net_amount: cents, // fees deducted async
+        currency: method.currency,
+        status: "requested",
+        description: `Payout via ${RAIL_META[method.rail as keyof typeof RAIL_META]?.displayName ?? method.rail}`,
+      })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payouts"] })
+      setAmount("")
+      setReqError(null)
+    },
+    onError: (e: Error) => setReqError(e.message),
+  })
+
+  const statusBadge = (status: string) => {
+    if (status === "completed") return <Badge variant="emerald" className="text-[10px] capitalize">{status}</Badge>
+    if (status === "failed")    return <Badge variant="red"     className="text-[10px] capitalize">{status}</Badge>
+    return <Badge variant="outline" className="text-[10px] capitalize">{status}</Badge>
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Request payout */}
+      <div className="lg:col-span-1 space-y-4">
+        <H3 className="text-sm uppercase tracking-wider font-semibold">Request Payout</H3>
+        <Surface className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <Muted className="text-[10px] uppercase tracking-wider font-bold block">Available balance</Muted>
+            <div className="text-2xl font-bold tracking-tight text-zinc-900">
+              {isLoadingBalance ? "—" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(availableBalance)}
+            </div>
+          </div>
+          <Separator />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Withdrawal method</label>
+            {methodsLoading ? <Skeleton className="h-10 w-full" /> : (
+              <select
+                value={selectedMethodId}
+                onChange={e => setSelectedMethodId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              >
+                <option value="">Select method…</option>
+                {methods.filter(m => m.isActive).map(m => (
+                  <option key={m.id} value={m.id}>
+                    {RAIL_META[m.rail as keyof typeof RAIL_META]?.icon} {m.label} {m.lastFour ? `····${m.lastFour}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Amount (USD)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+              <input
+                type="number" min="1" step="0.01"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white pl-7 pr-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+            </div>
+          </div>
+          {reqError && (
+            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+              {reqError}
+            </div>
+          )}
+          <Button
+            className="w-full h-9"
+            disabled={requestPayout.isPending || !selectedMethodId || !amount || availableBalance <= 0}
+            onClick={() => requestPayout.mutate()}
+          >
+            {requestPayout.isPending ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <ArrowDownToLine className="h-3.5 w-3.5 mr-2" strokeWidth={1.5} />}
+            Request payout
+          </Button>
+          {methods.length === 0 && !methodsLoading && (
+            <P className="text-xs text-zinc-500 text-center">No withdrawal methods yet. <a href="/settings" className="underline">Add one in Settings</a>.</P>
+          )}
+        </Surface>
+      </div>
+
+      {/* Payout history */}
+      <div className="lg:col-span-2 space-y-4">
+        <H3 className="text-sm uppercase tracking-wider font-semibold">Payout History</H3>
+        <Surface>
+          {payoutsLoading ? (
+            <div className="p-4 space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          ) : recentPayouts.length === 0 ? (
+            <div className="p-8 text-center"><Muted className="text-sm">No payouts yet.</Muted></div>
+          ) : (
+            <div className="divide-y divide-zinc-100">
+              {recentPayouts.map((p: { id: string; amount: number; net_amount: number; currency: string; status: string; rail: string; requested_at: string }) => (
+                <div key={p.id} className="flex items-center justify-between gap-4 px-5 py-4 flex-wrap">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center shrink-0 text-sm">
+                      {RAIL_META[p.rail as keyof typeof RAIL_META]?.icon ?? "💳"}
+                    </div>
+                    <div className="min-w-0">
+                      <P className="text-sm font-medium truncate">{RAIL_META[p.rail as keyof typeof RAIL_META]?.displayName ?? p.rail}</P>
+                      <Muted className="text-xs">{new Date(p.requested_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</Muted>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-sm font-semibold text-zinc-900">
+                      {new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency ?? "USD" }).format((p.net_amount ?? p.amount) / 100)}
+                    </span>
+                    {statusBadge(p.status)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Surface>
       </div>
     </div>
   )

@@ -19,6 +19,9 @@ import {
   CheckCircle,
   XCircle,
   Send,
+  X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   useTimeEntries,
@@ -27,8 +30,10 @@ import {
   useSubmitTimeEntry,
   useApproveTimeEntry,
   useRejectTimeEntry,
+  useCreateManualEntry,
   type TimeEntry,
 } from "@/lib/queries/time";
+import { useContracts } from "@/lib/queries/contracts";
 
 /* ═══════════════════════════════════════════════════════
    STATUS BADGE
@@ -123,6 +128,7 @@ export default function TimePage() {
   const [elapsed, setElapsed]     = React.useState(0);
   const [task, setTask]           = React.useState("");
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
+  const [manualModalOpen, setManualModalOpen] = React.useState(false);
 
   const { data: recentEntries = [], isLoading } = useTimeEntries();
   const startTimer = useStartTimer();
@@ -206,7 +212,7 @@ export default function TimePage() {
           <H1 className="truncate">Time Tracker</H1>
           <Muted className="truncate">Log billable hours with precision. Every minute is money.</Muted>
         </div>
-        <Button className="gap-2 font-semibold px-5 w-full sm:w-auto shrink-0" variant="outline">
+        <Button className="gap-2 font-semibold px-5 w-full sm:w-auto shrink-0" variant="outline" onClick={() => setManualModalOpen(true)}>
           <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
           Manual Entry
         </Button>
@@ -349,6 +355,159 @@ export default function TimePage() {
             </table>
           </div>
         </Surface>
+      </div>
+
+      {/* ── Manual Entry Modal ─────────────────── */}
+      {manualModalOpen && (
+        <ManualEntryModal onClose={() => setManualModalOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+/* ── ManualEntryModal ─────────────────────────────── */
+
+function ManualEntryModal({ onClose }: { onClose: () => void }) {
+  const { data: contracts = [] } = useContracts();
+  const createEntry = useCreateManualEntry();
+
+  const today = new Date().toISOString().split("T")[0];
+  const [contractId, setContractId]     = React.useState("");
+  const [description, setDescription]   = React.useState("");
+  const [date, setDate]                 = React.useState(today);
+  const [startTime, setStartTime]       = React.useState("09:00");
+  const [endTime, setEndTime]           = React.useState("10:00");
+  const [hourlyRate, setHourlyRate]     = React.useState("");
+  const [error, setError]               = React.useState<string | null>(null);
+
+  // Active contracts for the dropdown
+  const activeContracts = contracts.filter(
+    (c) => c.status === "active" || c.status === "pending"
+  );
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!contractId) { setError("Select a contract"); return; }
+    setError(null);
+    try {
+      await createEntry.mutateAsync({
+        contractId,
+        taskDescription: description.trim(),
+        date,
+        startTime,
+        endTime,
+        hourlyRate: hourlyRate ? parseFloat(hourlyRate) : 0,
+      });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save entry");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/20" onClick={() => !createEntry.isPending && onClose()} />
+      <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-md p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-medium text-zinc-900">Log time manually</h3>
+            <p className="text-xs text-zinc-500 mt-0.5">Record hours without running the timer.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-zinc-400 hover:text-zinc-700 transition-colors">
+            <X className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Contract</label>
+            <select
+              required
+              value={contractId}
+              onChange={(e) => setContractId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="">Select contract…</option>
+              {activeContracts.map((c) => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+              {activeContracts.length === 0 && contracts.map((c) => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Task description</label>
+            <input
+              required
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Designed hero section"
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">Date</label>
+              <input
+                required type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">Start</label>
+              <input
+                required type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">End</label>
+              <input
+                required type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Hourly rate <span className="text-zinc-400 font-normal">(optional)</span></label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+              <input
+                type="number" min="0" step="0.01"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+                placeholder="0.00"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white pl-7 pr-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1 border-t border-zinc-100">
+            <Button type="button" variant="ghost" size="sm" className="h-9" onClick={onClose} disabled={createEntry.isPending}>Cancel</Button>
+            <Button type="submit" size="sm" className="h-9" disabled={createEntry.isPending}>
+              {createEntry.isPending && <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />}
+              Save entry
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
