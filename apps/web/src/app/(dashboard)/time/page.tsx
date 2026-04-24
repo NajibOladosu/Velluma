@@ -4,6 +4,7 @@ import * as React from "react";
 import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 import { H1, H2, Muted } from "@/components/ui/typography";
+import { CsvImportExport } from "@/components/data/csv-import-export";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -212,10 +213,13 @@ export default function TimePage() {
           <H1 className="truncate">Time Tracker</H1>
           <Muted className="truncate">Log billable hours with precision. Every minute is money.</Muted>
         </div>
-        <Button className="gap-2 font-semibold px-5 w-full sm:w-auto shrink-0" variant="outline" onClick={() => setManualModalOpen(true)}>
-          <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-          Manual Entry
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <CsvImportExport resource="time" />
+          <Button className="gap-2 font-semibold px-5 w-full sm:w-auto" variant="outline" onClick={() => setManualModalOpen(true)}>
+            <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            Manual Entry
+          </Button>
+        </div>
       </div>
 
       {/* Live Timer Card */}

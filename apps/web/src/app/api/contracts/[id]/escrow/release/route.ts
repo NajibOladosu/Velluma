@@ -10,6 +10,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient, createServiceClient } from "@/utils/supabase/server"
+import { writeAudit, AuditEvents } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -48,6 +49,16 @@ export async function POST(
     .eq("contract_id", contractId)
     .eq("status", "held")
     .then(() => {}) // best-effort
+
+  await writeAudit({
+    userId: user.id,
+    action: AuditEvents.EscrowReleased,
+    resourceType: "escrow",
+    resourceId: body.escrowId,
+    details: { contract_id: contractId, milestone_id: body.milestoneId ?? null },
+    severity: "warning",
+    request,
+  })
 
   return NextResponse.json({ ok: true })
 }
