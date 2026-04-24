@@ -26,6 +26,9 @@ import {
     CalendarClock,
     Inbox,
     Sparkles,
+    ShieldAlert,
+    UserPlus,
+    Files,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -62,6 +65,13 @@ const navItems = [
             { name: "Time",        href: "/time",        icon: Clock     },
             { name: "Messages",    href: "/messages",    icon: Inbox     },
             { name: "Automations", href: "/automations", icon: Zap       },
+            { name: "Templates",   href: "/templates",   icon: Files     },
+        ]
+    },
+    {
+        group: "Workspace", items: [
+            { name: "Team",      href: "/team",      icon: UserPlus   },
+            { name: "Audit Log", href: "/audit-log", icon: ShieldAlert },
         ]
     },
 ]

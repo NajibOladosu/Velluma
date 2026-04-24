@@ -12,6 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServiceClient } from "@/utils/supabase/server"
 import { requirePortalSession, forbidden } from "@/lib/portal/guard"
+import { writeAudit, AuditEvents } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -74,6 +75,16 @@ export async function POST(
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
+
+  await writeAudit({
+    userId: null,
+    action: AuditEvents.ContractSigned,
+    resourceType: "contract",
+    resourceId: contractId,
+    details: { signer_role: "client", signed_name: signedName, client_email: guard.session.email },
+    severity: "warning",
+    request,
+  })
 
   return NextResponse.json({ ok: true, signedAt: now })
 }

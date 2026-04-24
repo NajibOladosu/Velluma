@@ -8,6 +8,7 @@
  */
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient, createServiceClient } from "@/utils/supabase/server"
+import { writeAudit, AuditEvents } from "@/lib/audit"
 
 export async function POST(
   request: NextRequest,
@@ -53,6 +54,15 @@ export async function POST(
     .update({ signed_by_freelancer: now, updated_at: now })
     .eq("id", contractId)
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
+
+  await writeAudit({
+    userId: user.id,
+    action: AuditEvents.ContractSigned,
+    resourceType: "contract",
+    resourceId: contractId,
+    details: { signer_role: "freelancer", signed_name: signedName },
+    request,
+  })
 
   return NextResponse.json({ ok: true, signedAt: now })
 }

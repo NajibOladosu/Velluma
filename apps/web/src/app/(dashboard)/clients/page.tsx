@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { H1, Muted } from "@/components/ui/typography";
+import { CsvImportExport } from "@/components/data/csv-import-export";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -279,10 +280,13 @@ export default function ClientsPage() {
               {isLoading ? "Loading…" : `${clients.length} contacts in your rolodex.`}
             </Muted>
           </div>
-          <Button className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
-            <Plus className="h-4 w-4" strokeWidth={1.5} />
-            Add Client
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <CsvImportExport resource="clients" />
+            <Button className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
+              <Plus className="h-4 w-4" strokeWidth={1.5} />
+              Add Client
+            </Button>
+          </div>
         </div>
 
         {/* Metrics */}

@@ -22,6 +22,7 @@ import { NextResponse } from "next/server"
 import { randomBytes } from "node:crypto"
 import { createClient, createServiceClient } from "@/utils/supabase/server"
 import type { PortalEngagementType } from "@/lib/portal/session"
+import { writeAudit, AuditEvents } from "@/lib/audit"
 
 const ENGAGEMENT_TYPES: PortalEngagementType[] = ["proposal", "contract", "project"]
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -104,6 +105,15 @@ export async function POST(request: Request) {
     request.headers.get("x-forwarded-origin") ??
     new URL(request.url).origin
   const url = `${origin}/pt/${token}`
+
+  await writeAudit({
+    userId: user.id,
+    action: AuditEvents.PortalTokenIssued,
+    resourceType: "portal",
+    resourceId: engagementId,
+    details: { engagement_type: engagementType, client_email: clientEmail, expires_at: expiresAt.toISOString(), note },
+    request,
+  })
 
   return NextResponse.json({
     url,
