@@ -13,6 +13,7 @@ import {
   Zap,
 } from "lucide-react"
 import { useAnalyticsStats } from "@/lib/queries/dashboard"
+import { useCohorts, useWinRate } from "@/lib/queries/analytics-advanced"
 
 function fmtCurrency(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -32,6 +33,140 @@ function fmtHours(minutes: number) {
 
 function statusLabel(status: string) {
   return status.replace(/_/g, " ")
+}
+
+function fmtPct(n: number) {
+  return `${Math.round(n * 100)}%`
+}
+
+function CohortAndWinRateSection() {
+  const { data: cohorts, isLoading: cohortsLoading } = useCohorts()
+  const { data: winRate, isLoading: winLoading } = useWinRate()
+
+  return (
+    <div className="space-y-6">
+      <Surface className="p-6">
+        <H2 className="text-base mb-1">Cohort Retention</H2>
+        <Muted className="text-xs mb-5">Clients grouped by the month of their first contract — who came back for more.</Muted>
+        {cohortsLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : !cohorts || cohorts.length === 0 ? (
+          <Muted>Not enough contracts to plot cohorts yet.</Muted>
+        ) : (
+          <div className="overflow-x-auto -mx-6">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-y border-zinc-100 bg-zinc-50/50">
+                  <th className="px-6 py-3 text-left text-[10px] uppercase tracking-widest font-bold text-zinc-500">Cohort</th>
+                  <th className="px-6 py-3 text-right text-[10px] uppercase tracking-widest font-bold text-zinc-500">Clients</th>
+                  <th className="px-6 py-3 text-right text-[10px] uppercase tracking-widest font-bold text-zinc-500">Repeat</th>
+                  <th className="px-6 py-3 text-right text-[10px] uppercase tracking-widest font-bold text-zinc-500">Retention</th>
+                  <th className="px-6 py-3 text-right text-[10px] uppercase tracking-widest font-bold text-zinc-500">Revenue</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {cohorts.map((c) => {
+                  const retention = c.clients > 0 ? c.activeLater / c.clients : 0
+                  return (
+                    <tr key={c.cohort} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-6 py-3 font-mono text-zinc-900">{c.cohort}</td>
+                      <td className="px-6 py-3 text-right text-zinc-900">{c.clients}</td>
+                      <td className="px-6 py-3 text-right text-zinc-900">{c.activeLater}</td>
+                      <td className="px-6 py-3 text-right">
+                        <span className={retention >= 0.5 ? "text-emerald-600 font-medium" : "text-zinc-500"}>
+                          {fmtPct(retention)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-right font-semibold text-zinc-900">{fmtCurrency(c.revenue)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Surface>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Surface className="p-6 space-y-4">
+          <div>
+            <H2 className="text-base mb-1">Proposal Win Rate</H2>
+            <Muted className="text-xs">How often your proposals convert.</Muted>
+          </div>
+          {winLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : !winRate ? (
+            <Muted>No proposals yet.</Muted>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-end gap-6">
+                <div>
+                  <div className="text-3xl font-bold tracking-tight text-zinc-900">{fmtPct(winRate.winRate)}</div>
+                  <Muted className="text-xs mt-1">Win rate</Muted>
+                </div>
+                <Separator orientation="vertical" className="h-12" />
+                <div>
+                  <div className="text-xl font-semibold text-zinc-900">{winRate.wonProposals}</div>
+                  <Muted className="text-xs">Won</Muted>
+                </div>
+                <div>
+                  <div className="text-xl font-semibold text-zinc-900">{winRate.lostProposals}</div>
+                  <Muted className="text-xs">Lost</Muted>
+                </div>
+                <div>
+                  <div className="text-xl font-semibold text-zinc-500">{winRate.pendingProposals}</div>
+                  <Muted className="text-xs">Pending</Muted>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-zinc-100">
+                <div>
+                  <Muted className="text-[10px] uppercase tracking-widest">Avg won value</Muted>
+                  <div className="text-sm font-semibold text-zinc-900 mt-1">{fmtCurrency(winRate.avgWonValue)}</div>
+                </div>
+                <div>
+                  <Muted className="text-[10px] uppercase tracking-widest">Median days to close</Muted>
+                  <div className="text-sm font-semibold text-zinc-900 mt-1">
+                    {winRate.medianDaysToClose > 0 ? `${winRate.medianDaysToClose}d` : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Surface>
+
+        <Surface className="p-6 space-y-4">
+          <div>
+            <H2 className="text-base mb-1">By Source</H2>
+            <Muted className="text-xs">Which channels convert the best.</Muted>
+          </div>
+          {winLoading ? (
+            <Skeleton className="h-40 w-full" />
+          ) : !winRate || winRate.bySource.length === 0 ? (
+            <Muted>No lead source data yet.</Muted>
+          ) : (
+            <div className="space-y-3">
+              {winRate.bySource.map((s) => (
+                <div key={s.source} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-900 capitalize">{s.source}</span>
+                    <span className="text-zinc-500">
+                      {s.won}/{s.leads} · {fmtPct(s.winRate)}
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+                    <div
+                      className="h-full bg-zinc-900 transition-all"
+                      style={{ width: `${Math.round(s.winRate * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Surface>
+      </div>
+    </div>
+  )
 }
 
 export default function AnalyticsPage() {
@@ -218,6 +353,8 @@ export default function AnalyticsPage() {
           </Surface>
         </div>
       </div>
+
+      <CohortAndWinRateSection />
     </div>
   )
 }
