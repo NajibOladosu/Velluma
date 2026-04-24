@@ -66,6 +66,7 @@ const navItems = [
             { name: "Messages",    href: "/messages",    icon: Inbox     },
             { name: "Automations", href: "/automations", icon: Zap       },
             { name: "Templates",   href: "/templates",   icon: Files     },
+            { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
         ]
     },
     {

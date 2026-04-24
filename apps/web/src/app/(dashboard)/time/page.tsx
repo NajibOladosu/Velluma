@@ -5,6 +5,7 @@ import { Surface } from "@/components/ui/surface";
 import { Button } from "@/components/ui/button";
 import { H1, H2, Muted } from "@/components/ui/typography";
 import { CsvImportExport } from "@/components/data/csv-import-export";
+import { BulkActionBar } from "@/components/data/bulk-action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -130,8 +131,15 @@ export default function TimePage() {
   const [task, setTask]           = React.useState("");
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
   const [manualModalOpen, setManualModalOpen] = React.useState(false);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  const { data: recentEntries = [], isLoading } = useTimeEntries();
+  const { data: recentEntries = [], isLoading, refetch: refetchEntries } = useTimeEntries();
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const selectAll = () => setSelectedIds(recentEntries.map((e) => e.id));
+  const clearSelection = () => setSelectedIds([]);
+  const allSelected = recentEntries.length > 0 && selectedIds.length === recentEntries.length;
   const startTimer = useStartTimer();
   const stopTimer  = useStopTimer();
 
@@ -298,6 +306,15 @@ export default function TimePage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                  <th className="px-4 py-4 w-8">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => (allSelected ? clearSelection() : selectAll())}
+                      aria-label="Select all"
+                      className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+                    />
+                  </th>
                   <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Task</th>
                   <th className="px-4 py-4 hidden sm:table-cell text-[10px] uppercase tracking-widest font-bold text-zinc-500">Date</th>
                   <th className="px-4 py-4 text-[10px] uppercase tracking-widest font-bold text-zinc-500">Duration</th>
@@ -320,7 +337,7 @@ export default function TimePage() {
                   ))
                 ) : recentEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center">
+                    <td colSpan={7} className="px-4 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center">
                           <Clock className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
@@ -332,6 +349,15 @@ export default function TimePage() {
                 ) : (
                   recentEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-zinc-50/50 transition-colors group">
+                      <td className="px-4 py-4 w-8">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(entry.id)}
+                          onChange={() => toggleSelect(entry.id)}
+                          aria-label={`Select ${entry.task}`}
+                          className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+                        />
+                      </td>
                       <td className="px-4 py-4 max-w-[150px] sm:max-w-[200px]">
                         <span className="font-medium text-zinc-900 text-sm truncate block min-w-0">{entry.task}</span>
                       </td>
@@ -365,6 +391,14 @@ export default function TimePage() {
       {manualModalOpen && (
         <ManualEntryModal onClose={() => setManualModalOpen(false)} />
       )}
+
+      <BulkActionBar
+        resource="time"
+        count={selectedIds.length}
+        ids={selectedIds}
+        onClear={clearSelection}
+        onDone={() => refetchEntries()}
+      />
     </div>
   );
 }

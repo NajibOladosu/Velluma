@@ -69,7 +69,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/settings") ||
     pathname.startsWith("/team") ||
     pathname.startsWith("/audit-log") ||
-    pathname.startsWith("/templates")
+    pathname.startsWith("/templates") ||
+    pathname.startsWith("/ai-assistant")
 
   if (isDashboardRoute && !user) {
     const loginUrl = request.nextUrl.clone()

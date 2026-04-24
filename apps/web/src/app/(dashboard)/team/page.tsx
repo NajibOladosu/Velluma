@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { format } from "date-fns"
+function fmtDate(d: Date) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
 import { Surface } from "@/components/ui/surface"
 import { H1, H3, Muted } from "@/components/ui/typography"
 import { Button } from "@/components/ui/button"
@@ -111,7 +113,7 @@ export default function TeamPage() {
               <div key={m.id} className="px-6 py-3 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-zinc-900 truncate">{m.email}</div>
-                  <div className="text-xs text-zinc-500">joined {format(new Date(m.created_at), "MMM d, yyyy")}</div>
+                  <div className="text-xs text-zinc-500">joined {fmtDate(new Date(m.created_at))}</div>
                 </div>
                 <Badge variant="outline">{ROLE_LABEL[m.role] ?? m.role}</Badge>
                 {m.status === "active" ? (
@@ -142,7 +144,7 @@ export default function TeamPage() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-zinc-900 truncate">{inv.email}</div>
                   <div className="text-xs text-zinc-500">
-                    expires {format(new Date(inv.expires_at), "MMM d, yyyy")}
+                    expires {fmtDate(new Date(inv.expires_at))}
                   </div>
                 </div>
                 <Badge variant="outline">{ROLE_LABEL[inv.role] ?? inv.role}</Badge>

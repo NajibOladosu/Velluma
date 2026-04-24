@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { format } from "date-fns"
+function fmtShort(d: Date) {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+    ", " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+}
 import { Surface } from "@/components/ui/surface"
 import { H1, Muted } from "@/components/ui/typography"
 import { Button } from "@/components/ui/button"
@@ -107,7 +110,7 @@ export default function AuditLogPage() {
                     )}
                   </div>
                   <div className="text-xs text-zinc-400 whitespace-nowrap">
-                    {format(new Date(log.created_at), "MMM d, HH:mm")}
+                    {fmtShort(new Date(log.created_at))}
                   </div>
                 </div>
               ))}

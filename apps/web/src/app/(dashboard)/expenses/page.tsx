@@ -5,11 +5,13 @@ import { DataTable } from "@/components/ui/data-table"
 import { Surface } from "@/components/ui/surface"
 import { Button } from "@/components/ui/button"
 import { H1, H3, Muted, P } from "@/components/ui/typography"
+import { CsvImportExport } from "@/components/data/csv-import-export"
+import { BulkActionBar } from "@/components/data/bulk-action-bar"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Upload, Plus, Download, Search, CheckCircle, XCircle, RefreshCw, Loader2, FileText, X } from "lucide-react"
+import { Upload, Plus, Search, CheckCircle, XCircle, RefreshCw, Loader2, FileText, X } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 import {
   useExpenses,
@@ -84,7 +86,38 @@ function ExpenseActions({ expense }: { expense: ExpenseRow }) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ColCell = { row: any }
 
-const columns = [
+function buildColumns(opts: {
+  selectedIds: string[]
+  toggle: (id: string) => void
+  allSelected: boolean
+  selectAll: () => void
+  clearAll: () => void
+}) {
+  return [
+  {
+    id: "select",
+    header: () => (
+      <input
+        type="checkbox"
+        checked={opts.allSelected}
+        onChange={() => (opts.allSelected ? opts.clearAll() : opts.selectAll())}
+        aria-label="Select all"
+        className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+      />
+    ),
+    cell: ({ row }: ColCell) => {
+      const id = row.original.id as string
+      return (
+        <input
+          type="checkbox"
+          checked={opts.selectedIds.includes(id)}
+          onChange={() => opts.toggle(id)}
+          aria-label="Select row"
+          className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+        />
+      )
+    },
+  },
   { accessorKey: "description", header: "Vendor / Description" },
   {
     accessorKey: "expense_date",
@@ -123,7 +156,8 @@ const columns = [
     header: "Actions",
     cell: ({ row }: ColCell) => <ExpenseActions expense={row.original as ExpenseRow} />,
   },
-]
+  ]
+}
 
 // ---------------------------------------------------------------------------
 // Page
@@ -245,7 +279,8 @@ function ReceiptUploader() {
 
 export default function ExpensesPage() {
   const [search, setSearch] = React.useState("")
-  const { data: expenses = [], isLoading } = useExpenses()
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([])
+  const { data: expenses = [], isLoading, refetch } = useExpenses()
   const { data: summary } = useExpenseSummary()
 
   const filtered = React.useMemo(() => {
@@ -258,6 +293,18 @@ export default function ExpensesPage() {
     )
   }, [expenses, search])
 
+  const toggle = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  const selectAll = () => setSelectedIds(filtered.map((e) => e.id))
+  const clearAll = () => setSelectedIds([])
+  const allSelected = filtered.length > 0 && selectedIds.length === filtered.length
+
+  const columns = React.useMemo(
+    () => buildColumns({ selectedIds, toggle, allSelected, selectAll, clearAll }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedIds, filtered],
+  )
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -267,11 +314,7 @@ export default function ExpensesPage() {
           <Muted className="truncate">Track your overhead and prepare for tax season with clinical precision.</Muted>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-          <Button variant="outline" className="flex-1 sm:flex-none shrink-0">
-            <Download className="h-4 w-4 sm:mr-2 shrink-0" />
-            <span className="hidden sm:inline">Export CSV</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
+          <CsvImportExport resource="expenses" />
           <Button className="flex-1 sm:flex-none shrink-0">
             <Plus className="h-4 w-4 sm:mr-2 shrink-0" />
             <span className="hidden sm:inline">Add Expense</span>
@@ -349,6 +392,14 @@ export default function ExpensesPage() {
           </Surface>
         </div>
       </div>
+
+      <BulkActionBar
+        resource="expenses"
+        count={selectedIds.length}
+        ids={selectedIds}
+        onClear={clearAll}
+        onDone={() => refetch()}
+      />
     </div>
   )
 }
