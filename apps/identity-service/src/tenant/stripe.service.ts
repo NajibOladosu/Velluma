@@ -35,7 +35,7 @@ export class StripeService implements OnModuleInit {
     });
   }
 
-  async createOnboardingLink(accountId: string, tenantSlug: string) {
+  async createOnboardingLink(accountId: string, _tenantSlug: string) {
     if (!this.stripe) throw new Error('Stripe not configured');
 
     const baseUrl = this.configService.get<string>(

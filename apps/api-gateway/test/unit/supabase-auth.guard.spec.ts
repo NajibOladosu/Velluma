@@ -1,7 +1,6 @@
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SupabaseAuthGuard } from '../../src/common/guards/supabase-auth.guard';
-import { IS_PUBLIC_KEY } from '../../src/common/decorators/public.decorator';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers

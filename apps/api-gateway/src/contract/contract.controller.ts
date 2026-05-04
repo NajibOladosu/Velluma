@@ -7,7 +7,6 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
-  ApiBody,
 } from '@nestjs/swagger';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { SignContractDto } from './dto/sign-contract.dto';

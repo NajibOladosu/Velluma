@@ -5,7 +5,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import {
   SignContractDto,
   GenerateContractDto,
-  RegenerateContractDto,
   ChangeRequestDto,
 } from './dto/contract.dto';
 
