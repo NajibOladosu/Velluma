@@ -343,10 +343,24 @@ export class NotificationService implements OnModuleInit {
     template: string,
     variables: Record<string, unknown>,
   ): string {
-    return Object.entries(variables).reduce(
-      (text, [key, value]) =>
-        text.replace(new RegExp(`{{${key}}}`, 'g'), String(value ?? '')),
-      template,
-    );
+    return Object.entries(variables).reduce((text, [key, value]) => {
+      let stringified: string;
+      if (value == null) {
+        stringified = '';
+      } else if (typeof value === 'object') {
+        stringified = JSON.stringify(value);
+      } else if (typeof value === 'string') {
+        stringified = value;
+      } else if (
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint'
+      ) {
+        stringified = value.toString();
+      } else {
+        stringified = '';
+      }
+      return text.replace(new RegExp(`{{${key}}}`, 'g'), stringified);
+    }, template);
   }
 }

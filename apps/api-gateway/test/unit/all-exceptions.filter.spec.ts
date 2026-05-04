@@ -1,4 +1,8 @@
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter';
 
 function buildHost(status: jest.Mock, json: jest.Mock) {
@@ -51,7 +55,6 @@ describe('AllExceptionsFilter', () => {
     });
 
     it('returns 401 for UnauthorizedException', () => {
-      const { UnauthorizedException } = require('@nestjs/common');
       const exception = new UnauthorizedException('No token');
       const host = buildHost(mockStatus, mockJson);
 

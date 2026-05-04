@@ -82,7 +82,7 @@ function NewInvoiceDialog({
     currency: string;
     dueDate: string;
     notes: string;
-  }>({
+  }>(() => ({
     contractId: "",
     amount: "",
     currency: "USD",
@@ -90,7 +90,7 @@ function NewInvoiceDialog({
       .toISOString()
       .slice(0, 10),
     notes: "",
-  });
+  }));
   const [error, setError] = React.useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {

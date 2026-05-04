@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import type { Request } from 'express';
 
@@ -19,7 +19,11 @@ import type { Request } from 'express';
  */
 @Injectable()
 export class AppThrottlerGuard extends ThrottlerGuard {
-  protected async getTracker(req: Record<string, unknown>): Promise<string> {
+  protected getTracker(req: Record<string, unknown>): Promise<string> {
+    return Promise.resolve(this.computeTracker(req));
+  }
+
+  private computeTracker(req: Record<string, unknown>): string {
     const expressReq = req as unknown as Request & { user?: { id?: string } };
 
     if (expressReq.user?.id) {

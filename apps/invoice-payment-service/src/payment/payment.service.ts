@@ -34,7 +34,7 @@ export class PaymentService implements OnModuleInit {
     if (!this.stripe) throw new Error('Stripe not configured');
 
     // 1. Fetch tenant's Stripe settings (e.g., if we want to charge fees)
-    const { data: tenant } = await this.supabase
+    const { data: _tenant } = await this.supabase
       .getClient()
       .from('tenants')
       .select('stripe_connect_id')
