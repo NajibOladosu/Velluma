@@ -11,8 +11,25 @@ import {
 } from 'class-validator';
 
 const SUPPORTED_CURRENCIES = [
-  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK',
-  'SGD', 'HKD', 'NZD', 'MXN', 'BRL', 'INR', 'ZAR', 'AED', 'NGN',
+  'USD',
+  'EUR',
+  'GBP',
+  'CAD',
+  'AUD',
+  'JPY',
+  'CHF',
+  'SEK',
+  'NOK',
+  'DKK',
+  'SGD',
+  'HKD',
+  'NZD',
+  'MXN',
+  'BRL',
+  'INR',
+  'ZAR',
+  'AED',
+  'NGN',
 ] as const;
 
 export class CreateInvoiceDto {

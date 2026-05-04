@@ -21,7 +21,9 @@ describe('AppThrottlerGuard.getTracker', () => {
     const guard = makeGuard();
     const req = { user: { id: 'user-uuid-123' }, headers: {}, ip: '1.2.3.4' };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('user:user-uuid-123');
   });
@@ -34,7 +36,9 @@ describe('AppThrottlerGuard.getTracker', () => {
       ip: '10.0.0.1',
     };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     // Should pick the first address from X-Forwarded-For (the real client IP)
     expect(tracker).toBe('ip:203.0.113.5');
@@ -44,7 +48,9 @@ describe('AppThrottlerGuard.getTracker', () => {
     const guard = makeGuard();
     const req = { user: undefined, headers: {}, ip: '192.168.1.42' };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('ip:192.168.1.42');
   });
@@ -53,7 +59,9 @@ describe('AppThrottlerGuard.getTracker', () => {
     const guard = makeGuard();
     const req = { user: undefined, headers: {}, ip: undefined };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('ip:unknown');
   });
@@ -66,7 +74,9 @@ describe('AppThrottlerGuard.getTracker', () => {
       ip: '2.2.2.2',
     };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('user:auth-user-99');
   });
@@ -79,7 +89,9 @@ describe('AppThrottlerGuard.getTracker', () => {
       ip: '10.1.1.1',
     };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('ip:203.0.113.99');
   });
@@ -92,7 +104,9 @@ describe('AppThrottlerGuard.getTracker', () => {
       ip: '10.0.0.1',
     };
 
-    const tracker = await (guard as unknown as { getTracker(r: unknown): Promise<string> }).getTracker(req);
+    const tracker = await (
+      guard as unknown as { getTracker(r: unknown): Promise<string> }
+    ).getTracker(req);
 
     expect(tracker).toBe('ip:203.0.113.5');
   });

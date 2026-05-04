@@ -288,7 +288,7 @@ function PayoutsSection({ availableBalance, isLoadingBalance }: { availableBalan
                 className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
               >
                 <option value="">Select method…</option>
-                {methods.filter(m => m.isActive).map(m => (
+                {methods.map(m => (
                   <option key={m.id} value={m.id}>
                     {RAIL_META[m.rail as keyof typeof RAIL_META]?.icon} {m.label} {m.lastFour ? `····${m.lastFour}` : ""}
                   </option>

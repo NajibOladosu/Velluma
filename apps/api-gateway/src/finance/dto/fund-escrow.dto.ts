@@ -9,8 +9,25 @@ import {
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 const SUPPORTED_CURRENCIES = [
-  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF', 'SEK', 'NOK', 'DKK',
-  'SGD', 'HKD', 'NZD', 'MXN', 'BRL', 'INR', 'ZAR', 'AED', 'NGN',
+  'USD',
+  'EUR',
+  'GBP',
+  'CAD',
+  'AUD',
+  'JPY',
+  'CHF',
+  'SEK',
+  'NOK',
+  'DKK',
+  'SGD',
+  'HKD',
+  'NZD',
+  'MXN',
+  'BRL',
+  'INR',
+  'ZAR',
+  'AED',
+  'NGN',
 ] as const;
 
 export class FundEscrowDto {
@@ -19,7 +36,10 @@ export class FundEscrowDto {
   @IsNotEmpty()
   milestoneId: string;
 
-  @ApiProperty({ description: 'Amount to hold in escrow in major currency units', minimum: 0.01 })
+  @ApiProperty({
+    description: 'Amount to hold in escrow in major currency units',
+    minimum: 0.01,
+  })
   @IsNumber()
   @Min(0.01)
   amount: number;

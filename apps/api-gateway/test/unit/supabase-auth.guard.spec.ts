@@ -15,7 +15,10 @@ function buildContext(
     getAllAndOverride: jest.fn().mockReturnValue(isPublic),
   } as unknown as Reflector;
 
-  const mockRequest = { headers: { authorization: authHeader }, user: undefined };
+  const mockRequest = {
+    headers: { authorization: authHeader },
+    user: undefined,
+  };
   const mockHttp = { getRequest: () => mockRequest };
   const ctx = {
     switchToHttp: () => mockHttp,
@@ -47,7 +50,9 @@ describe('SupabaseAuthGuard', () => {
     mockSupabaseService = {
       getClient: jest.fn().mockReturnValue({
         auth: {
-          getUser: jest.fn().mockResolvedValue({ data: { user: validUser }, error: null }),
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: validUser }, error: null }),
         },
       }),
     };
@@ -78,7 +83,9 @@ describe('SupabaseAuthGuard', () => {
         getClass: () => ({}),
       } as unknown as ExecutionContext;
 
-      (guard as any).reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
+      (guard as any).reflector = {
+        getAllAndOverride: jest.fn().mockReturnValue(false),
+      };
 
       await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
         UnauthorizedException,
@@ -86,14 +93,19 @@ describe('SupabaseAuthGuard', () => {
     });
 
     it('throws UnauthorizedException when header does not start with Bearer', async () => {
-      const mockRequest = { headers: { authorization: 'Basic abc123' }, user: undefined };
+      const mockRequest = {
+        headers: { authorization: 'Basic abc123' },
+        user: undefined,
+      };
       const ctx = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
         getHandler: () => ({}),
         getClass: () => ({}),
       } as unknown as ExecutionContext;
 
-      (guard as any).reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
+      (guard as any).reflector = {
+        getAllAndOverride: jest.fn().mockReturnValue(false),
+      };
 
       await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
         UnauthorizedException,
@@ -113,7 +125,9 @@ describe('SupabaseAuthGuard', () => {
         getClass: () => ({}),
       } as unknown as ExecutionContext;
 
-      (guard as any).reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
+      (guard as any).reflector = {
+        getAllAndOverride: jest.fn().mockReturnValue(false),
+      };
 
       const result = await guard.canActivate(ctx);
 
@@ -129,20 +143,26 @@ describe('SupabaseAuthGuard', () => {
     it('throws UnauthorizedException when Supabase returns an error', async () => {
       mockSupabaseService.getClient.mockReturnValue({
         auth: {
-          getUser: jest
-            .fn()
-            .mockResolvedValue({ data: { user: null }, error: { message: 'JWT expired' } }),
+          getUser: jest.fn().mockResolvedValue({
+            data: { user: null },
+            error: { message: 'JWT expired' },
+          }),
         },
       });
 
-      const mockRequest = { headers: { authorization: 'Bearer expired-token' }, user: undefined };
+      const mockRequest = {
+        headers: { authorization: 'Bearer expired-token' },
+        user: undefined,
+      };
       const ctx = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
         getHandler: () => ({}),
         getClass: () => ({}),
       } as unknown as ExecutionContext;
 
-      (guard as any).reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
+      (guard as any).reflector = {
+        getAllAndOverride: jest.fn().mockReturnValue(false),
+      };
 
       await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
         UnauthorizedException,
@@ -152,18 +172,25 @@ describe('SupabaseAuthGuard', () => {
     it('throws UnauthorizedException when user is null', async () => {
       mockSupabaseService.getClient.mockReturnValue({
         auth: {
-          getUser: jest.fn().mockResolvedValue({ data: { user: null }, error: null }),
+          getUser: jest
+            .fn()
+            .mockResolvedValue({ data: { user: null }, error: null }),
         },
       });
 
-      const mockRequest = { headers: { authorization: 'Bearer token' }, user: undefined };
+      const mockRequest = {
+        headers: { authorization: 'Bearer token' },
+        user: undefined,
+      };
       const ctx = {
         switchToHttp: () => ({ getRequest: () => mockRequest }),
         getHandler: () => ({}),
         getClass: () => ({}),
       } as unknown as ExecutionContext;
 
-      (guard as any).reflector = { getAllAndOverride: jest.fn().mockReturnValue(false) };
+      (guard as any).reflector = {
+        getAllAndOverride: jest.fn().mockReturnValue(false),
+      };
 
       await expect(guard.canActivate(ctx)).rejects.toBeInstanceOf(
         UnauthorizedException,

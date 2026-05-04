@@ -19,7 +19,9 @@ function makeSupabaseMock() {
   const chain = makeChain();
   return {
     service: {
-      getClient: jest.fn().mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
+      getClient: jest
+        .fn()
+        .mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
     },
     chain,
   };
@@ -94,9 +96,7 @@ describe('ExpenseService', () => {
       await service.createExpense(baseExpense);
 
       expect(mock.chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ currency: 'USD' }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ currency: 'USD' })]),
       );
     });
 
@@ -109,9 +109,7 @@ describe('ExpenseService', () => {
       await service.createExpense({ ...baseExpense, currency: 'GBP' });
 
       expect(mock.chain.insert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ currency: 'GBP' }),
-        ]),
+        expect.arrayContaining([expect.objectContaining({ currency: 'GBP' })]),
       );
     });
 
@@ -208,9 +206,7 @@ describe('ExpenseService', () => {
   describe('deleteExpense()', () => {
     it('deletes the expense and returns success', async () => {
       // delete().eq() is terminal and resolves with { error: null }
-      mock.chain.eq = jest
-        .fn()
-        .mockResolvedValue({ error: null });
+      mock.chain.eq = jest.fn().mockResolvedValue({ error: null });
 
       const result = await service.deleteExpense('exp-1');
 
@@ -233,9 +229,24 @@ describe('ExpenseService', () => {
   describe('getExpenseSummary()', () => {
     it('calculates totals and groups by category', async () => {
       const rows = [
-        { amount: 54.99, currency: 'USD', category: 'software', status: 'pending' },
-        { amount: 9.99, currency: 'USD', category: 'software', status: 'approved' },
-        { amount: 200.0, currency: 'USD', category: 'travel', status: 'pending' },
+        {
+          amount: 54.99,
+          currency: 'USD',
+          category: 'software',
+          status: 'pending',
+        },
+        {
+          amount: 9.99,
+          currency: 'USD',
+          category: 'software',
+          status: 'approved',
+        },
+        {
+          amount: 200.0,
+          currency: 'USD',
+          category: 'travel',
+          status: 'pending',
+        },
       ];
       // getExpenseSummary: .select().eq().eq() — last eq resolves
       const summaryChain: any = {};

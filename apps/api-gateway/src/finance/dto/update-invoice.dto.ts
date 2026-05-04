@@ -16,12 +16,18 @@ export class UpdateInvoiceDto {
   @IsOptional()
   status?: 'pending' | 'completed' | 'failed' | 'refunded';
 
-  @ApiPropertyOptional({ description: 'Updated due date (ISO-8601)', example: '2026-07-01' })
+  @ApiPropertyOptional({
+    description: 'Updated due date (ISO-8601)',
+    example: '2026-07-01',
+  })
   @IsDateString()
   @IsOptional()
   dueDate?: string;
 
-  @ApiPropertyOptional({ description: 'Updated notes (max 1000 chars)', maxLength: 1000 })
+  @ApiPropertyOptional({
+    description: 'Updated notes (max 1000 chars)',
+    maxLength: 1000,
+  })
   @IsString()
   @IsOptional()
   @MaxLength(1000)

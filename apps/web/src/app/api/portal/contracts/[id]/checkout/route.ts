@@ -12,9 +12,11 @@ import Stripe from "stripe"
 import { createServiceClient } from "@/utils/supabase/server"
 import { requirePortalSession, forbidden } from "@/lib/portal/guard"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
-})
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2026-02-25.clover",
+  })
+}
 
 export async function POST(
   request: NextRequest,
@@ -51,7 +53,7 @@ export async function POST(
     return NextResponse.json({ error: "Contract amount too low for payment" }, { status: 400 })
   }
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "payment",
     customer_email: guard.session.email,
     line_items: [

@@ -35,7 +35,10 @@ describe('AllExceptionsFilter', () => {
     });
 
     it('includes the exception message in the response body', () => {
-      const exception = new HttpException('Bad request', HttpStatus.BAD_REQUEST);
+      const exception = new HttpException(
+        'Bad request',
+        HttpStatus.BAD_REQUEST,
+      );
       const host = buildHost(mockStatus, mockJson);
 
       filter.catch(exception, host);

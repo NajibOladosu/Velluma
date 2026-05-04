@@ -18,7 +18,9 @@ export class ContractService {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     this.gemini = apiKey ? new GoogleGenerativeAI(apiKey) : null;
     if (!apiKey) {
-      this.logger.warn('GOOGLE_GENERATIVE_AI_API_KEY not set — AI generation disabled');
+      this.logger.warn(
+        'GOOGLE_GENERATIVE_AI_API_KEY not set — AI generation disabled',
+      );
     }
   }
 
@@ -59,7 +61,9 @@ export class ContractService {
 Include all standard sections: Parties, Scope of Work, Timeline, Payment Terms, IP Rights, Confidentiality, Revisions Policy, Warranties, Limitation of Liability, Termination, Dispute Resolution, Governing Law, General Provisions.`;
 
       const userPrompt = `Generate a complete freelance contract for the following project:\n\n${data.prompt}`;
-      const rawText = await this.callGemini(`${systemPrompt}\n\n---\n\n${userPrompt}`);
+      const rawText = await this.callGemini(
+        `${systemPrompt}\n\n---\n\n${userPrompt}`,
+      );
 
       const cleaned = rawText
         .replace(/^```(?:json)?\s*/im, '')
@@ -120,7 +124,10 @@ Include all standard sections: Parties, Scope of Work, Timeline, Payment Terms, 
       ]);
 
     if (versionError) {
-      this.logger.warn('contract_documents insert failed (non-fatal):', versionError.message);
+      this.logger.warn(
+        'contract_documents insert failed (non-fatal):',
+        versionError.message,
+      );
     }
 
     return { contractId: contract.id, content, sections };

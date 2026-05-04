@@ -19,7 +19,9 @@ function makeSupabaseMock() {
   const chain = makeChain();
   return {
     service: {
-      getClient: jest.fn().mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
+      getClient: jest
+        .fn()
+        .mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
     },
     chain,
   };

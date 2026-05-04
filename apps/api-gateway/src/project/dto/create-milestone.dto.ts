@@ -29,12 +29,18 @@ export class CreateMilestoneDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ description: 'Escrow amount in major currency units (e.g. 500 = $500)', minimum: 0 })
+  @ApiProperty({
+    description: 'Escrow amount in major currency units (e.g. 500 = $500)',
+    minimum: 0,
+  })
   @IsNumber()
   @Min(0)
   amount: number;
 
-  @ApiPropertyOptional({ description: 'ISO-8601 date string for the milestone due date', example: '2026-06-01' })
+  @ApiPropertyOptional({
+    description: 'ISO-8601 date string for the milestone due date',
+    example: '2026-06-01',
+  })
   @IsDateString()
   @IsOptional()
   dueDate?: string;

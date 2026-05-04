@@ -19,7 +19,9 @@ function makeSupabaseMock() {
   const chain = makeChain();
   return {
     service: {
-      getClient: jest.fn().mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
+      getClient: jest
+        .fn()
+        .mockReturnValue({ from: jest.fn().mockReturnValue(chain) }),
     },
     chain,
   };
@@ -98,7 +100,10 @@ describe('TimeService', () => {
         error: null,
       });
 
-      await service.startTimer({ ...input, taskDescription: 'Build login page' });
+      await service.startTimer({
+        ...input,
+        taskDescription: 'Build login page',
+      });
 
       expect(mock.chain.insert).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -136,9 +141,15 @@ describe('TimeService', () => {
       mock.chain.single
         .mockResolvedValueOnce({ data: session, error: null })
         // update session
-        .mockResolvedValueOnce({ data: { ...session, is_active: false }, error: null })
+        .mockResolvedValueOnce({
+          data: { ...session, is_active: false },
+          error: null,
+        })
         // insert time entry
-        .mockResolvedValueOnce({ data: { id: 'entry-1', duration_minutes: 60 }, error: null });
+        .mockResolvedValueOnce({
+          data: { id: 'entry-1', duration_minutes: 60 },
+          error: null,
+        });
 
       const result = await service.stopTimer('session-1');
 
@@ -169,9 +180,15 @@ describe('TimeService', () => {
 
       mock.chain.single
         .mockResolvedValueOnce({ data: session, error: null })
-        .mockResolvedValueOnce({ data: { ...session, is_active: false }, error: null })
+        .mockResolvedValueOnce({
+          data: { ...session, is_active: false },
+          error: null,
+        })
         // entry insert fails — non-critical
-        .mockResolvedValueOnce({ data: null, error: { message: 'Insert failed' } });
+        .mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Insert failed' },
+        });
 
       const result = await service.stopTimer('session-1');
 

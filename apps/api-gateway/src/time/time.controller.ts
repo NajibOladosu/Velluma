@@ -11,7 +11,14 @@ import {
   Req,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { StartTimerDto } from './dto/start-timer.dto';
 
@@ -25,7 +32,11 @@ export class TimeController {
   // Timer session routes
   // ---------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'Start a timer session', description: 'Creates an active time_tracking_session for the authenticated user against a project.' })
+  @ApiOperation({
+    summary: 'Start a timer session',
+    description:
+      'Creates an active time_tracking_session for the authenticated user against a project.',
+  })
   @ApiResponse({ status: 201, description: 'Timer session created' })
   @Post('timers/start')
   async startTimer(@Req() req: any, @Body() data: StartTimerDto) {
@@ -42,9 +53,15 @@ export class TimeController {
     );
   }
 
-  @ApiOperation({ summary: 'Stop a running timer', description: 'Stops the session and creates a draft time_entry for review.' })
+  @ApiOperation({
+    summary: 'Stop a running timer',
+    description: 'Stops the session and creates a draft time_entry for review.',
+  })
   @ApiParam({ name: 'id', description: 'Timer session UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Stopped session + created draft time entry' })
+  @ApiResponse({
+    status: 200,
+    description: 'Stopped session + created draft time entry',
+  })
   @Put('timers/:id/stop')
   async stopTimer(@Param('id', ParseUUIDPipe) id: string) {
     return callMicroservice(this.client.send('stop_timer', { timerId: id }));
@@ -70,7 +87,10 @@ export class TimeController {
   // Time entry management routes
   // ---------------------------------------------------------------------------
 
-  @ApiOperation({ summary: 'Create a manual time entry', description: 'Bypasses the session/timer flow for after-the-fact logging.' })
+  @ApiOperation({
+    summary: 'Create a manual time entry',
+    description: 'Bypasses the session/timer flow for after-the-fact logging.',
+  })
   @ApiResponse({ status: 201, description: 'Draft time entry created' })
   @Post('entries')
   async createTimeEntry(@Req() req: any, @Body() body: any) {
@@ -79,7 +99,10 @@ export class TimeController {
     );
   }
 
-  @ApiOperation({ summary: 'Submit a draft entry for approval', description: 'Transitions the time entry from draft → submitted.' })
+  @ApiOperation({
+    summary: 'Submit a draft entry for approval',
+    description: 'Transitions the time entry from draft → submitted.',
+  })
   @ApiParam({ name: 'id', description: 'Time entry UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Submitted time entry' })
   @Patch('entries/:id/submit')
@@ -87,11 +110,18 @@ export class TimeController {
     return callMicroservice(this.client.send('submit_time_entry', { id }));
   }
 
-  @ApiOperation({ summary: 'Approve a submitted time entry', description: 'Transitions submitted → approved. Approver identity taken from auth token.' })
+  @ApiOperation({
+    summary: 'Approve a submitted time entry',
+    description:
+      'Transitions submitted → approved. Approver identity taken from auth token.',
+  })
   @ApiParam({ name: 'id', description: 'Time entry UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Approved time entry' })
   @Patch('entries/:id/approve')
-  async approveTimeEntry(@Req() req: any, @Param('id', ParseUUIDPipe) id: string) {
+  async approveTimeEntry(
+    @Req() req: any,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return callMicroservice(
       this.client.send('approve_time_entry', { id, approverId: req.user.id }),
     );
@@ -99,7 +129,13 @@ export class TimeController {
 
   @ApiOperation({ summary: 'Reject a submitted time entry' })
   @ApiParam({ name: 'id', description: 'Time entry UUID', format: 'uuid' })
-  @ApiBody({ schema: { properties: { reason: { type: 'string', description: 'Rejection reason' } } } })
+  @ApiBody({
+    schema: {
+      properties: {
+        reason: { type: 'string', description: 'Rejection reason' },
+      },
+    },
+  })
   @ApiResponse({ status: 200, description: 'Rejected time entry' })
   @Patch('entries/:id/reject')
   async rejectTimeEntry(

@@ -23,19 +23,26 @@ export class NotificationService implements OnModuleInit {
       this.twilioClient = Twilio(sid, token);
       this.logger.log('Twilio SMS client initialised');
     } else {
-      this.logger.warn('TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set — SMS delivery disabled');
+      this.logger.warn(
+        'TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN not set — SMS delivery disabled',
+      );
     }
 
     // ── Web Push / VAPID ───────────────────────────────────────────────────
     const vapidPublic = this.config.get<string>('VAPID_PUBLIC_KEY');
     const vapidPrivate = this.config.get<string>('VAPID_PRIVATE_KEY');
-    const vapidSubject = this.config.get<string>('VAPID_SUBJECT', 'mailto:noreply@velluma.com');
+    const vapidSubject = this.config.get<string>(
+      'VAPID_SUBJECT',
+      'mailto:noreply@velluma.com',
+    );
     if (vapidPublic && vapidPrivate) {
       webPush.setVapidDetails(vapidSubject, vapidPublic, vapidPrivate);
       this.vapidConfigured = true;
       this.logger.log('Web Push VAPID keys loaded');
     } else {
-      this.logger.warn('VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push delivery disabled');
+      this.logger.warn(
+        'VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — push delivery disabled',
+      );
     }
   }
 
@@ -64,7 +71,9 @@ export class NotificationService implements OnModuleInit {
 
     const resendApiKey = this.config.get<string>('RESEND_API_KEY');
     if (!resendApiKey) {
-      this.logger.warn(`RESEND_API_KEY not set — email to ${data.to} stored but not delivered`);
+      this.logger.warn(
+        `RESEND_API_KEY not set — email to ${data.to} stored but not delivered`,
+      );
       return { success: true, queued: true };
     }
 
@@ -101,18 +110,23 @@ export class NotificationService implements OnModuleInit {
   /* ── SMS ───────────────────────────────────────────────────────────────── */
 
   async sendSms(data: { to: string; message: string; userId?: string }) {
-    await this.supabase.getClient().from('notifications').insert([
-      {
-        user_id: data.userId ?? null,
-        type: 'sms',
-        title: 'SMS Notification',
-        message: data.message,
-        delivery_status: 'pending',
-      },
-    ]);
+    await this.supabase
+      .getClient()
+      .from('notifications')
+      .insert([
+        {
+          user_id: data.userId ?? null,
+          type: 'sms',
+          title: 'SMS Notification',
+          message: data.message,
+          delivery_status: 'pending',
+        },
+      ]);
 
     if (!this.twilioClient) {
-      this.logger.warn(`Twilio not configured — SMS to ${data.to} stored but not delivered`);
+      this.logger.warn(
+        `Twilio not configured — SMS to ${data.to} stored but not delivered`,
+      );
       return { success: true, queued: true };
     }
 
@@ -123,7 +137,11 @@ export class NotificationService implements OnModuleInit {
     }
 
     try {
-      const msg = await this.twilioClient.messages.create({ to: data.to, from, body: data.message });
+      const msg = await this.twilioClient.messages.create({
+        to: data.to,
+        from,
+        body: data.message,
+      });
       this.logger.log(`SMS delivered via Twilio: SID ${msg.sid} → ${data.to}`);
       return { success: true, sid: msg.sid };
     } catch (err) {
@@ -143,7 +161,8 @@ export class NotificationService implements OnModuleInit {
     auth: string;
     userAgent?: string;
   }) {
-    const { error } = await this.supabase.getClient()
+    const { error } = await this.supabase
+      .getClient()
       .from('push_subscriptions')
       .upsert(
         {
@@ -163,7 +182,8 @@ export class NotificationService implements OnModuleInit {
   }
 
   async deletePushSubscription(data: { userId: string; endpoint: string }) {
-    const { error } = await this.supabase.getClient()
+    const { error } = await this.supabase
+      .getClient()
       .from('push_subscriptions')
       .delete()
       .eq('user_id', data.userId)
@@ -182,24 +202,30 @@ export class NotificationService implements OnModuleInit {
     notificationData?: Record<string, unknown>;
   }) {
     // Persist an in-app record regardless of push delivery outcome
-    await this.supabase.getClient().from('notifications').insert([
-      {
-        user_id: data.userId,
-        tenant_id: data.userId,
-        type: 'push',
-        title: data.title,
-        message: data.body,
-        data: data.notificationData ?? null,
-        delivery_status: 'pending',
-      },
-    ]);
+    await this.supabase
+      .getClient()
+      .from('notifications')
+      .insert([
+        {
+          user_id: data.userId,
+          tenant_id: data.userId,
+          type: 'push',
+          title: data.title,
+          message: data.body,
+          data: data.notificationData ?? null,
+          delivery_status: 'pending',
+        },
+      ]);
 
     if (!this.vapidConfigured) {
-      this.logger.warn('VAPID keys not configured — push notification stored but not delivered');
+      this.logger.warn(
+        'VAPID keys not configured — push notification stored but not delivered',
+      );
       return { success: false, reason: 'vapid_not_configured' };
     }
 
-    const { data: subscriptions, error } = await this.supabase.getClient()
+    const { data: subscriptions, error } = await this.supabase
+      .getClient()
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth')
       .eq('user_id', data.userId);
@@ -222,7 +248,10 @@ export class NotificationService implements OnModuleInit {
       subscriptions.map(async (sub) => {
         try {
           await webPush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
             payload,
           );
         } catch (err: unknown) {
@@ -238,15 +267,20 @@ export class NotificationService implements OnModuleInit {
 
     // Clean up expired subscriptions
     if (staleIds.length) {
-      await this.supabase.getClient()
+      await this.supabase
+        .getClient()
         .from('push_subscriptions')
         .delete()
         .in('id', staleIds);
-      this.logger.log(`Removed ${staleIds.length} stale push subscription(s) for user ${data.userId}`);
+      this.logger.log(
+        `Removed ${staleIds.length} stale push subscription(s) for user ${data.userId}`,
+      );
     }
 
     const delivered = results.filter((r) => r.status === 'fulfilled').length;
-    this.logger.log(`Push sent to user ${data.userId}: ${delivered}/${subscriptions.length} delivered`);
+    this.logger.log(
+      `Push sent to user ${data.userId}: ${delivered}/${subscriptions.length} delivered`,
+    );
     return { success: true, delivered, total: subscriptions.length };
   }
 
@@ -269,7 +303,9 @@ export class NotificationService implements OnModuleInit {
     const { data, error } = await this.supabase
       .getClient()
       .from('notifications')
-      .select('id, type, title, message, data, read_at, created_at, related_resource_type, related_resource_id')
+      .select(
+        'id, type, title, message, data, read_at, created_at, related_resource_type, related_resource_id',
+      )
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(40);
@@ -279,7 +315,8 @@ export class NotificationService implements OnModuleInit {
   }
 
   async markNotificationRead(id: string) {
-    const { error } = await this.supabase.getClient()
+    const { error } = await this.supabase
+      .getClient()
       .from('notifications')
       .update({ read_at: new Date().toISOString() })
       .eq('id', id);
@@ -289,7 +326,8 @@ export class NotificationService implements OnModuleInit {
   }
 
   async markAllNotificationsRead(userId: string) {
-    const { error } = await this.supabase.getClient()
+    const { error } = await this.supabase
+      .getClient()
       .from('notifications')
       .update({ read_at: new Date().toISOString() })
       .eq('user_id', userId)
@@ -301,7 +339,10 @@ export class NotificationService implements OnModuleInit {
 
   /* ── Helpers ───────────────────────────────────────────────────────────── */
 
-  private renderTemplate(template: string, variables: Record<string, unknown>): string {
+  private renderTemplate(
+    template: string,
+    variables: Record<string, unknown>,
+  ): string {
     return Object.entries(variables).reduce(
       (text, [key, value]) =>
         text.replace(new RegExp(`{{${key}}}`, 'g'), String(value ?? '')),

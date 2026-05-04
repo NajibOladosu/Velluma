@@ -39,7 +39,10 @@ export class SendEmailDto {
 }
 
 export class SendSmsDto {
-  @ApiProperty({ description: 'Recipient phone number in E.164 format', example: '+14155552671' })
+  @ApiProperty({
+    description: 'Recipient phone number in E.164 format',
+    example: '+14155552671',
+  })
   @IsString()
   @IsNotEmpty()
   to: string;
@@ -55,22 +58,30 @@ export class SendSmsDto {
 // ---------------------------------------------------------------------------
 
 export class PushSubscribeDto {
-  @ApiProperty({ description: 'Browser push endpoint URL provided by the browser Push API' })
+  @ApiProperty({
+    description: 'Browser push endpoint URL provided by the browser Push API',
+  })
   @IsString()
   @IsNotEmpty()
   endpoint: string;
 
-  @ApiProperty({ description: 'P-256 DH public key from the PushSubscription keys map' })
+  @ApiProperty({
+    description: 'P-256 DH public key from the PushSubscription keys map',
+  })
   @IsString()
   @IsNotEmpty()
   p256dh: string;
 
-  @ApiProperty({ description: 'Auth secret from the PushSubscription keys map' })
+  @ApiProperty({
+    description: 'Auth secret from the PushSubscription keys map',
+  })
   @IsString()
   @IsNotEmpty()
   auth: string;
 
-  @ApiPropertyOptional({ description: 'User-Agent string for labelling the subscription' })
+  @ApiPropertyOptional({
+    description: 'User-Agent string for labelling the subscription',
+  })
   @IsOptional()
   @IsString()
   userAgent?: string;
@@ -99,7 +110,9 @@ export class SendPushDto {
   @IsNotEmpty()
   body: string;
 
-  @ApiPropertyOptional({ description: 'URL to open when the notification is clicked' })
+  @ApiPropertyOptional({
+    description: 'URL to open when the notification is clicked',
+  })
   @IsOptional()
   @IsUrl()
   url?: string;

@@ -103,7 +103,10 @@ describe('ProposalController (integration)', () => {
 
   describe('PUT /proposals/:id', () => {
     const updatePayload = {
-      content: { title: 'Updated Web App Development', body: 'Revised scope...' },
+      content: {
+        title: 'Updated Web App Development',
+        body: 'Revised scope...',
+      },
     };
 
     it('updates the proposal content and returns the result', async () => {

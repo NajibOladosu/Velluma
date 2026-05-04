@@ -51,7 +51,7 @@ describe('PaymentService', () => {
 
   beforeEach(async () => {
     dbChain = makeChain();
-    (mockSupabaseService.getClient as jest.Mock).mockReturnValue({
+    mockSupabaseService.getClient.mockReturnValue({
       from: jest.fn().mockReturnValue(dbChain),
     });
 
@@ -114,7 +114,10 @@ describe('PaymentService', () => {
 
     it('converts amount to cents correctly', async () => {
       dbChain.single
-        .mockResolvedValueOnce({ data: { stripe_connect_id: 'acct_123' }, error: null })
+        .mockResolvedValueOnce({
+          data: { stripe_connect_id: 'acct_123' },
+          error: null,
+        })
         .mockResolvedValueOnce({ data: { id: 'esc-1' }, error: null });
 
       await service.createEscrowPayment({ ...payload, amount: 1 });
@@ -127,7 +130,10 @@ describe('PaymentService', () => {
 
     it('uses provided currency', async () => {
       dbChain.single
-        .mockResolvedValueOnce({ data: { stripe_connect_id: 'acct_123' }, error: null })
+        .mockResolvedValueOnce({
+          data: { stripe_connect_id: 'acct_123' },
+          error: null,
+        })
         .mockResolvedValueOnce({ data: { id: 'esc-1' }, error: null });
 
       await service.createEscrowPayment({ ...payload, currency: 'gbp' });
@@ -205,7 +211,11 @@ describe('PaymentService', () => {
 
     it('throws when freelancer has no Connect account', async () => {
       dbChain.single.mockResolvedValueOnce({
-        data: { id: 'esc-1', amount: 100, tenants: { stripe_connect_id: null } },
+        data: {
+          id: 'esc-1',
+          amount: 100,
+          tenants: { stripe_connect_id: null },
+        },
         error: null,
       });
 

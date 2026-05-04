@@ -53,7 +53,8 @@ export class NotificationController {
 
   @ApiOperation({
     summary: 'List notifications for the current user',
-    description: 'Returns the 40 most recent notifications for the authenticated user.',
+    description:
+      'Returns the 40 most recent notifications for the authenticated user.',
   })
   @ApiResponse({ status: 200, description: 'Array of notification records' })
   @Get()
@@ -71,7 +72,9 @@ export class NotificationController {
     return callMicroservice(this.client.send('mark_notification_read', { id }));
   }
 
-  @ApiOperation({ summary: 'Mark all notifications as read for the current user' })
+  @ApiOperation({
+    summary: 'Mark all notifications as read for the current user',
+  })
   @ApiResponse({ status: 200, description: 'All notifications marked as read' })
   @Patch('read-all')
   async markAllRead(@Req() req: any) {
@@ -85,7 +88,9 @@ export class NotificationController {
   @ApiResponse({ status: 200, description: 'Array of notification records' })
   @Get('tenant/:tenantId')
   async listNotifications(@Param('tenantId') tenantId: string) {
-    return callMicroservice(this.client.send('list_notifications', { tenantId }));
+    return callMicroservice(
+      this.client.send('list_notifications', { tenantId }),
+    );
   }
 
   // ── Web Push ─────────────────────────────────────────────────────────────
@@ -128,7 +133,8 @@ export class NotificationController {
 
   @ApiOperation({
     summary: 'Remove a browser push subscription',
-    description: 'Deletes the push subscription matching the given endpoint for the current user.',
+    description:
+      'Deletes the push subscription matching the given endpoint for the current user.',
   })
   @ApiResponse({ status: 200, description: 'Subscription removed' })
   @Post('push/unsubscribe')
@@ -143,9 +149,13 @@ export class NotificationController {
 
   @ApiOperation({
     summary: 'Send a push notification to a user',
-    description: 'Delivers a Web Push notification to all registered subscriptions for a user.',
+    description:
+      'Delivers a Web Push notification to all registered subscriptions for a user.',
   })
-  @ApiResponse({ status: 201, description: 'Push notification queued for delivery' })
+  @ApiResponse({
+    status: 201,
+    description: 'Push notification queued for delivery',
+  })
   @Post('push/send')
   async sendPush(@Body() dto: SendPushDto) {
     return callMicroservice(this.client.send('send_push', dto));

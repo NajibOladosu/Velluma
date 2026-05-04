@@ -1,6 +1,21 @@
-import { Controller, Get, Post, Body, Inject, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Inject,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateClientDto } from './dto/create-client.dto';
 
@@ -11,7 +26,11 @@ export class CrmController {
   constructor(@Inject('CRM_SERVICE') private client: ClientProxy) {}
 
   @ApiOperation({ summary: 'List clients for a tenant' })
-  @ApiQuery({ name: 'tenantId', required: true, description: 'Tenant UUID to scope the list' })
+  @ApiQuery({
+    name: 'tenantId',
+    required: true,
+    description: 'Tenant UUID to scope the list',
+  })
   @ApiResponse({ status: 200, description: 'Array of client records' })
   @Get('clients')
   async listClients(@Query('tenantId') tenantId: string) {

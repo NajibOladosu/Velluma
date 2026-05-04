@@ -7,18 +7,25 @@ export class CreateRuleDto {
   @IsNotEmpty()
   tenantId: string;
 
-  @ApiProperty({ description: 'Event that fires the rule, e.g. "contract.signed"', example: 'contract.signed' })
+  @ApiProperty({
+    description: 'Event that fires the rule, e.g. "contract.signed"',
+    example: 'contract.signed',
+  })
   @IsString()
   @IsNotEmpty()
   trigger: string;
 
-  @ApiProperty({ description: 'Action to perform when triggered, e.g. "send_notification"', example: 'send_notification' })
+  @ApiProperty({
+    description: 'Action to perform when triggered, e.g. "send_notification"',
+    example: 'send_notification',
+  })
   @IsString()
   @IsNotEmpty()
   action: string;
 
   @ApiPropertyOptional({
-    description: 'Optional key-value conditions that must match the event payload',
+    description:
+      'Optional key-value conditions that must match the event payload',
     type: 'object',
     additionalProperties: true,
   })
@@ -33,7 +40,10 @@ export class TriggerEventDto {
   @IsNotEmpty()
   tenantId: string;
 
-  @ApiProperty({ description: 'Event name to evaluate against stored rules', example: 'contract.signed' })
+  @ApiProperty({
+    description: 'Event name to evaluate against stored rules',
+    example: 'contract.signed',
+  })
   @IsString()
   @IsNotEmpty()
   event: string;

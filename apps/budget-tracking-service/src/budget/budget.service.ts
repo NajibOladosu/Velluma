@@ -64,7 +64,9 @@ export class BudgetService {
       .single();
 
     if (projectError || !project) {
-      throw new Error(`Project not found: ${projectError?.message ?? projectId}`);
+      throw new Error(
+        `Project not found: ${projectError?.message ?? projectId}`,
+      );
     }
 
     const revenue = Number(project.total_budget) || 0;
@@ -109,9 +111,7 @@ export class BudgetService {
     const profitabilityPercent =
       revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
     const effectiveHourlyRate =
-      totalHours > 0
-        ? Math.round((revenue / totalHours) * 100) / 100
-        : 0;
+      totalHours > 0 ? Math.round((revenue / totalHours) * 100) / 100 : 0;
 
     this.logger.log(
       `Profitability for project ${projectId}: ` +
@@ -184,15 +184,11 @@ export class BudgetService {
     const totalCost = totalExpenses + totalLaborCost;
     const totalProfit = totalRevenue - totalCost;
     const profitabilityPercent =
-      totalRevenue > 0
-        ? Math.round((totalProfit / totalRevenue) * 100)
-        : 0;
+      totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100) : 0;
 
     // Average Effective Hourly Rate: total revenue ÷ total hours logged
     const averageEHR =
-      totalHours > 0
-        ? Math.round((totalRevenue / totalHours) * 100) / 100
-        : 0;
+      totalHours > 0 ? Math.round((totalRevenue / totalHours) * 100) / 100 : 0;
 
     // Health score: profitability as a 0–100 index.
     // Clamps at 0 (losing money) and 100 (fully profitable or over-budget).

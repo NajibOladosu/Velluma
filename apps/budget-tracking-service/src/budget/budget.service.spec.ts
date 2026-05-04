@@ -17,7 +17,6 @@ import { SupabaseService } from 'supabase-lib';
 function makeChain(resolved: { data: unknown; error: unknown }) {
   const promise = Promise.resolve(resolved);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const chain: any = {
     then: (
       onFulfilled: Parameters<Promise<unknown>['then']>[0],
