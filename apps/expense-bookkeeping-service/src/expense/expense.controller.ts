@@ -34,9 +34,7 @@ export class ExpenseController {
   }
 
   @MessagePattern('approve_expense')
-  async approveExpense(
-    @Payload() data: { id: string; approverId: string },
-  ) {
+  async approveExpense(@Payload() data: { id: string; approverId: string }) {
     return this.expenseService.approveExpense(data.id, data.approverId);
   }
 
@@ -44,7 +42,11 @@ export class ExpenseController {
   async rejectExpense(
     @Payload() data: { id: string; approverId: string; notes?: string },
   ) {
-    return this.expenseService.rejectExpense(data.id, data.approverId, data.notes);
+    return this.expenseService.rejectExpense(
+      data.id,
+      data.approverId,
+      data.notes,
+    );
   }
 
   @MessagePattern('reimburse_expense')

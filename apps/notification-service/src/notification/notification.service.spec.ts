@@ -16,7 +16,7 @@ import { NotificationService } from './notification.service';
  */
 function makeChain(resolved: { data: unknown; error: unknown }) {
   const promise = Promise.resolve(resolved);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const chain: any = {
     then: (
       onFulfilled: Parameters<Promise<unknown>['then']>[0],
@@ -69,7 +69,9 @@ describe('NotificationService.sendSms', () => {
   beforeEach(() => mockTwilioCreate.mockReset());
 
   it('always persists an SMS notification row to the DB', async () => {
-    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const from = jest
+      .fn()
+      .mockReturnValue(makeChain({ data: [], error: null }));
     const svc = await buildService({}, from);
 
     await svc.sendSms({ to: '+14155550100', message: 'Hello', userId: 'u1' });
@@ -96,7 +98,8 @@ describe('NotificationService.sendSms', () => {
       // TWILIO_FROM_NUMBER omitted
     });
     // Inject mock Twilio client directly to bypass module init
-    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
+    (svc as unknown as Record<string, unknown>)['twilioClient'] =
+      mockTwilioClient;
 
     const result = await svc.sendSms({ to: '+14155550100', message: 'Test' });
 
@@ -108,9 +111,13 @@ describe('NotificationService.sendSms', () => {
     mockTwilioCreate.mockResolvedValue({ sid: 'SM_abc123' });
 
     const svc = await buildService({ TWILIO_FROM_NUMBER: '+18005550100' });
-    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
+    (svc as unknown as Record<string, unknown>)['twilioClient'] =
+      mockTwilioClient;
 
-    const result = await svc.sendSms({ to: '+14155550100', message: 'Contract ready' });
+    const result = await svc.sendSms({
+      to: '+14155550100',
+      message: 'Contract ready',
+    });
 
     expect(mockTwilioCreate).toHaveBeenCalledWith({
       to: '+14155550100',
@@ -124,24 +131,28 @@ describe('NotificationService.sendSms', () => {
     mockTwilioCreate.mockRejectedValue(new Error('21211: Invalid To number'));
 
     const svc = await buildService({ TWILIO_FROM_NUMBER: '+18005550100' });
-    (svc as unknown as Record<string, unknown>)['twilioClient'] = mockTwilioClient;
+    (svc as unknown as Record<string, unknown>)['twilioClient'] =
+      mockTwilioClient;
 
     const result = await svc.sendSms({ to: '+1bad', message: 'Hi' });
 
-    expect(result).toEqual({ success: false, error: '21211: Invalid To number' });
+    expect(result).toEqual({
+      success: false,
+      error: '21211: Invalid To number',
+    });
   });
 
   it('sets user_id to null when userId is not provided', async () => {
-    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const from = jest
+      .fn()
+      .mockReturnValue(makeChain({ data: [], error: null }));
     const svc = await buildService({}, from);
 
     await svc.sendSms({ to: '+14155550100', message: 'Hi' });
 
     const chain = from.mock.results[0].value;
     expect(chain.insert).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ user_id: null }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ user_id: null })]),
     );
   });
 });
@@ -172,7 +183,9 @@ describe('NotificationService.sendEmail', () => {
   afterEach(() => fetchSpy.mockRestore());
 
   it('persists a notification row with type=email', async () => {
-    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const from = jest
+      .fn()
+      .mockReturnValue(makeChain({ data: [], error: null }));
     const svc = await buildService({ RESEND_API_KEY: 'key' }, from);
 
     await svc.sendEmail(emailData);
@@ -186,7 +199,9 @@ describe('NotificationService.sendEmail', () => {
   });
 
   it('renders template variables before persisting', async () => {
-    const from = jest.fn().mockReturnValue(makeChain({ data: [], error: null }));
+    const from = jest
+      .fn()
+      .mockReturnValue(makeChain({ data: [], error: null }));
     const svc = await buildService({}, from);
 
     await svc.sendEmail(emailData);
@@ -194,7 +209,9 @@ describe('NotificationService.sendEmail', () => {
     const chain = from.mock.results[0].value;
     expect(chain.insert).toHaveBeenCalledWith(
       expect.arrayContaining([
-        expect.objectContaining({ message: 'Hello Alice, your contract is ready.' }),
+        expect.objectContaining({
+          message: 'Hello Alice, your contract is ready.',
+        }),
       ]),
     );
   });

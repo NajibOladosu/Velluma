@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     .insert({
       event_id:   event.id,
       event_type: event.type,
-      data:       event.data.object as Record<string, unknown>,
+      data:       event.data.object as unknown as Record<string, unknown>,
     })
 
   if (dedupError) {

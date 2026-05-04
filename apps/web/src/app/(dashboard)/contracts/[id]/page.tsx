@@ -378,7 +378,7 @@ function MilestonesPanel({ contractId }: { contractId: string }) {
   });
 
   const activeEscrow = escrows?.find((e) => e.status === "active");
-  const allMilestoneDone = milestones?.length > 0 && milestones.every((m) => m.status === "completed");
+  const allMilestoneDone = (milestones?.length ?? 0) > 0 && milestones!.every((m) => m.status === "completed");
 
   const statusIcon = (status: string) => {
     if (status === "completed") return <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" strokeWidth={1.5} />;

@@ -32,9 +32,7 @@ export class TimeController {
   }
 
   @MessagePattern('approve_time_entry')
-  async approveTimeEntry(
-    @Payload() data: { id: string; approverId: string },
-  ) {
+  async approveTimeEntry(@Payload() data: { id: string; approverId: string }) {
     return await this.timeService.approveTimeEntry(data.id, data.approverId);
   }
 

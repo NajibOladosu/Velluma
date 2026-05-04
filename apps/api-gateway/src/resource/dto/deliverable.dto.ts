@@ -33,7 +33,10 @@ export class AddDeliverableDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ description: 'Public URL of the uploaded file', format: 'uri' })
+  @ApiProperty({
+    description: 'Public URL of the uploaded file',
+    format: 'uri',
+  })
   @IsUrl()
   @IsNotEmpty()
   fileUrl: string;

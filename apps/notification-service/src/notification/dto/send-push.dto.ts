@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  IsObject,
+} from 'class-validator';
 
 export class SendPushDto {
   @IsUUID()

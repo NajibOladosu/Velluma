@@ -54,7 +54,9 @@ async function bootstrap() {
 
       logger.warn(`CORS blocked request from: ${requestOrigin}`);
       return callback(
-        new Error(`Origin "${requestOrigin}" is not in the ALLOWED_ORIGINS list`),
+        new Error(
+          `Origin "${requestOrigin}" is not in the ALLOWED_ORIGINS list`,
+        ),
         false,
       );
     },
@@ -70,17 +72,23 @@ async function bootstrap() {
   // Swagger / OpenAPI — available at /api/docs in non-production environments
   // Set SWAGGER_ENABLED=true to expose it in production (e.g. behind auth proxy)
   // ---------------------------------------------------------------------------
-  if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
+  if (
+    process.env.NODE_ENV !== 'production' ||
+    process.env.SWAGGER_ENABLED === 'true'
+  ) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Velluma API')
       .setDescription(
         'API Gateway for the Velluma freelance contract-management platform.\n\n' +
-        'All endpoints require a valid Supabase Bearer token in the `Authorization` header ' +
-        'unless otherwise noted.\n\n' +
-        '**Auth:** `Authorization: Bearer <supabase-access-token>`',
+          'All endpoints require a valid Supabase Bearer token in the `Authorization` header ' +
+          'unless otherwise noted.\n\n' +
+          '**Auth:** `Authorization: Bearer <supabase-access-token>`',
       )
       .setVersion('1.0')
-      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'supabase-jwt')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'supabase-jwt',
+      )
       .addTag('Identity', 'Tenant provisioning and Stripe Connect onboarding')
       .addTag('Contracts', 'AI contract generation and digital signing')
       .addTag('Invoices', 'Invoice lifecycle — create, list, update, send')

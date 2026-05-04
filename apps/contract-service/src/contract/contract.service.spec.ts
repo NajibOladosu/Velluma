@@ -8,11 +8,18 @@ import { SupabaseService } from 'supabase-lib';
 
 function makeChain() {
   const chain: any = {};
-  ['select', 'insert', 'update', 'delete', 'eq', 'neq', 'order', 'limit'].forEach(
-    (m) => {
-      chain[m] = jest.fn().mockReturnValue(chain);
-    },
-  );
+  [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'eq',
+    'neq',
+    'order',
+    'limit',
+  ].forEach((m) => {
+    chain[m] = jest.fn().mockReturnValue(chain);
+  });
   chain.single = jest.fn().mockResolvedValue({ data: null, error: null });
   chain.maybeSingle = jest.fn().mockResolvedValue({ data: null, error: null });
   return chain;
@@ -81,7 +88,9 @@ describe('ContractService', () => {
       });
 
       expect(result.contractId).toBe(baseContract.id);
-      expect(result.content).toContain('Design a software development agreement');
+      expect(result.content).toContain(
+        'Design a software development agreement',
+      );
     });
 
     it('throws when contracts insert fails', async () => {
@@ -125,7 +134,10 @@ describe('ContractService', () => {
     });
 
     it('throws when the user has already signed', async () => {
-      mock.chain.single.mockResolvedValueOnce({ data: baseContract, error: null });
+      mock.chain.single.mockResolvedValueOnce({
+        data: baseContract,
+        error: null,
+      });
       // maybeSingle returns existing signature
       mock.chain.maybeSingle.mockResolvedValueOnce({
         data: { id: 'existing-sig' },
@@ -138,7 +150,10 @@ describe('ContractService', () => {
     });
 
     it('throws when the contract is not found', async () => {
-      mock.chain.single.mockResolvedValueOnce({ data: null, error: { message: 'not found' } });
+      mock.chain.single.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'not found' },
+      });
 
       await expect(service.signContract(signData)).rejects.toThrow(
         'Contract not found',
@@ -189,7 +204,9 @@ describe('ContractService', () => {
         { id: 'a2', action: 'contract_signed' },
       ];
       // getAuditLog uses .select().eq().eq().order() — no single()
-      mock.chain.order = jest.fn().mockResolvedValue({ data: entries, error: null });
+      mock.chain.order = jest
+        .fn()
+        .mockResolvedValue({ data: entries, error: null });
 
       const result = await service.getAuditLog('contract-1');
       expect(result).toEqual(entries);

@@ -187,8 +187,10 @@ export class TimeService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to approve time entry: ${error.message}`);
-    if (!data) throw new Error('Time entry not found or not in submitted state');
+    if (error)
+      throw new Error(`Failed to approve time entry: ${error.message}`);
+    if (!data)
+      throw new Error('Time entry not found or not in submitted state');
     return data;
   }
 
@@ -213,7 +215,8 @@ export class TimeService {
       .single();
 
     if (error) throw new Error(`Failed to reject time entry: ${error.message}`);
-    if (!data) throw new Error('Time entry not found or not in submitted state');
+    if (!data)
+      throw new Error('Time entry not found or not in submitted state');
     return data;
   }
 }

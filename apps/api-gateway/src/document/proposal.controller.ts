@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Body, Inject, Param, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Inject,
+  Param,
+  Put,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { callMicroservice } from '../common/utils/microservice-config';
 import { CreateProposalDto, UpdateProposalDto } from './dto/proposal.dto';
 

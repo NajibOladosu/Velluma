@@ -7,7 +7,9 @@ export class CreateProposalDto {
   @IsNotEmpty()
   title: string;
 
-  @ApiPropertyOptional({ description: 'Short summary shown in the proposal list' })
+  @ApiPropertyOptional({
+    description: 'Short summary shown in the proposal list',
+  })
   @IsString()
   @IsOptional()
   description?: string;
@@ -21,7 +23,10 @@ export class CreateProposalDto {
   @IsNotEmpty()
   content: Record<string, unknown>;
 
-  @ApiProperty({ description: 'UUID of the client this proposal is for', format: 'uuid' })
+  @ApiProperty({
+    description: 'UUID of the client this proposal is for',
+    format: 'uuid',
+  })
   @IsString()
   @IsNotEmpty()
   clientId: string;

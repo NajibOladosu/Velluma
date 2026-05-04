@@ -4,14 +4,20 @@ import { NotificationService } from './notification.service';
 import { SendEmailDto } from './dto/send-email.dto';
 import { SendSmsDto } from './dto/send-sms.dto';
 import { ListNotificationsDto } from './dto/list-notifications.dto';
-import { SavePushSubscriptionDto, DeletePushSubscriptionDto } from './dto/save-push-subscription.dto';
+import {
+  SavePushSubscriptionDto,
+  DeletePushSubscriptionDto,
+} from './dto/save-push-subscription.dto';
 import {
   SendPushDto,
   ListUserNotificationsDto,
   MarkNotificationReadDto,
 } from './dto/send-push.dto';
 
-const validate = new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true });
+const validate = new ValidationPipe({
+  whitelist: true,
+  forbidNonWhitelisted: true,
+});
 
 @Controller()
 export class NotificationController {

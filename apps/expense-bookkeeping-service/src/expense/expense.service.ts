@@ -138,7 +138,8 @@ export class ExpenseService {
       .select()
       .single();
 
-    if (error) throw new Error(`Failed to mark expense as reimbursed: ${error.message}`);
+    if (error)
+      throw new Error(`Failed to mark expense as reimbursed: ${error.message}`);
     if (!expense) throw new Error('Expense not found or not in approved state');
     return expense;
   }

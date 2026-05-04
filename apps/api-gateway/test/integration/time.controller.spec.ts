@@ -39,7 +39,10 @@ describe('TimeController (integration)', () => {
     };
 
     it('starts a timer and returns the session', async () => {
-      const expected = { sessionId: 'session-1', startedAt: '2026-01-01T00:00:00Z' };
+      const expected = {
+        sessionId: 'session-1',
+        startedAt: '2026-01-01T00:00:00Z',
+      };
       mockClient.send.mockReturnValue(of(expected));
 
       const { body, status } = await request(app.getHttpServer())

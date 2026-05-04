@@ -441,7 +441,7 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
 
   // Active contracts for the dropdown
   const activeContracts = contracts.filter(
-    (c) => c.status === "active" || c.status === "pending"
+    (c) => c.status === "signed" || c.status === "pending"
   );
 
   async function handleSubmit(e: React.FormEvent) {
