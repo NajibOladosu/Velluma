@@ -129,11 +129,17 @@ export default function TimePage() {
   const [running, setRunning]     = React.useState(false);
   const [elapsed, setElapsed]     = React.useState(0);
   const [task, setTask]           = React.useState("");
+  const [contractId, setContractId] = React.useState<string>("");
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
   const [manualModalOpen, setManualModalOpen] = React.useState(false);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
   const { data: recentEntries = [], isLoading, refetch: refetchEntries } = useTimeEntries();
+  const { data: contracts = [] } = useContracts();
+  const billableContracts = React.useMemo(
+    () => contracts.filter((c) => c.status === "signed" || c.status === "pending"),
+    [contracts],
+  );
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -201,9 +207,9 @@ export default function TimePage() {
       setTask("");
       setActiveSessionId(null);
     } else {
-      if (!task.trim()) return;
+      if (!task.trim() || !contractId) return;
       const session = await startTimer.mutateAsync({
-        contractId: "00000000-0000-0000-0000-000000000000", // placeholder — real UI would pick a contract
+        contractId,
         taskDescription: task,
       });
       setActiveSessionId((session as any)?.id ?? null);
@@ -261,6 +267,21 @@ export default function TimePage() {
 
           {/* Task Input + Controls */}
           <div className="flex flex-col gap-3 sm:items-end w-full sm:w-auto shrink-0">
+            <select
+              value={contractId}
+              onChange={(e) => setContractId(e.target.value)}
+              disabled={running}
+              className="w-full sm:w-72 h-9 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
+            >
+              <option value="">
+                {billableContracts.length === 0 ? "No active contracts" : "Select contract…"}
+              </option>
+              {billableContracts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title} — {c.client}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
               value={task}
@@ -271,7 +292,7 @@ export default function TimePage() {
             />
             <Button
               onClick={handleToggle}
-              disabled={timerBusy || (!running && !task.trim())}
+              disabled={timerBusy || (!running && (!task.trim() || !contractId))}
               className={cn("w-full sm:w-auto gap-2 font-semibold px-6 shrink-0", running && "bg-zinc-700 hover:bg-zinc-600")}
             >
               {running ? (
