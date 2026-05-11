@@ -18,7 +18,7 @@ async function bootstrap() {
 
   await app.startAllMicroservices();
 
-  const healthPort = parseInt(process.env.HEALTH_PORT || '3100');
+  const healthPort = parseInt(process.env.HEALTH_PORT || '3112');
   await app.listen(healthPort);
   logger.log(
     `Resource Microservice is listening via Redis | health → :${healthPort}/health`,

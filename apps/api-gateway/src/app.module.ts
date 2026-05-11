@@ -36,6 +36,7 @@ import { AutomationController } from './automation/automation.controller';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', '../../.env'],
     }),
 
     // -------------------------------------------------------------------------

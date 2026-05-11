@@ -183,8 +183,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
-          <H1 className="truncate">Profitability Terminal</H1>
-          <Muted className="truncate">Real-time margin analysis and project velocity metrics.</Muted>
+          <H1 className="sm:truncate">Profitability Terminal</H1>
+          <Muted className="sm:truncate">Real-time margin analysis and project velocity metrics.</Muted>
         </div>
       </div>
 

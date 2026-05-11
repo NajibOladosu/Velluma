@@ -1179,8 +1179,8 @@ export default function PipelinePage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
           <div className="min-w-0">
-            <H1 className="truncate">Pipeline</H1>
-            <Muted className="truncate">
+            <H1 className="sm:truncate">Pipeline</H1>
+            <Muted className="sm:truncate">
               {isLoading ? "Loading…" : `${totalLeads} leads across ${stages.length} stages`}
             </Muted>
           </div>

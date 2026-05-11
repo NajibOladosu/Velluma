@@ -62,8 +62,8 @@ export default function ProfitabilityPage() {
     <div className="space-y-10">
       {/* Header */}
       <div className="min-w-0">
-        <H1 className="truncate">Profitability</H1>
-        <Muted className="truncate">Tax planning, expenses, and per-project margins.</Muted>
+        <H1 className="sm:truncate">Profitability</H1>
+        <Muted className="sm:truncate">Tax planning, expenses, and per-project margins.</Muted>
       </div>
 
       {/* Top Metrics Row */}

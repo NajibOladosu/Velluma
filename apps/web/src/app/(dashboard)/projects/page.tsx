@@ -41,8 +41,8 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
-          <H1 className="truncate">Projects</H1>
-          <Muted className="truncate block">
+          <H1 className="sm:truncate">Projects</H1>
+          <Muted className="sm:truncate block">
             {isLoading ? "Loading…" : `${projects.length} projects across all clients.`}
           </Muted>
         </div>
