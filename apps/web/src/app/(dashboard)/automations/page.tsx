@@ -89,8 +89,8 @@ export default function AutomationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
-          <H1 className="truncate">Automations</H1>
-          <Muted className="truncate">Put your business on autopilot. Set rules once, run forever.</Muted>
+          <H1 className="sm:truncate">Automations</H1>
+          <Muted className="sm:truncate">Put your business on autopilot. Set rules once, run forever.</Muted>
         </div>
         <Button className="gap-2 font-semibold px-5 w-full sm:w-auto" onClick={() => { setPrefill(null); setEditing("new") }}>
           <Plus className="h-4 w-4" strokeWidth={1.5} />

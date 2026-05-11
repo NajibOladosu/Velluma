@@ -118,8 +118,8 @@ export default function ContractsDirectoryPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <H1 className="truncate">Contracts & Legal</H1>
-            <Muted className="truncate block">
+            <H1 className="sm:truncate">Contracts & Legal</H1>
+            <Muted className="sm:truncate block">
               Manage your legal templates and track active client agreements.
             </Muted>
           </div>

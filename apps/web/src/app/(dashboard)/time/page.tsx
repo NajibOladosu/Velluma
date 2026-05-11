@@ -224,10 +224,10 @@ export default function TimePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
-          <H1 className="truncate">Time Tracker</H1>
-          <Muted className="truncate">Log billable hours with precision. Every minute is money.</Muted>
+          <H1 className="sm:truncate">Time Tracker</H1>
+          <Muted className="sm:truncate">Log billable hours with precision. Every minute is money.</Muted>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <CsvImportExport resource="time" />
           <Button className="gap-2 font-semibold px-5 w-full sm:w-auto" variant="outline" onClick={() => setManualModalOpen(true)}>
             <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />

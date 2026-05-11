@@ -55,8 +55,8 @@ export default function DashboardPage() {
       {/* Header + Quick Actions */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <H1 className="truncate">Dashboard</H1>
-          <Muted className="truncate">Business at a glance.</Muted>
+          <H1 className="sm:truncate">Dashboard</H1>
+          <Muted className="sm:truncate">Business at a glance.</Muted>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {quickActions.map((action) => (

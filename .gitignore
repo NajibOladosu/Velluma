@@ -62,3 +62,4 @@ dist
 
 *.md
 !README.md
+.gstack/

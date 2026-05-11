@@ -8,6 +8,7 @@ import { AppController } from './app.controller';
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
+            envFilePath: ['.env', '../../.env'],
         }),
         SupabaseModule,
         AutomationModule,

@@ -307,12 +307,12 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
-          <H1 className="truncate">Invoices</H1>
-          <Muted className="truncate block">
+          <H1 className="sm:truncate">Invoices</H1>
+          <Muted className="sm:truncate block">
             Payments overview and invoice management.
           </Muted>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <CsvImportExport resource="invoices" />
           <Button
             className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto"

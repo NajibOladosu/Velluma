@@ -275,12 +275,12 @@ export default function ClientsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0">
-            <H1 className="truncate">Clients</H1>
-            <Muted className="truncate block">
+            <H1 className="sm:truncate">Clients</H1>
+            <Muted className="sm:truncate block">
               {isLoading ? "Loading…" : `${clients.length} contacts in your rolodex.`}
             </Muted>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             <CsvImportExport resource="clients" />
             <Button className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
               <Plus className="h-4 w-4" strokeWidth={1.5} />
