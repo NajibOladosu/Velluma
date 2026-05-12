@@ -51,7 +51,9 @@ const sampleProjectRow: ProjectRow = {
   },
   created_at: "2026-01-15T00:00:00Z",
   updated_at: "2026-03-01T00:00:00Z",
-  clients: { name: "TechCorp" },
+  // PostgREST relationship name follows the FK target table:
+  // projects.client_id → crm_clients(id)
+  crm_clients: { name: "TechCorp" },
 }
 
 // ---------------------------------------------------------------------------

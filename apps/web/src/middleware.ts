@@ -63,6 +63,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/profitability") ||
     pathname.startsWith("/services") ||
     pathname.startsWith("/booking-settings") ||
+    pathname.startsWith("/bookings") ||
     pathname.startsWith("/lead-forms") ||
     pathname.startsWith("/messages") ||
     pathname.startsWith("/profile") ||
