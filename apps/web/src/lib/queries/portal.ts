@@ -30,6 +30,12 @@ export const portalKeys = {
 // DB row interfaces (minimal — only what the portal renders)
 // ---------------------------------------------------------------------------
 
+interface ContractSection {
+  id: string
+  title: string
+  content: string
+}
+
 interface ContractRow {
   id: string
   title: string
@@ -41,6 +47,7 @@ interface ContractRow {
   signed_by_freelancer: string | null
   created_at: string
   updated_at: string
+  content: { sections?: ContractSection[] } | null
 }
 
 interface MilestoneRow {
@@ -103,6 +110,8 @@ export interface PortalContract {
   signedByFreelancer: string | null
   createdAt: string
   updatedAt: string
+  /** Ordered contract body. Empty when no body has been generated yet. */
+  sections: ContractSection[]
 }
 
 export type MilestoneStatus = "pending" | "in_progress" | "completed" | "disputed"
@@ -186,6 +195,7 @@ export function usePortalContracts() {
         signedByFreelancer: row.signed_by_freelancer,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        sections: row.content?.sections ?? [],
       }))
     },
   })
