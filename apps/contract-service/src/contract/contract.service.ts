@@ -182,7 +182,10 @@ Include all standard sections: Parties, Scope of Work, Timeline, Payment Terms, 
         {
           contract_id: contract.id,
           author_id: data.userId,
+          created_by: data.userId,
           content: JSON.stringify({ sections }),
+          // `format` is NOT NULL in the schema — record what we serialized.
+          format: 'json',
           source: 'ai',
           ai_prompt: data.prompt,
           regen_number: 0,
