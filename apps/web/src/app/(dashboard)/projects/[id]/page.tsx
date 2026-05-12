@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
+import { ProjectBillingSection } from "@/components/projects/billing-section";
 import {
   Plus,
   MoreHorizontal,
@@ -354,7 +355,7 @@ export default function ProjectDetailPage() {
           backLabel="Back to Projects"
           title={
             <>
-              <H1 className="text-2xl font-medium truncate min-w-0">Project Board</H1>
+              <H1 className="text-2xl font-medium truncate min-w-0">Project</H1>
               <Badge variant="outline" className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200">
                 In Progress
               </Badge>
@@ -378,6 +379,9 @@ export default function ProjectDetailPage() {
             </Button>
           }
         />
+
+        {/* Billing — contract + milestones + invoices for this project */}
+        <ProjectBillingSection projectId={projectId} />
 
         {/* Kanban Board */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
