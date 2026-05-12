@@ -320,7 +320,12 @@ describe("useCreateProject", () => {
     const selectMock = vi.fn().mockReturnValue({ single: singleMock })
     const insertMock = vi.fn().mockReturnValue({ select: selectMock })
     const profileSingleMock = vi.fn().mockResolvedValue({ data: { tenant_id: "t1" }, error: null })
-    const profileEqMock = vi.fn().mockReturnValue({ single: profileSingleMock })
+    // useCreateProject uses .maybeSingle() so the user can create projects
+    // before a profile row is provisioned. Mock both shapes.
+    const profileEqMock = vi.fn().mockReturnValue({
+      single: profileSingleMock,
+      maybeSingle: profileSingleMock,
+    })
     const profileSelectMock = vi.fn().mockReturnValue({ eq: profileEqMock })
 
     const fromMock = vi.fn()
