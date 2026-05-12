@@ -28,6 +28,7 @@ import { POST } from "./route"
 // ---------------------------------------------------------------------------
 
 const sampleInput = {
+  projectId: "project-abc",
   contractType: "web_development",
   freelancerName: "Alice Smith",
   freelancerEmail: "alice@example.com",
@@ -82,6 +83,16 @@ function makeSupabaseMock({
 
   // Track which table is being queried
   const fromMock = vi.fn().mockImplementation((table: string) => {
+    if (table === "projects") {
+      // Project ownership lookup — return a row so the route accepts the projectId.
+      const projectMaybeSingle = vi.fn().mockResolvedValue({
+        data: { id: "project-abc" },
+        error: null,
+      })
+      const projectEq = vi.fn().mockReturnValue({ maybeSingle: projectMaybeSingle })
+      const projectSelect = vi.fn().mockReturnValue({ eq: projectEq })
+      return { select: projectSelect }
+    }
     if (table === "contracts") {
       return {
         insert: vi.fn().mockReturnValue({

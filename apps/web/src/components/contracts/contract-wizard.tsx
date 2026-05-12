@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { contractKeys } from "@/lib/queries/contracts"
+import { useProjects } from "@/lib/queries/projects"
 import { cn } from "@/lib/utils"
 import {
   X,
@@ -73,6 +74,8 @@ interface GeneratedResult {
 
 interface WizardForm {
   // Step 1
+  /** Project the contract belongs to. Required — DB enforces NOT NULL. */
+  projectId: string
   contractType: ContractType
   freelancerName: string
   clientName: string
@@ -152,6 +155,7 @@ const GENERATION_STAGES = [
 // ---------------------------------------------------------------------------
 
 const INITIAL_FORM: WizardForm = {
+  projectId: "",
   contractType: "web_development",
   freelancerName: "",
   clientName: "",
@@ -252,6 +256,7 @@ export function ContractWizard({ open, onClose, onSuccess }: ContractWizardProps
       const { data: { user } } = await supabase.auth.getUser()
 
       const body = {
+        projectId: form.projectId,
         contractType: form.contractType,
         freelancerName: form.freelancerName,
         freelancerEmail: user?.email ?? "",
@@ -322,7 +327,12 @@ export function ContractWizard({ open, onClose, onSuccess }: ContractWizardProps
   function canAdvanceStep(): boolean {
     switch (step) {
       case 1:
-        return Boolean(form.clientName.trim() && form.clientEmail.trim())
+        // Project is required — every contract must live under a project.
+        return Boolean(
+          form.projectId &&
+          form.clientName.trim() &&
+          form.clientEmail.trim(),
+        )
       case 2:
         return Boolean(form.title.trim() && form.projectDescription.trim() && form.deliverables.trim())
       case 3:
@@ -486,9 +496,53 @@ function Step1TypeAndParties({
   form: WizardForm
   setField: <K extends keyof WizardForm>(k: K, v: WizardForm[K]) => void
 }) {
+  const { data: projects = [], isLoading: projectsLoading } = useProjects()
+
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-zinc-900">Project</h3>
+        <p className="text-xs text-zinc-500">
+          Contracts always belong to a project. Pick one or{" "}
+          <a href="/projects" className="underline hover:text-zinc-900" target="_blank" rel="noreferrer">
+            create one
+          </a>{" "}
+          first.
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-xs font-semibold text-zinc-700">
+          Project <span className="text-red-400">*</span>
+        </label>
+        <select
+          value={form.projectId}
+          onChange={(e) => setField("projectId", e.target.value)}
+          disabled={projectsLoading}
+          className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 disabled:opacity-60"
+        >
+          <option value="">
+            {projectsLoading
+              ? "Loading projects…"
+              : projects.length === 0
+                ? "No projects yet — create one first"
+                : "Select a project…"}
+          </option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+              {p.client && p.client !== "Unknown Client" ? ` — ${p.client}` : ""}
+            </option>
+          ))}
+        </select>
+        {!projectsLoading && projects.length === 0 && (
+          <p className="text-[11px] text-amber-600">
+            You need at least one project to draft a contract. Open the Projects
+            page in a new tab, create one, then return here.
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-1 pt-2">
         <h3 className="text-sm font-semibold text-zinc-900">Contract Type</h3>
         <p className="text-xs text-zinc-500">Choose the type of work this contract covers.</p>
       </div>

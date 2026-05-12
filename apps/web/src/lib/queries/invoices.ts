@@ -18,7 +18,9 @@ import { createClient } from "@/utils/supabase/client"
 
 interface ContractPaymentRow {
   id: string
-  contract_id: string
+  /** Optional now — invoice can attach to a project even without a contract. */
+  contract_id: string | null
+  project_id: string | null
   user_id: string
   amount: number
   currency: string
@@ -27,6 +29,7 @@ interface ContractPaymentRow {
   created_at: string
   completed_at: string | null
   contracts: { title: string; client_email: string | null } | null
+  projects: { title: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -92,6 +95,8 @@ function formatCurrency(amount: number, currency = "USD"): string {
 function mapRowToInvoice(row: ContractPaymentRow, index: number): Invoice {
   const numericAmount = Number(row.amount) || 0
   const paddedIndex = String(index + 1).padStart(4, "0")
+  // Display label prefers the project name, falls back to contract title.
+  const projectTitle = row.projects?.title ?? row.contracts?.title ?? "—"
   return {
     id: row.id,
     number: `INV-${paddedIndex}`,
@@ -101,8 +106,8 @@ function mapRowToInvoice(row: ContractPaymentRow, index: number): Invoice {
     status: mapPaymentStatus(row.status, row.payment_type),
     dueDate: row.completed_at ? formatDate(row.completed_at) : "—",
     sentDate: formatDate(row.created_at),
-    contractId: row.contract_id,
-    contractTitle: row.contracts?.title ?? "Contract",
+    contractId: row.contract_id ?? "",
+    contractTitle: projectTitle,
   }
 }
 
@@ -118,7 +123,7 @@ export function useInvoices() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("contract_payments")
-        .select("*, contracts(title, client_email)")
+        .select("*, contracts(title, client_email), projects(title)")
         .order("created_at", { ascending: false })
 
       if (error) throw new Error(error.message)
@@ -135,7 +140,7 @@ export function useInvoice(id: string) {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("contract_payments")
-        .select("*, contracts(title, client_email)")
+        .select("*, contracts(title, client_email), projects(title)")
         .eq("id", id)
         .single()
 
@@ -146,9 +151,12 @@ export function useInvoice(id: string) {
   })
 }
 
-/** Create a new payment record (escrow deposit). */
+/** Create a new payment record (escrow deposit / invoice). */
 export interface CreateInvoicePayload {
-  contractId: string
+  /** Project this invoice bills against. Primary link. */
+  projectId?: string | null
+  /** Optional contract reference — for legal/escrow linkage. */
+  contractId?: string | null
   amount: number
   currency?: string
   paymentType?: ContractPaymentRow["payment_type"]
@@ -164,11 +172,16 @@ export function useCreateInvoice() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
+      if (!payload.projectId && !payload.contractId) {
+        throw new Error("Invoice must be linked to a project or a contract")
+      }
+
       const { data, error } = await supabase
         .from("contract_payments")
         .insert([
           {
-            contract_id: payload.contractId,
+            project_id: payload.projectId ?? null,
+            contract_id: payload.contractId ?? null,
             user_id: user.id,
             amount: payload.amount,
             currency: payload.currency ?? "USD",
@@ -176,7 +189,7 @@ export function useCreateInvoice() {
             status: "pending",
           },
         ])
-        .select("*, contracts(title, client_email)")
+        .select("*, contracts(title, client_email), projects(title)")
         .single()
 
       if (error) throw new Error(error.message)
@@ -207,7 +220,7 @@ export function useUpdateInvoice() {
           ...(completedAt !== undefined && { completed_at: completedAt }),
         })
         .eq("id", id)
-        .select("*, contracts(title, client_email)")
+        .select("*, contracts(title, client_email), projects(title)")
         .single()
 
       if (error) throw new Error(error.message)

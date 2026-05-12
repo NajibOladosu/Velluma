@@ -133,7 +133,9 @@ export function useTimeEntries() {
 
 /** Start a new timer session. */
 export interface StartTimerPayload {
-  /** Optional — null logs untracked time (e.g. discovery, business overhead). */
+  /** Project this time is logged against. Primary link in the new hierarchy. */
+  projectId?: string | null
+  /** Optional contract — for legal/billing reference. project_id is preferred. */
   contractId?: string | null
   taskDescription: string
   hourlyRate?: number
@@ -150,6 +152,7 @@ export function useStartTimer() {
       const { data, error } = await supabase
         .from("time_entries")
         .insert({
+          project_id: payload.projectId ?? null,
           contract_id: payload.contractId ?? null,
           freelancer_id: user.id,
           tenant_id: user.id,
@@ -377,7 +380,9 @@ export function useRejectTimeEntry() {
 }
 
 export interface ManualEntryPayload {
-  /** Optional — null logs untracked time (e.g. discovery, business overhead). */
+  /** Project this entry rolls up into. Primary link in the new hierarchy. */
+  projectId?: string | null
+  /** Optional contract — for billing reference. project_id is preferred. */
   contractId?: string | null
   taskDescription: string
   date: string       // YYYY-MM-DD
@@ -407,6 +412,7 @@ export function useCreateManualEntry() {
       const { data, error } = await supabase
         .from("time_entries")
         .insert({
+          project_id: payload.projectId ?? null,
           contract_id: payload.contractId ?? null,
           freelancer_id: user.id,
           tenant_id: user.id,

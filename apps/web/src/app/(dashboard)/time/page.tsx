@@ -36,6 +36,7 @@ import {
   type TimeEntry,
 } from "@/lib/queries/time";
 import { useContracts } from "@/lib/queries/contracts";
+import { useProjects } from "@/lib/queries/projects";
 
 /* ═══════════════════════════════════════════════════════
    STATUS BADGE
@@ -129,6 +130,7 @@ export default function TimePage() {
   const [running, setRunning]     = React.useState(false);
   const [elapsed, setElapsed]     = React.useState(0);
   const [task, setTask]           = React.useState("");
+  const [projectId, setProjectId] = React.useState<string>("");
   const [contractId, setContractId] = React.useState<string>("");
   const [activeSessionId, setActiveSessionId] = React.useState<string | null>(null);
   const [manualModalOpen, setManualModalOpen] = React.useState(false);
@@ -136,6 +138,7 @@ export default function TimePage() {
 
   const { data: recentEntries = [], isLoading, refetch: refetchEntries } = useTimeEntries();
   const { data: contracts = [] } = useContracts();
+  const { data: projects = [] } = useProjects();
   const billableContracts = React.useMemo(
     () => contracts.filter((c) => c.status === "signed" || c.status === "pending"),
     [contracts],
@@ -209,6 +212,7 @@ export default function TimePage() {
     } else {
       if (!task.trim()) return;
       const session = await startTimer.mutateAsync({
+        projectId: projectId || null,
         contractId: contractId || null,
         taskDescription: task,
       });
@@ -268,16 +272,32 @@ export default function TimePage() {
           {/* Task Input + Controls */}
           <div className="flex flex-col gap-3 sm:items-end w-full sm:w-auto shrink-0">
             <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              disabled={running}
+              className="w-full sm:w-72 h-9 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
+              aria-label="Project"
+            >
+              <option value="">
+                {projects.length === 0
+                  ? "No projects yet — log untracked"
+                  : "No project (untracked time)"}
+              </option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.client && p.client !== "Unknown Client" ? ` — ${p.client}` : ""}
+                </option>
+              ))}
+            </select>
+            <select
               value={contractId}
               onChange={(e) => setContractId(e.target.value)}
               disabled={running}
               className="w-full sm:w-72 h-9 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
+              aria-label="Contract"
             >
-              <option value="">
-                {billableContracts.length === 0
-                  ? "No contract (untracked time)"
-                  : "No contract (untracked time)"}
-              </option>
+              <option value="">No contract reference (optional)</option>
               {billableContracts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title} — {c.client}
@@ -430,9 +450,11 @@ export default function TimePage() {
 
 function ManualEntryModal({ onClose }: { onClose: () => void }) {
   const { data: contracts = [] } = useContracts();
+  const { data: projects = [] } = useProjects();
   const createEntry = useCreateManualEntry();
 
   const today = new Date().toISOString().split("T")[0];
+  const [projectId, setProjectId]       = React.useState("");
   const [contractId, setContractId]     = React.useState("");
   const [description, setDescription]   = React.useState("");
   const [date, setDate]                 = React.useState(today);
@@ -452,6 +474,7 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
     setError(null);
     try {
       await createEntry.mutateAsync({
+        projectId: projectId || null,
         contractId: contractId || null,
         taskDescription: description.trim(),
         date,
@@ -482,14 +505,33 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-zinc-700">
-              Contract <span className="text-zinc-400 font-normal">(optional)</span>
+              Project <span className="text-zinc-400 font-normal">(recommended)</span>
+            </label>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="">No project (untracked time)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.client && p.client !== "Unknown Client" ? ` — ${p.client}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">
+              Contract reference <span className="text-zinc-400 font-normal">(optional)</span>
             </label>
             <select
               value={contractId}
               onChange={(e) => setContractId(e.target.value)}
               className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
             >
-              <option value="">No contract (untracked time)</option>
+              <option value="">No contract</option>
               {activeContracts.map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
               ))}

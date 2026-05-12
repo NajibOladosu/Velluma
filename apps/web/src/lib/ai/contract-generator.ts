@@ -25,6 +25,10 @@ export type ContractType =
   | "general_freelance"
 
 export interface ContractGenerationInput {
+  // Project — every contract is created under a project (Lead → Project →
+  // Contract → Time/Expenses/Invoices). The DB enforces this with a NOT NULL
+  // FK; the wizard requires it before reaching the AI generation step.
+  projectId: string
   // Parties
   contractType: ContractType
   freelancerName: string
