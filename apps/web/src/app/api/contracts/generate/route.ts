@@ -26,10 +26,34 @@ export async function POST(request: Request) {
     // ── Input ───────────────────────────────────────────────────────────────
     const input: ContractGenerationInput = await request.json()
 
+    if (!input.projectId) {
+      return NextResponse.json(
+        { error: "projectId is required — every contract must belong to a project" },
+        { status: 400 },
+      )
+    }
     if (!input.projectDescription?.trim() || !input.deliverables?.trim()) {
       return NextResponse.json(
         { error: "projectDescription and deliverables are required" },
         { status: 400 },
+      )
+    }
+
+    // Verify the project exists and belongs to this user. RLS would block a
+    // foreign project at insert time anyway, but failing early gives a clearer
+    // error than the generic FK violation.
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id")
+      .eq("id", input.projectId)
+      .maybeSingle()
+    if (projectError) {
+      return NextResponse.json({ error: projectError.message }, { status: 500 })
+    }
+    if (!project) {
+      return NextResponse.json(
+        { error: "Project not found or not accessible" },
+        { status: 404 },
       )
     }
 
@@ -41,6 +65,7 @@ export async function POST(request: Request) {
       .from("contracts")
       .insert({
         creator_id: user.id,
+        project_id: input.projectId,
         title: generated.title,
         description: generated.summary,
         status: "draft",
