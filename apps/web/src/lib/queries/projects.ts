@@ -27,7 +27,7 @@ export interface ProjectRow {
   metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
-  clients?: { name: string } | null
+  crm_clients?: { name: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ function mapRowToProject(row: ProjectRow): Project {
   return {
     id: row.id,
     name: row.title,
-    client: row.clients?.name ?? "Unknown Client",
+    client: row.crm_clients?.name ?? "Unknown Client",
     clientId: row.client_id ?? "",
     status: mapDbToProjectStatus(row.status),
     progress,
@@ -108,7 +108,7 @@ export function useProjects() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("projects")
-        .select("*, clients(name)")
+        .select("*, crm_clients(name)")
         .order("created_at", { ascending: false })
 
       if (error) throw new Error(error.message)
@@ -125,7 +125,7 @@ export function useProject(id: string) {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("projects")
-        .select("*, clients(name)")
+        .select("*, crm_clients(name)")
         .eq("id", id)
         .single()
 
@@ -195,7 +195,7 @@ export function useCreateProject() {
             total_budget: payload.totalBudget ?? null,
           },
         ])
-        .select("*, clients(name)")
+        .select("*, crm_clients(name)")
         .single()
 
       if (error) throw new Error(error.message)
@@ -233,7 +233,7 @@ export function useUpdateProject() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", id)
-        .select("*, clients(name)")
+        .select("*, crm_clients(name)")
         .single()
 
       if (error) throw new Error(error.message)
