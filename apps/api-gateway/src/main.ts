@@ -25,7 +25,11 @@ async function bootstrap() {
   //
   // Development default: http://localhost:3000
   // ---------------------------------------------------------------------------
-  const rawOrigins = process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000';
+  // Default includes :3000 (standard) and :3010 (web fallback when :3000
+  // is occupied by another local process — see apps/web/package.json).
+  const rawOrigins =
+    process.env.ALLOWED_ORIGINS ??
+    'http://localhost:3000,http://localhost:3010';
   const allowedOrigins = rawOrigins
     .split(',')
     .map((o) => o.trim())

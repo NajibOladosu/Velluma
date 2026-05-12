@@ -74,7 +74,10 @@ export async function POST(request: Request) {
     const { error: docError } = await supabase.from("contract_documents").insert({
       contract_id: contract.id,
       author_id: user.id,
+      created_by: user.id,
       content: JSON.stringify({ sections: generated.sections }),
+      // `format` is NOT NULL in the schema — record what we serialized.
+      format: "json",
       source: "ai",
       ai_prompt: input.projectDescription,
       regen_number: 0,
