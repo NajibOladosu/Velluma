@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -30,18 +30,17 @@ const statusLabel: Record<string, string> = {
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [search, setSearch] = React.useState("");
   const [createOpen, setCreateOpen] = React.useState(false);
   const { data: projects = [], isLoading } = useProjects();
 
-  // Auto-open the New Project modal when arriving via /projects?new=1
-  // (Dashboard "New Project" quick action).
+  // Auto-open the New Project modal when arriving via /projects?new=1.
   React.useEffect(() => {
-    if (searchParams.get("new") === "1") {
-      setCreateOpen(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "1") setCreateOpen(true);
     }
-  }, [searchParams]);
+  }, []);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return projects;

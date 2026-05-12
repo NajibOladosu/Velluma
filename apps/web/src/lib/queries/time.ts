@@ -17,7 +17,10 @@ import { createClient } from "@/utils/supabase/client"
 
 export interface TimeEntryRow {
   id: string
-  contract_id: string
+  /** Nullable since the 20260512040000 migration relaxed the FK. */
+  contract_id: string | null
+  /** Added in the same migration to align time with the project hierarchy. */
+  project_id: string | null
   freelancer_id: string
   task_description: string
   start_time: string
@@ -35,8 +38,14 @@ export interface TimeEntryRow {
 
 export interface TimeEntry {
   id: string
+  /** Raw task description from the row — also exposed as `taskDescription` */
   task: string
-  contractId: string
+  /** Alias for `task` to match the field name elsewhere in the app */
+  taskDescription: string
+  contractId: string | null
+  projectId: string | null
+  /** ISO timestamp — anchor for the running stopwatch */
+  startTime: string
   /** ISO string — null when the timer is still running */
   endTime: string | null
   durationMinutes: number | null
@@ -98,7 +107,10 @@ function mapRowToEntry(row: TimeEntryRow): TimeEntry {
   return {
     id: row.id,
     task: row.task_description,
+    taskDescription: row.task_description,
     contractId: row.contract_id,
+    projectId: row.project_id ?? null,
+    startTime: row.start_time,
     endTime: row.end_time,
     durationMinutes: row.duration_minutes,
     duration: formatDuration(row.duration_minutes),

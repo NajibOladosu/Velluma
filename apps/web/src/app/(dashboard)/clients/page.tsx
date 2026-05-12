@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -232,7 +232,6 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
 
 export default function ClientsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [searchQuery,   setSearchQuery]   = React.useState("");
   const [statusTab,     setStatusTab]     = React.useState<StatusTab>("all");
   const [tagFilter,     setTagFilter]     = React.useState("all");
@@ -240,12 +239,15 @@ export default function ClientsPage() {
   const [addClientOpen, setAddClientOpen] = React.useState(false);
 
   // Auto-open the Add Client drawer when arriving via /clients?new=1
-  // (Dashboard "New Client" quick action lands here).
+  // (Dashboard "New Client" quick action lands here). Reading
+  // window.location avoids the useSearchParams() Suspense requirement that
+  // breaks static prerender.
   React.useEffect(() => {
-    if (searchParams.get("new") === "1") {
-      setAddClientOpen(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("new") === "1") setAddClientOpen(true);
     }
-  }, [searchParams]);
+  }, []);
 
   const { data: clients = [], isLoading, isError, error, refetch } = useClients();
 
