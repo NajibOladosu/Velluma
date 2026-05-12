@@ -59,7 +59,8 @@ export async function POST(
     signed_name: signedName,
     signed_email: guard.session.email,
     signed_ip: ip,
-    signature_type: "typed",
+    // DB CHECK constraint allows only 'canvas' | 'image_upload' | 'digital'.
+    signature_type: "digital",
   })
 
   if (sigError) {
