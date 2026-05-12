@@ -153,17 +153,25 @@ export default function TimePage() {
   const stopTimer  = useStopTimer();
 
   // Compute weekly metrics from real data
+  // Aggregates count every logged entry (Draft + Submitted + Approved) over
+  // a rolling 30-day window. Calendar-week scoping made the cards say "0h"
+  // when entries existed from earlier in the month — useless to freelancers
+  // whose cadence is monthly, not weekly.
   const weeklyMetrics = React.useMemo(() => {
     const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    weekStart.setHours(0, 0, 0, 0);
+    const since = new Date(now);
+    since.setDate(now.getDate() - 30);
+    since.setHours(0, 0, 0, 0);
 
-    const weekEntries = recentEntries.filter(
-      (e) => e.endTime && new Date(e.endTime) >= weekStart
-    );
-    const totalMins    = weekEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0);
-    const billableEntries = weekEntries.filter((e) => e.hourlyRate > 0);
+    // Match against start_time so entries without end_time (still running)
+    // are excluded — they have no measurable duration yet.
+    const windowEntries = recentEntries.filter((e) => {
+      if (!e.durationMinutes || e.durationMinutes <= 0) return false;
+      const anchor = e.endTime ? new Date(e.endTime) : new Date(e.startTime);
+      return anchor >= since;
+    });
+    const totalMins    = windowEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0);
+    const billableEntries = windowEntries.filter((e) => e.hourlyRate > 0);
     const billableMins = billableEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0);
     const revenue      = billableEntries.reduce((s, e) => {
       const hrs = (e.durationMinutes ?? 0) / 60;
@@ -174,15 +182,15 @@ export default function TimePage() {
     const totalMinRem = totalMins % 60;
     const billableHrs = Math.floor(billableMins / 60);
     const billableMinRem = billableMins % 60;
-    const avgDailyMins = totalMins / 5;
+    const avgDailyMins = totalMins / 30;
     const avgHrs      = Math.floor(avgDailyMins / 60);
     const avgMinRem   = Math.floor(avgDailyMins % 60);
 
     return [
-      { label: "Hours This Week",  value: `${totalHrs}h ${String(totalMinRem).padStart(2,"0")}m`,      sub: "Current week",  icon: Clock      },
+      { label: "Hours Logged",     value: `${totalHrs}h ${String(totalMinRem).padStart(2,"0")}m`,      sub: "Last 30 days",  icon: Clock      },
       { label: "Billable Hours",   value: `${billableHrs}h ${String(billableMinRem).padStart(2,"0")}m`, sub: totalMins > 0 ? `${Math.round((billableMins / totalMins) * 100)}% billable` : "No entries", icon: DollarSign },
-      { label: "Revenue Logged",   value: `$${Math.round(revenue).toLocaleString()}`,                   sub: "This week",     icon: BarChart2  },
-      { label: "Avg Daily Hours",  value: `${avgHrs}h ${String(avgMinRem).padStart(2,"0")}m`,           sub: "Mon – Fri",     icon: Calendar   },
+      { label: "Revenue Logged",   value: `$${Math.round(revenue).toLocaleString()}`,                   sub: "Last 30 days",  icon: BarChart2  },
+      { label: "Avg Daily Hours",  value: `${avgHrs}h ${String(avgMinRem).padStart(2,"0")}m`,           sub: "30-day avg",    icon: Calendar   },
     ];
   }, [recentEntries]);
 

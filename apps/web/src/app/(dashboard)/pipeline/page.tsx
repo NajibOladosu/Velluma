@@ -74,14 +74,14 @@ function PipelineMetrics({ stages, isLoading }: { stages: PipelineStageData[]; i
     .filter((s) => s.id === "contract_signed" || s.id === "active")
     .flatMap((s) => s.leads)
     .reduce((s, l) => s + l.numericValue, 0);
+  // A lead is "won" the moment its contract is signed — not when execution
+  // starts. Counting only the `active` column ignored every signed deal that
+  // hadn't yet moved to delivery, making conversion look ~5× worse than reality.
+  const wonLeads = stages
+    .filter((s) => s.id === "contract_signed" || s.id === "active")
+    .reduce((sum, s) => sum + s.leads.length, 0);
   const conversionRate =
-    allLeads.length > 0
-      ? Math.round(
-          ((stages.find((s) => s.id === "active")?.leads.length ?? 0) /
-            allLeads.length) *
-            100
-        )
-      : 0;
+    allLeads.length > 0 ? Math.round((wonLeads / allLeads.length) * 100) : 0;
   const avgDealSize =
     allLeads.length > 0 ? Math.round(totalValue / allLeads.length) : 0;
 
@@ -101,7 +101,7 @@ function PipelineMetrics({ stages, isLoading }: { stages: PipelineStageData[]; i
     {
       label: "Conversion Rate",
       value: `${conversionRate}%`,
-      sub: "Inquiry → Active",
+      sub: "Inquiry → Won (signed or active)",
       icon: TrendingUp,
     },
     {

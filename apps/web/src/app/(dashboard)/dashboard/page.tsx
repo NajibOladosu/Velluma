@@ -19,11 +19,13 @@ import {
 import Link from "next/link";
 import { useDashboardStats } from "@/lib/queries/dashboard";
 
+// Quick actions surface the most common create flows from the home page.
+// "New File" was removed — no Files feature exists in the app to land on.
 const quickActions = [
-  { label: "New Client", icon: UserPlus, href: "/clients" },
-  { label: "New Project", icon: FolderPlus, href: "/projects" },
-  { label: "New File", icon: FilePlus, href: "/contracts" },
-  { label: "New Meeting", icon: Video, href: "/pipeline" },
+  { label: "New Client",   icon: UserPlus,   href: "/clients" },
+  { label: "New Project",  icon: FolderPlus, href: "/projects" },
+  { label: "New Invoice",  icon: FilePlus,   href: "/invoices" },
+  { label: "New Meeting",  icon: Video,      href: "/pipeline" },
 ];
 
 function fmt(n: number) {

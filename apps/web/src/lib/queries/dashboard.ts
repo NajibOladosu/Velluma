@@ -115,9 +115,13 @@ export function useDashboardStats() {
           .order("created_at", { ascending: false }),
       ])
 
-      // Revenue: sum of completed contracts
+      // Net Revenue (YTD): book everything past the signed line — signed,
+      // funded, in_progress, and completed. Empty dashboard on a freshly
+      // signed pipeline made the home page look like a new account.
       const completedRevenue = (contracts ?? [])
-        .filter((c) => c.status === "completed")
+        .filter((c) =>
+          ["signed", "funded", "in_progress", "completed"].includes(c.status),
+        )
         .reduce((s, c) => s + Number(c.total_amount || 0), 0)
 
       // Escrow held
@@ -139,8 +143,13 @@ export function useDashboardStats() {
 
       const unreadNotifications = (notifications ?? []).filter((n) => !n.is_read).length
 
-      const activeContracts = (contracts ?? []).filter(
-        (c) => c.status === "in_progress" || c.status === "funded",
+      // Active contracts: anything that has crossed signature line and isn't
+      // archived/cancelled. Draft contracts are still "in progress" from the
+      // freelancer's POV — they're the active workstream.
+      const activeContracts = (contracts ?? []).filter((c) =>
+        ["signed", "funded", "in_progress", "pending_signatures", "pending_funding"].includes(
+          c.status,
+        ),
       )
 
       return {
@@ -340,8 +349,14 @@ export function useProfitabilityStats() {
         supabase.from("expenses").select("amount,category,status"),
       ])
 
+      // Booked revenue: every contract past the signature line. Filtering
+      // only on `completed` left the page showing negative net income any
+      // time expenses existed but no contract had reached final completion —
+      // misleading even when active engagements covered the burn 10×.
       const totalRevenue = (contracts ?? [])
-        .filter((c) => c.status === "completed")
+        .filter((c) =>
+          ["signed", "funded", "in_progress", "completed"].includes(c.status),
+        )
         .reduce((s, c) => s + Number(c.total_amount || 0), 0)
 
       const totalExpenses = (expenses ?? []).reduce((s, e) => s + Number(e.amount || 0), 0)
