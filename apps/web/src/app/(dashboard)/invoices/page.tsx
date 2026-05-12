@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { H1, Muted, P } from "@/components/ui/typography";
 import { CsvImportExport } from "@/components/data/csv-import-export";
 import { Surface } from "@/components/ui/surface";
@@ -253,6 +254,7 @@ function NewInvoiceDialog({
 // ---------------------------------------------------------------------------
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = React.useState<TabKey>("all");
   const [search, setSearch] = React.useState("");
   const [newInvoiceOpen, setNewInvoiceOpen] = React.useState(false);
@@ -488,7 +490,22 @@ export default function InvoicesPage() {
                 filtered.map((invoice) => (
                   <tr
                     key={invoice.id}
-                    className="group hover:bg-zinc-50/50 transition-colors"
+                    role="link"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      // Don't navigate when the click came from an inline
+                      // action (button / menu) — those have their own handlers.
+                      const target = e.target as HTMLElement;
+                      if (target.closest("button,[role=menu],[role=menuitem],a")) return;
+                      router.push(`/invoices/${invoice.id}`);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/invoices/${invoice.id}`);
+                      }
+                    }}
+                    className="group hover:bg-zinc-50/50 transition-colors cursor-pointer focus:outline-none focus-visible:bg-zinc-50/50"
                   >
                     <td className="px-6 py-4">
                       <div className="font-semibold text-zinc-900 tracking-tight truncate max-w-[150px] sm:max-w-[200px]">
