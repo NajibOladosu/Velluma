@@ -123,6 +123,18 @@ function buildColumns(opts: {
   },
   { accessorKey: "description", header: "Vendor / Description" },
   {
+    id: "project",
+    header: "Project",
+    cell: ({ row }: ColCell) => {
+      const title = row.original.projects?.title as string | undefined
+      return title ? (
+        <span className="text-zinc-700 truncate max-w-[160px] block">{title}</span>
+      ) : (
+        <span className="text-zinc-400 text-xs">— overhead —</span>
+      )
+    },
+  },
+  {
     accessorKey: "expense_date",
     header: "Date",
     cell: ({ row }: ColCell) => <span>{formatExpenseDate(row.getValue("expense_date"))}</span>,

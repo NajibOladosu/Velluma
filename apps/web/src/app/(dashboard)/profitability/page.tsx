@@ -70,7 +70,7 @@ export default function ProfitabilityPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Surface className="p-6 flex flex-col min-w-0">
           <div className="flex items-center justify-between pb-2 gap-2">
-            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Net Income (Completed)</Muted>
+            <Muted className="text-[10px] uppercase tracking-[0.15em] font-bold truncate">Net Income (Booked)</Muted>
             <TrendingUp className="h-4 w-4 text-zinc-400 shrink-0" strokeWidth={1.5} />
           </div>
           {isLoading ? (
@@ -80,7 +80,7 @@ export default function ProfitabilityPage() {
               {fmt(stats?.netIncome ?? 0)}
             </div>
           )}
-          <Muted className="text-[10px] mt-1 truncate max-w-full">Revenue minus expenses</Muted>
+          <Muted className="text-[10px] mt-1 truncate max-w-full">Booked revenue minus expenses</Muted>
         </Surface>
 
         <Surface className="p-6 flex flex-col min-w-0">

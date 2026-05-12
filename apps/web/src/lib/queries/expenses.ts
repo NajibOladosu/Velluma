@@ -14,7 +14,7 @@ import { api } from "@/lib/api-client"
 
 export interface ExpenseRow {
   id: string
-  project_id: string
+  project_id: string | null
   tenant_id: string
   user_id: string | null
   description: string
@@ -26,6 +26,8 @@ export interface ExpenseRow {
   notes: string | null
   status: "pending" | "approved" | "rejected" | "reimbursed"
   created_at: string
+  /** Embedded project title — populated by `.select("*, projects(title)")`. */
+  projects: { title: string } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +119,7 @@ export function useExpenses() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("expenses")
-        .select("*")
+        .select("*, projects(title)")
         .order("expense_date", { ascending: false })
 
       if (error) throw new Error(error.message)

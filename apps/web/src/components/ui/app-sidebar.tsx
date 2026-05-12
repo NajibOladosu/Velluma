@@ -33,46 +33,52 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
 
+// Sidebar follows the freelancer workflow: Lead → Sale → Delivery → Money →
+// Insights → Workspace utilities. Groups are scannable top-to-bottom.
 const navItems = [
     {
-        group: "Core", items: [
-            { name: "Home",      href: "/dashboard", icon: LayoutDashboard },
-            { name: "Analytics", href: "/analytics", icon: BarChart3       },
+        group: "Home", items: [
+            { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         ]
     },
     {
-        group: "Growth", items: [
-            { name: "Pipeline",   href: "/pipeline",   icon: TrendingUp    },
-            { name: "Clients",    href: "/clients",    icon: Users         },
-            { name: "Proposals",  href: "/proposals",  icon: FileText      },
-            { name: "Lead Forms", href: "/lead-forms", icon: Sparkles      },
+        group: "Sales", items: [
+            { name: "Pipeline",   href: "/pipeline",         icon: TrendingUp    },
+            { name: "Clients",    href: "/clients",          icon: Users         },
+            { name: "Lead Forms", href: "/lead-forms",       icon: Sparkles      },
             { name: "Bookings",   href: "/booking-settings", icon: CalendarClock },
+            { name: "Proposals",  href: "/proposals",        icon: FileText      },
         ]
     },
     {
-        group: "Vault", items: [
-            { name: "Contracts",     href: "/contracts",     icon: ShieldCheck  },
-            { name: "Invoices",      href: "/invoices",      icon: Wallet       },
-            { name: "Finance",       href: "/finance",       icon: DollarSign   },
-            { name: "Expenses",      href: "/expenses",      icon: ReceiptText  },
-            { name: "Profitability", href: "/profitability",  icon: PieChart     },
+        group: "Delivery", items: [
+            { name: "Projects", href: "/projects", icon: Briefcase },
+            { name: "Time",     href: "/time",     icon: Clock     },
+            { name: "Services", href: "/services", icon: Tag       },
+            { name: "Messages", href: "/messages", icon: Inbox     },
         ]
     },
     {
-        group: "Operations", items: [
-            { name: "Projects",    href: "/projects",    icon: Briefcase },
-            { name: "Services",    href: "/services",    icon: Tag       },
-            { name: "Time",        href: "/time",        icon: Clock     },
-            { name: "Messages",    href: "/messages",    icon: Inbox     },
-            { name: "Automations", href: "/automations", icon: Zap       },
-            { name: "Templates",   href: "/templates",   icon: Files     },
-            { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
+        group: "Money", items: [
+            { name: "Contracts", href: "/contracts", icon: ShieldCheck  },
+            { name: "Invoices",  href: "/invoices",  icon: Wallet       },
+            { name: "Expenses",  href: "/expenses",  icon: ReceiptText  },
+            { name: "Finance",   href: "/finance",   icon: DollarSign   },
+        ]
+    },
+    {
+        group: "Insights", items: [
+            { name: "Analytics",     href: "/analytics",     icon: BarChart3 },
+            { name: "Profitability", href: "/profitability", icon: PieChart  },
         ]
     },
     {
         group: "Workspace", items: [
-            { name: "Team",      href: "/team",      icon: UserPlus   },
-            { name: "Audit Log", href: "/audit-log", icon: ShieldAlert },
+            { name: "Templates",    href: "/templates",    icon: Files       },
+            { name: "Automations",  href: "/automations",  icon: Zap         },
+            { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles    },
+            { name: "Team",         href: "/team",         icon: UserPlus    },
+            { name: "Audit Log",    href: "/audit-log",    icon: ShieldAlert },
         ]
     },
 ]
