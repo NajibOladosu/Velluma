@@ -33,11 +33,80 @@ export class ContractService {
         temperature: 0.25,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 8192,
+        // 8192 truncated long contracts mid-JSON → parse failure on final
+        // generation. 32k gives ~4x headroom for the full 13-section template.
+        maxOutputTokens: 32768,
+        // Force valid JSON — no fences, no prose, no smart quotes.
+        responseMimeType: 'application/json',
       },
     });
     const result = await model.generateContent(prompt);
+
+    // Surface upstream truncation explicitly rather than letting the parser
+    // emit "Unexpected end of JSON input".
+    const finishReason = result.response.candidates?.[0]?.finishReason;
+    if (finishReason && finishReason !== 'STOP') {
+      throw new Error(
+        `Gemini stopped early (finishReason=${finishReason}). ` +
+          'Likely MAX_TOKENS — shorten input prompt.',
+      );
+    }
     return result.response.text();
+  }
+
+  /**
+   * Robust JSON extractor for Gemini responses. Handles:
+   *   - Bare JSON
+   *   - Markdown code fences anywhere in the string
+   *   - Leading/trailing prose
+   *   - Trailing commas, smart quotes
+   * Uses a balanced-brace scanner so prose containing `{` doesn't fool it.
+   */
+  private extractJson(raw: string): string {
+    let s = raw.replace(/```(?:json|JSON)?\s*\n?/g, '').replace(/\n?\s*```/g, '');
+    s = s.trim();
+    const start = s.indexOf('{');
+    if (start === -1) return s;
+    let depth = 0;
+    let end = -1;
+    let inString = false;
+    let escape = false;
+    for (let i = start; i < s.length; i++) {
+      const c = s[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (inString) {
+        if (c === '\\') escape = true;
+        else if (c === '"') inString = false;
+        continue;
+      }
+      if (c === '"') inString = true;
+      else if (c === '{') depth++;
+      else if (c === '}') {
+        depth--;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    return end === -1 ? s.slice(start) : s.slice(start, end + 1);
+  }
+
+  private parseGeminiJson<T>(rawText: string): T {
+    const candidate = this.extractJson(rawText);
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      // Second attempt: strip trailing commas + normalize smart quotes
+      const sanitized = candidate
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/,(\s*[}\]])/g, '$1');
+      return JSON.parse(sanitized) as T;
+    }
   }
 
   async generateFromPrompt(data: GenerateContractDto) {
@@ -64,12 +133,10 @@ Include all standard sections: Parties, Scope of Work, Timeline, Payment Terms, 
         `${systemPrompt}\n\n---\n\n${userPrompt}`,
       );
 
-      const cleaned = rawText
-        .replace(/^```(?:json)?\s*/im, '')
-        .replace(/\s*```\s*$/im, '')
-        .trim();
-
-      const parsed = JSON.parse(cleaned);
+      const parsed = this.parseGeminiJson<{
+        title?: string;
+        sections?: unknown[];
+      }>(rawText);
       contractTitle = parsed.title ?? contractTitle;
       sections = parsed.sections ?? [];
       content = sections

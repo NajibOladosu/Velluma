@@ -344,25 +344,87 @@ function buildUserPrompt(input: ContractGenerationInput): string {
 // Parse Gemini response
 // ---------------------------------------------------------------------------
 
+/**
+ * Extract the JSON object from a possibly-wrapped Gemini response.
+ *
+ * Handles all observed wrapping patterns:
+ *   - Bare JSON
+ *   - ```json ... ``` fences (anywhere in string)
+ *   - Bare ``` ... ``` fences
+ *   - Leading/trailing prose ("Here is the contract:" / "Hope this helps!")
+ *   - Whitespace, BOM, zero-width chars
+ *
+ * Uses a balanced-brace scanner instead of a greedy regex so it works even
+ * when the response contains stray `{` or `}` in prose.
+ */
+function extractJson(raw: string): string {
+  // Strip BOM + zero-width chars
+  let s = raw.replace(/^﻿/, "").replace(/[​-‍﻿]/g, "")
+  // Strip code fences anywhere — open and close, with or without language tag
+  s = s.replace(/```(?:json|JSON)?\s*\n?/g, "").replace(/\n?\s*```/g, "")
+  s = s.trim()
+
+  const start = s.indexOf("{")
+  if (start === -1) return s
+
+  // Balanced-brace scan — respects strings and escapes
+  let depth = 0
+  let end = -1
+  let inString = false
+  let escape = false
+  for (let i = start; i < s.length; i++) {
+    const c = s[i]
+    if (escape) {
+      escape = false
+      continue
+    }
+    if (inString) {
+      if (c === "\\") escape = true
+      else if (c === '"') inString = false
+      continue
+    }
+    if (c === '"') inString = true
+    else if (c === "{") depth++
+    else if (c === "}") {
+      depth--
+      if (depth === 0) {
+        end = i
+        break
+      }
+    }
+  }
+
+  return end === -1 ? s.slice(start) : s.slice(start, end + 1)
+}
+
+/**
+ * Cleanup pass for slightly-malformed JSON that Gemini sometimes emits:
+ *   - Trailing commas before `}` or `]`
+ *   - Smart quotes (“ ” ‘ ’) used as delimiters
+ */
+function sanitizeJson(s: string): string {
+  return s
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/,(\s*[}\]])/g, "$1")
+}
+
 function parseResponse(rawText: string): GeneratedContract {
-  // Strip markdown code fences (Gemini sometimes wraps in ```json ... ```)
-  const cleaned = rawText
-    .replace(/^```(?:json)?\s*/im, "")
-    .replace(/\s*```\s*$/im, "")
-    .trim()
+  const candidate = extractJson(rawText)
 
   let parsed: GeneratedContract
   try {
-    parsed = JSON.parse(cleaned)
-  } catch {
-    // Try to find JSON object in the response
-    const match = cleaned.match(/\{[\s\S]*\}/)
-    if (!match) {
+    parsed = JSON.parse(candidate)
+  } catch (firstErr) {
+    // Second attempt: sanitize trailing commas / smart quotes
+    try {
+      parsed = JSON.parse(sanitizeJson(candidate))
+    } catch {
       throw new Error(
-        `Gemini returned non-JSON response: ${cleaned.substring(0, 300)}`,
+        `Gemini returned invalid JSON: ${(firstErr as Error).message}. ` +
+          `Response start: ${rawText.substring(0, 300)}`,
       )
     }
-    parsed = JSON.parse(match[0])
   }
 
   if (!parsed.sections?.length) {
@@ -397,13 +459,34 @@ export async function generateContract(
       temperature: 0.25, // Low temperature for consistent, professional output
       topK: 40,
       topP: 0.95,
-      maxOutputTokens: 8192,
+      // Bumped from 8192 — full contracts (12+ sections) routinely exceed 8k
+      // tokens and were truncating mid-JSON, causing parse failures on the
+      // final generation step.
+      maxOutputTokens: 32768,
+      // Force structured JSON output so we don't depend on prompt obedience
+      // for response shape. Eliminates code fences, prose preambles, and
+      // smart-quote substitutions.
+      responseMimeType: "application/json",
     },
   })
 
   const fullPrompt = `${buildSystemPrompt()}\n\n---\n\n${buildUserPrompt(input)}`
 
   const result = await model.generateContent(fullPrompt)
+
+  // Detect upstream truncation BEFORE attempting parse — gives a clearer error
+  // than the cryptic "Unexpected end of JSON input" the parser would otherwise
+  // throw. `candidates` is optional in the SDK's typed surface and absent from
+  // unit-test mocks, so we guard with optional chaining.
+  const finishReason =
+    result.response.candidates?.[0]?.finishReason
+  if (finishReason && finishReason !== "STOP") {
+    throw new Error(
+      `Gemini stopped early (finishReason=${finishReason}). ` +
+        `Likely MAX_TOKENS — try shorter project description or fewer sections.`,
+    )
+  }
+
   const rawText = result.response.text()
 
   return parseResponse(rawText)

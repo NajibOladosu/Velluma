@@ -207,9 +207,9 @@ export default function TimePage() {
       setTask("");
       setActiveSessionId(null);
     } else {
-      if (!task.trim() || !contractId) return;
+      if (!task.trim()) return;
       const session = await startTimer.mutateAsync({
-        contractId,
+        contractId: contractId || null,
         taskDescription: task,
       });
       setActiveSessionId((session as any)?.id ?? null);
@@ -274,7 +274,9 @@ export default function TimePage() {
               className="w-full sm:w-72 h-9 px-3 rounded-md border border-zinc-200 bg-white text-sm text-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 disabled:opacity-60"
             >
               <option value="">
-                {billableContracts.length === 0 ? "No active contracts" : "Select contract…"}
+                {billableContracts.length === 0
+                  ? "No contract (untracked time)"
+                  : "No contract (untracked time)"}
               </option>
               {billableContracts.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -292,7 +294,7 @@ export default function TimePage() {
             />
             <Button
               onClick={handleToggle}
-              disabled={timerBusy || (!running && (!task.trim() || !contractId))}
+              disabled={timerBusy || (!running && !task.trim())}
               className={cn("w-full sm:w-auto gap-2 font-semibold px-6 shrink-0", running && "bg-zinc-700 hover:bg-zinc-600")}
             >
               {running ? (
@@ -446,11 +448,11 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!contractId) { setError("Select a contract"); return; }
+    if (!description.trim()) { setError("Add a task description"); return; }
     setError(null);
     try {
       await createEntry.mutateAsync({
-        contractId,
+        contractId: contractId || null,
         taskDescription: description.trim(),
         date,
         startTime,
@@ -479,14 +481,15 @@ function ManualEntryModal({ onClose }: { onClose: () => void }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-zinc-700">Contract</label>
+            <label className="block text-xs font-medium text-zinc-700">
+              Contract <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
             <select
-              required
               value={contractId}
               onChange={(e) => setContractId(e.target.value)}
               className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
             >
-              <option value="">Select contract…</option>
+              <option value="">No contract (untracked time)</option>
               {activeContracts.map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
               ))}
