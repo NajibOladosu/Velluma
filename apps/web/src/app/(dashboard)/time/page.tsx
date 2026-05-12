@@ -163,12 +163,12 @@ export default function TimePage() {
     since.setDate(now.getDate() - 30);
     since.setHours(0, 0, 0, 0);
 
-    // Match against start_time so entries without end_time (still running)
-    // are excluded — they have no measurable duration yet.
+    // Skip entries without a finalized end_time (still running, no measurable
+    // duration). Anchor by end_time so completed entries always count.
     const windowEntries = recentEntries.filter((e) => {
       if (!e.durationMinutes || e.durationMinutes <= 0) return false;
-      const anchor = e.endTime ? new Date(e.endTime) : new Date(e.startTime);
-      return anchor >= since;
+      if (!e.endTime) return false;
+      return new Date(e.endTime) >= since;
     });
     const totalMins    = windowEntries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0);
     const billableEntries = windowEntries.filter((e) => e.hourlyRate > 0);
