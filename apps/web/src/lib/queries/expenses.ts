@@ -33,7 +33,8 @@ export interface ExpenseRow {
 // ---------------------------------------------------------------------------
 
 export interface CreateExpensePayload {
-  projectId: string
+  /** Optional — null logs business overhead not tied to a specific project. */
+  projectId?: string | null
   description: string
   amount: number
   currency?: string
@@ -157,7 +158,7 @@ export function useCreateExpense() {
         .from("expenses")
         .insert([
           {
-            project_id: payload.projectId,
+            project_id: payload.projectId ?? null,
             tenant_id: user.id, // tenant_id maps to user's profile id
             user_id: user.id,
             description: payload.description,

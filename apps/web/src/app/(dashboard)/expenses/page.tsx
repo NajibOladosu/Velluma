@@ -19,10 +19,13 @@ import {
   useApproveExpense,
   useRejectExpense,
   useReimburseExpense,
+  useCreateExpense,
   formatExpenseCurrency,
   formatExpenseDate,
   type ExpenseRow,
 } from "@/lib/queries/expenses"
+import { useProjects } from "@/lib/queries/projects"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
 // ---------------------------------------------------------------------------
 // Inline action buttons per row
@@ -280,6 +283,7 @@ function ReceiptUploader() {
 export default function ExpensesPage() {
   const [search, setSearch] = React.useState("")
   const [selectedIds, setSelectedIds] = React.useState<string[]>([])
+  const [addOpen, setAddOpen] = React.useState(false)
   const { data: expenses = [], isLoading, refetch } = useExpenses()
   const { data: summary } = useExpenseSummary()
 
@@ -315,7 +319,7 @@ export default function ExpensesPage() {
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <CsvImportExport resource="expenses" />
-          <Button className="flex-1 sm:flex-none shrink-0">
+          <Button className="flex-1 sm:flex-none shrink-0" onClick={() => setAddOpen(true)}>
             <Plus className="h-4 w-4 sm:mr-2 shrink-0" />
             <span className="hidden sm:inline">Add Expense</span>
             <span className="sm:hidden">Add</span>
@@ -400,6 +404,218 @@ export default function ExpensesPage() {
         onClear={clearAll}
         onDone={() => refetch()}
       />
+
+      <AddExpenseModal open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AddExpenseModal — manual expense entry
+// ---------------------------------------------------------------------------
+
+const EXPENSE_CATEGORIES = [
+  "Software",
+  "Subscriptions",
+  "Travel",
+  "Meals",
+  "Equipment",
+  "Office Supplies",
+  "Marketing",
+  "Contractor / Subcontractor",
+  "Education",
+  "Other",
+] as const
+
+function AddExpenseModal({
+  open,
+  onClose,
+}: {
+  open: boolean
+  onClose: () => void
+}) {
+  const { data: projects = [] } = useProjects()
+  const create = useCreateExpense()
+
+  const today = new Date().toISOString().split("T")[0]
+  const [projectId, setProjectId]       = React.useState("")
+  const [description, setDescription]   = React.useState("")
+  const [amount, setAmount]             = React.useState("")
+  const [category, setCategory]         = React.useState<string>(EXPENSE_CATEGORIES[0])
+  const [expenseDate, setExpenseDate]   = React.useState(today)
+  const [notes, setNotes]               = React.useState("")
+  const [error, setError]               = React.useState<string | null>(null)
+
+  // Reset form whenever the dialog re-opens
+  React.useEffect(() => {
+    if (open) {
+      setProjectId("")
+      setDescription("")
+      setAmount("")
+      setCategory(EXPENSE_CATEGORIES[0])
+      setExpenseDate(today)
+      setNotes("")
+      setError(null)
+    }
+    // `today` is stable for the lifetime of a render — no need to track it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+
+    const parsedAmount = parseFloat(amount)
+    if (!description.trim()) { setError("Description is required"); return }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError("Amount must be a positive number")
+      return
+    }
+
+    try {
+      await create.mutateAsync({
+        projectId: projectId || null,
+        description: description.trim(),
+        amount: parsedAmount,
+        category,
+        expenseDate,
+        notes: notes.trim() || undefined,
+      })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save expense")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && !create.isPending && onClose()}>
+      <DialogContent className="max-w-md mx-4">
+        <DialogHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle>Add expense</DialogTitle>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Log an expense manually. Project link is optional.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={create.isPending}
+              className="text-zinc-400 hover:text-zinc-700 transition-colors disabled:opacity-50"
+            >
+              <X className="h-4 w-4" strokeWidth={1.5} />
+            </button>
+          </div>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Description</label>
+            <Input
+              required
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Adobe Creative Cloud — May"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">Amount (USD)</label>
+              <Input
+                required
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">Date</label>
+              <Input
+                required
+                type="date"
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Category</label>
+            <select
+              required
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">
+              Project <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="">No project (business overhead)</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">
+              Notes <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Receipt details, project context, etc."
+              className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {error}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={create.isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending} className="gap-2">
+              {create.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+                  Saving…
+                </>
+              ) : (
+                "Save expense"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
