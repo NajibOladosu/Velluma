@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { usePathname } from "next/navigation"
 import { motion, type PanInfo } from "framer-motion"
 import { Play, Square, Timer, ChevronRight, GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -73,10 +74,18 @@ function clampToViewport(pos: Position, width: number, height: number): Position
 // ---------------------------------------------------------------------------
 
 export function GlobalTimer() {
+    const pathname = usePathname()
     const [isActive, setIsActive] = React.useState(false)
     const [time, setTime] = React.useState(0)
     const [mounted, setMounted] = React.useState(false)
     const [position, setPosition] = React.useState<Position>({ x: 0, y: 0 })
+
+    // The timer was visible on every dashboard page in an idle 00:00:00 state
+    // and read as a debug/leftover overlay. Only render it when:
+    //   (a) the user is on the Time tracker page (where the timer is in scope), or
+    //   (b) the timer is actively running (so they can stop it from anywhere).
+    const onTimePage = pathname?.startsWith("/time")
+    const shouldRender = isActive || onTimePage
 
     const containerRef = React.useRef<HTMLDivElement | null>(null)
     const sizeRef = React.useRef({ w: PILL_WIDTH_FALLBACK, h: PILL_HEIGHT_FALLBACK })
@@ -146,6 +155,7 @@ export function GlobalTimer() {
     // Don't render until we've placed the pill — prevents a single frame in the
     // wrong spot (top-left flash) on first paint.
     if (!mounted) return null
+    if (!shouldRender) return null
 
     return (
         <motion.div

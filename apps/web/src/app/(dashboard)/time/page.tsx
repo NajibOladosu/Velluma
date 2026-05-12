@@ -24,6 +24,7 @@ import {
   X,
   Loader2,
   AlertCircle,
+  Trash2,
 } from "lucide-react";
 import {
   useTimeEntries,
@@ -33,6 +34,7 @@ import {
   useApproveTimeEntry,
   useRejectTimeEntry,
   useCreateManualEntry,
+  useDeleteTimeEntry,
   type TimeEntry,
 } from "@/lib/queries/time";
 import { useContracts } from "@/lib/queries/contracts";
@@ -73,22 +75,52 @@ function EntryActions({ entry }: { entry: TimeEntry }) {
   const submit  = useSubmitTimeEntry();
   const approve = useApproveTimeEntry();
   const reject  = useRejectTimeEntry();
+  const del     = useDeleteTimeEntry();
 
   const isPending =
-    submit.isPending || approve.isPending || reject.isPending;
+    submit.isPending ||
+    approve.isPending ||
+    reject.isPending ||
+    del.isPending;
+
+  function handleDelete() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Delete this time entry? This cannot be undone.");
+      if (!ok) return;
+    }
+    del.mutate(entry.id);
+  }
+
+  // Delete is always available — typos shouldn't be permanent.
+  const DeleteButton = (
+    <Button
+      size="sm"
+      variant="ghost"
+      aria-label="Delete entry"
+      title="Delete entry"
+      className="h-7 px-2 text-[11px] gap-1 text-zinc-500 hover:text-red-600 hover:bg-red-50"
+      disabled={isPending}
+      onClick={handleDelete}
+    >
+      <Trash2 className="h-3 w-3" strokeWidth={1.5} />
+    </Button>
+  );
 
   if (entry.status === "draft") {
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        className="h-7 px-2 text-[11px] gap-1"
-        disabled={isPending}
-        onClick={() => submit.mutate(entry.id)}
-      >
-        <Send className="h-3 w-3" strokeWidth={1.5} />
-        Submit
-      </Button>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-[11px] gap-1"
+          disabled={isPending}
+          onClick={() => submit.mutate(entry.id)}
+        >
+          <Send className="h-3 w-3" strokeWidth={1.5} />
+          Submit
+        </Button>
+        {DeleteButton}
+      </div>
     );
   }
 
@@ -115,11 +147,12 @@ function EntryActions({ entry }: { entry: TimeEntry }) {
           <XCircle className="h-3 w-3" strokeWidth={1.5} />
           Reject
         </Button>
+        {DeleteButton}
       </div>
     );
   }
 
-  return null;
+  return <div className="flex gap-1">{DeleteButton}</div>;
 }
 
 /* ═══════════════════════════════════════════════════════

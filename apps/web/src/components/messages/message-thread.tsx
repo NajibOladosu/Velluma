@@ -48,6 +48,9 @@ export function MessageThread({ apiPath, selfRole, counterpartyName = "Counterpa
     refetchInterval: pollMs,
   })
 
+  // Optimistic send: append the new message immediately and clear the input.
+  // The 5s poll used to leave the user looking at an empty thread for several
+  // seconds after pressing send, which read as "broken".
   const send = useMutation({
     mutationFn: async (text: string) => {
       const res = await fetch(apiPath, {
@@ -58,8 +61,42 @@ export function MessageThread({ apiPath, selfRole, counterpartyName = "Counterpa
       })
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed")
     },
-    onSuccess: () => { setDraft(""); qc.invalidateQueries({ queryKey: ["messages", apiPath] }) },
+    onMutate: async (text: string) => {
+      await qc.cancelQueries({ queryKey: ["messages", apiPath] })
+      const prev = qc.getQueryData<Message[]>(["messages", apiPath])
+      const optimistic: Message = {
+        id: `optimistic-${Date.now()}`,
+        sender_id: null,
+        sender_role: selfRole,
+        sender_email: null,
+        sender_name: "You",
+        message: text,
+        created_at: new Date().toISOString(),
+        attachment_url: null,
+        attachment_name: null,
+      }
+      qc.setQueryData<Message[]>(["messages", apiPath], (current = []) => [
+        ...current,
+        optimistic,
+      ])
+      setDraft("")
+      return { prev }
+    },
+    onError: (err, _text, ctx) => {
+      // Roll back the optimistic insert and surface the failure inline.
+      if (ctx?.prev) qc.setQueryData(["messages", apiPath], ctx.prev)
+      setSendError(err instanceof Error ? err.message : "Failed to send")
+    },
+    onSuccess: () => {
+      setSendError(null)
+      qc.invalidateQueries({ queryKey: ["messages", apiPath] })
+      // Also refresh the left-side conversations list so the thread surfaces
+      // for first-ever messages and the most-recent timestamp updates.
+      qc.invalidateQueries({ queryKey: ["conversations"] })
+    },
   })
+
+  const [sendError, setSendError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -68,6 +105,7 @@ export function MessageThread({ apiPath, selfRole, counterpartyName = "Counterpa
   function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!draft.trim() || send.isPending) return
+    setSendError(null)
     send.mutate(draft.trim())
   }
 
@@ -116,6 +154,11 @@ export function MessageThread({ apiPath, selfRole, counterpartyName = "Counterpa
         )}
       </div>
 
+      {sendError && (
+        <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {sendError}
+        </div>
+      )}
       <form onSubmit={handleSend} className="flex items-end gap-2 pt-3 border-t border-zinc-200">
         <textarea
           value={draft}

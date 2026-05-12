@@ -425,6 +425,15 @@ export default function ContractsDirectoryPage() {
                                 variant="outline"
                                 size="sm"
                                 className="h-7 text-[10px] px-2.5 border-zinc-200"
+                                onClick={(e) => {
+                                  // Send-to-client (PDF render + email +
+                                  // signing link) is not yet wired. Surface
+                                  // the gap instead of silently no-op'ing.
+                                  e.stopPropagation()
+                                  alert(
+                                    "Send-to-client is not wired yet. Open the contract to preview / share the link manually.",
+                                  )
+                                }}
                               >
                                 <Send className="h-3 w-3 mr-1" />
                                 Send

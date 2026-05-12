@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -230,6 +231,7 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
    ═══════════════════════════════════════════════════════ */
 
 export default function ClientsPage() {
+  const router = useRouter();
   const [searchQuery,   setSearchQuery]   = React.useState("");
   const [statusTab,     setStatusTab]     = React.useState<StatusTab>("all");
   const [tagFilter,     setTagFilter]     = React.useState("all");
@@ -452,8 +454,19 @@ export default function ClientsPage() {
                   filtered.map((client) => {
                     const status = getClientStatus(client);
                     return (
-                      <Link key={client.id} href={`/clients/${client.id}`} className="contents">
-                        <tr className="group hover:bg-zinc-50/50 transition-colors cursor-pointer">
+                      <tr
+                        key={client.id}
+                        onClick={() => router.push(`/clients/${client.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            router.push(`/clients/${client.id}`);
+                          }
+                        }}
+                        role="link"
+                        tabIndex={0}
+                        className="group hover:bg-zinc-50/50 transition-colors cursor-pointer focus:outline-none focus-visible:bg-zinc-50/50"
+                      >
                           <td className="px-4 py-4 max-w-[200px]">
                             <div className="flex items-center gap-3 min-w-0">
                               <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center flex-shrink-0">
@@ -505,8 +518,7 @@ export default function ClientsPage() {
                               <ArrowUpRight className="h-3.5 w-3.5 text-zinc-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0" />
                             </div>
                           </td>
-                        </tr>
-                      </Link>
+                      </tr>
                     );
                   })}
               </tbody>
