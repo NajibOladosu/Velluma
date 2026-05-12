@@ -34,6 +34,10 @@ export interface PipelineClientRow {
   metadata: Record<string, unknown> | null
   created_at: string
   updated_at: string
+  /** Project the lead has progressed into (set when proposal/contract exists). */
+  project_id: string | null
+  /** Embedded project from `.select("*, projects(*)")` — source of truth for deal value. */
+  projects: { title: string; total_budget: number | null } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -123,7 +127,10 @@ function formatCurrency(amount: number): string {
 
 function mapRowToLead(row: PipelineClientRow): PipelineLead {
   const meta = row.metadata ?? {}
-  const dealValue = Number(meta.deal_value) || 0
+  // Prefer the linked project's budget — that's the real, contract-derived
+  // value. Fall back to metadata.deal_value (typed manually on the card).
+  const projectBudget = Number(row.projects?.total_budget) || 0
+  const dealValue = projectBudget > 0 ? projectBudget : Number(meta.deal_value) || 0
   const enrichment = (meta.enrichment as Record<string, unknown>) ?? {}
   const lastActionAt = (meta.last_action_at as string) || row.updated_at
 
@@ -164,7 +171,7 @@ export function usePipelineStages() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("pipeline_leads")
-        .select("*")
+        .select("*, projects(title, total_budget)")
         .order("created_at", { ascending: false })
 
       if (error) throw new Error(error.message)
