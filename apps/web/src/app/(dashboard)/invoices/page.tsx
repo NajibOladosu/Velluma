@@ -518,6 +518,11 @@ export default function InvoicesPage() {
                             variant="outline"
                             size="sm"
                             className="h-7 text-[10px] px-2.5 border-zinc-200"
+                            onClick={() =>
+                              alert(
+                                "Reminder emails are not wired yet — Stripe Connect onboarding required first.",
+                              )
+                            }
                           >
                             <Send className="h-3 w-3 mr-1" />
                             Remind
