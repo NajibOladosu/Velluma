@@ -43,7 +43,7 @@ export default function FinancePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
         <div className="min-w-0">
           <H1 className="sm:truncate">Escrow & Finance</H1>
-          <Muted className="sm:truncate">Your cryptographic vault for secured project funds and payouts.</Muted>
+          <Muted className="sm:truncate">Stripe Connect escrow — held funds and payouts for active projects.</Muted>
         </div>
         <Button variant="outline" className="h-9">
           <ExternalLink className="mr-2 h-4 w-4" />

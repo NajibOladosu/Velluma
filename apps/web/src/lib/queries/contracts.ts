@@ -49,8 +49,11 @@ export interface ContractRow {
   signed_by_client: string | null
   signed_by_freelancer: string | null
   tenant_id: string | null
+  project_id: string | null
   content: { sections: ContractSection[] } | null
   ai_enhanced: boolean | null
+  /** Embedded project title from `.select("*, projects(title)")`. */
+  projects: { title: string } | null
 }
 
 export interface ContractTemplateRow {
@@ -186,7 +189,10 @@ function mapRowToContract(row: ContractRow): Contract {
     signedByClient: row.signed_by_client,
     signedByFreelancer: row.signed_by_freelancer,
     expiresAt: null,
-    template: "Standard Contract",
+    // Show the linked project title so the contract row is connected to its
+    // work context. Every contract has a project (NOT NULL FK) but the embed
+    // can momentarily lag — fall back to a neutral label.
+    template: row.projects?.title ?? "Project link",
     description: row.description ?? "",
     signers,
     sections: row.content?.sections ?? [],
@@ -206,7 +212,7 @@ export function useContracts() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("contracts")
-        .select("*")
+        .select("*, projects(title)")
         .order("created_at", { ascending: false })
 
       if (error) throw new Error(error.message)
@@ -223,7 +229,7 @@ export function useContract(id: string) {
       const supabase = createClient()
       const { data, error } = await supabase
         .from("contracts")
-        .select("*")
+        .select("*, projects(title)")
         .eq("id", id)
         .single()
 
