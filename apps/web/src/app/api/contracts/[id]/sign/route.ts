@@ -45,7 +45,10 @@ export async function POST(
     signed_name: signedName,
     signed_email: user.email ?? null,
     signed_ip: ip,
-    signature_type: "typed",
+    // DB CHECK constraint contract_signatures_signature_type_check allows
+    // only 'canvas' | 'image_upload' | 'digital'. A typed legal name is a
+    // digital signature in this taxonomy.
+    signature_type: "digital",
   })
   if (sigError) return NextResponse.json({ error: sigError.message }, { status: 500 })
 

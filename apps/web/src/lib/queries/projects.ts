@@ -154,7 +154,8 @@ export function useProjectKanban(projectId: string) {
 /** Create a new project. */
 export interface CreateProjectPayload {
   title: string
-  clientId: string
+  /** Optional — internal/scoping projects can exist without a client. */
+  clientId?: string | null
   description?: string
   totalBudget?: number
   status?: string
@@ -170,18 +171,24 @@ export function useCreateProject() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error("Not authenticated")
 
+      // tenant_id is NOT NULL in the schema. Use the user's profile tenant
+      // when present; fall back to user.id (the convention used elsewhere in
+      // the codebase — see expenses/time queries) so newly-signed-up users
+      // without a fully-provisioned profile row can still create projects.
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id")
         .eq("id", user.id)
-        .single()
+        .maybeSingle()
+      const tenantId = profile?.tenant_id ?? user.id
 
       const { data, error } = await supabase
         .from("projects")
         .insert([
           {
-            tenant_id: profile?.tenant_id ?? null,
-            client_id: payload.clientId,
+            tenant_id: tenantId,
+            user_id: user.id,
+            client_id: payload.clientId ?? null,
             title: payload.title,
             description: payload.description ?? null,
             status: payload.status ?? "active",
