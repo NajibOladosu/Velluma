@@ -15,7 +15,11 @@ export async function GET(request: NextRequest) {
     .from("contracts")
     .select(
       "id, title, status, total_amount, currency, client_email, " +
-        "signed_by_client, signed_by_freelancer, created_at, updated_at",
+        "signed_by_client, signed_by_freelancer, created_at, updated_at, " +
+        // Body sections so the portal can actually render the contract
+        // for the client to read before signing. Was previously omitted
+        // — the public "View / Sign" link showed only the title.
+        "content",
     )
     .in("id", guard.contractIds)
     .order("created_at", { ascending: false })

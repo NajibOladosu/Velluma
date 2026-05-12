@@ -3,20 +3,22 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { motion, type PanInfo } from "framer-motion"
-import { Play, Square, Timer, ChevronRight, GripVertical } from "lucide-react"
+import { Play, Square, Timer, GripVertical, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
+import {
+    useStartTimer,
+    useStopTimer,
+    useTimeEntries,
+} from "@/lib/queries/time"
+import { useProjects } from "@/lib/queries/projects"
 
 // ---------------------------------------------------------------------------
-// Persistent position
-//
-// Stored in sessionStorage (per user request: "persists for each session" =
-// stays put while the tab/window is alive, resets when the session ends).
-// Switch to localStorage if cross-session persistence is later desired.
+// Persistent position (sessionStorage — resets at tab close)
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = "velluma:global-timer:position"
-const PILL_WIDTH_FALLBACK = 220
+const PILL_WIDTH_FALLBACK = 240
 const PILL_HEIGHT_FALLBACK = 48
 const EDGE_PADDING = 16
 
@@ -43,22 +45,18 @@ function writeStoredPosition(pos: Position) {
     try {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(pos))
     } catch {
-        // sessionStorage may be disabled (private browsing edge cases) — ignore.
+        /* sessionStorage disabled — ignore */
     }
 }
 
-/** Default = bottom-right corner with edge padding. */
 function defaultPosition(width: number, height: number): Position {
-    if (typeof window === "undefined") {
-        return { x: 0, y: 0 }
-    }
+    if (typeof window === "undefined") return { x: 0, y: 0 }
     return {
         x: window.innerWidth - width - EDGE_PADDING,
         y: window.innerHeight - height - EDGE_PADDING,
     }
 }
 
-/** Clamp a point to the visible viewport. */
 function clampToViewport(pos: Position, width: number, height: number): Position {
     if (typeof window === "undefined") return pos
     const maxX = Math.max(0, window.innerWidth - width)
@@ -69,35 +67,77 @@ function clampToViewport(pos: Position, width: number, height: number): Position
     }
 }
 
+function formatTime(seconds: number) {
+    const h = Math.floor(seconds / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    return [h, m, s].map((v) => v.toString().padStart(2, "0")).join(":")
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export function GlobalTimer() {
     const pathname = usePathname()
-    const [isActive, setIsActive] = React.useState(false)
-    const [time, setTime] = React.useState(0)
+
+    // The floating timer is freelancer-side only.
+    //   - Hidden on /portal/*  : it's a client surface; freelancer's timer is irrelevant
+    //   - Hidden on /pt/*      : public contract-link landing route
+    //   - Hidden on /book/*    : public booking page
+    //   - Hidden on /f/*       : public lead-form page
+    // Only renders on the dashboard when running OR when the user is on /time.
+    const isPublicSurface =
+        pathname?.startsWith("/portal") ||
+        pathname?.startsWith("/pt/") ||
+        pathname?.startsWith("/book/") ||
+        pathname?.startsWith("/f/") ||
+        pathname?.startsWith("/login") ||
+        pathname?.startsWith("/signup")
+
+    const onTimePage = pathname?.startsWith("/time")
+
+    // Server-side mutations
+    const startTimer = useStartTimer()
+    const stopTimer = useStopTimer()
+    const { data: entries = [] } = useTimeEntries()
+    const { data: projects = [] } = useProjects()
+
+    // Source of truth for "running" is a DB row: a time_entry with end_time null.
+    // Avoids drift between this widget and the /time page (which used to tick
+    // independently).
+    const liveEntry = React.useMemo(
+        () => entries.find((e) => e.endTime === null),
+        [entries],
+    )
+    const isActive = Boolean(liveEntry)
+
+    // Live elapsed seconds for the running entry
+    const [elapsed, setElapsed] = React.useState(0)
+    React.useEffect(() => {
+        if (!liveEntry) {
+            setElapsed(0)
+            return
+        }
+        const start = new Date(liveEntry.startTime).getTime()
+        const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)))
+        tick()
+        const id = setInterval(tick, 1000)
+        return () => clearInterval(id)
+    }, [liveEntry])
+
+    // ── Drag + position ────────────────────────────────────────────────────
     const [mounted, setMounted] = React.useState(false)
     const [position, setPosition] = React.useState<Position>({ x: 0, y: 0 })
-
-    // The timer was visible on every dashboard page in an idle 00:00:00 state
-    // and read as a debug/leftover overlay. Only render it when:
-    //   (a) the user is on the Time tracker page (where the timer is in scope), or
-    //   (b) the timer is actively running (so they can stop it from anywhere).
-    const onTimePage = pathname?.startsWith("/time")
-    const shouldRender = isActive || onTimePage
-
     const containerRef = React.useRef<HTMLDivElement | null>(null)
     const sizeRef = React.useRef({ w: PILL_WIDTH_FALLBACK, h: PILL_HEIGHT_FALLBACK })
 
-    // Measure the pill once mounted so drag constraints are accurate.
     const measure = React.useCallback(() => {
         if (!containerRef.current) return
         const rect = containerRef.current.getBoundingClientRect()
         sizeRef.current = { w: rect.width, h: rect.height }
     }, [])
 
-    // Initialize position on the client (avoid SSR mismatch — `window` is unavailable on server).
     React.useEffect(() => {
         measure()
         const { w, h } = sizeRef.current
@@ -107,7 +147,6 @@ export function GlobalTimer() {
         setMounted(true)
     }, [measure])
 
-    // Re-clamp on viewport resize so the pill never lands off-screen.
     React.useEffect(() => {
         if (!mounted) return
         const handler = () => {
@@ -125,22 +164,6 @@ export function GlobalTimer() {
         return () => window.removeEventListener("resize", handler)
     }, [mounted, measure])
 
-    // Tick the timer when active.
-    React.useEffect(() => {
-        if (!isActive) return
-        const interval = setInterval(() => {
-            setTime((t) => t + 1)
-        }, 1000)
-        return () => clearInterval(interval)
-    }, [isActive])
-
-    const formatTime = (seconds: number) => {
-        const h = Math.floor(seconds / 3600)
-        const m = Math.floor((seconds % 3600) / 60)
-        const s = seconds % 60
-        return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
-    }
-
     function handleDragEnd(_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
         const { w, h } = sizeRef.current
         const next = clampToViewport(
@@ -152,76 +175,267 @@ export function GlobalTimer() {
         writeStoredPosition(next)
     }
 
-    // Don't render until we've placed the pill — prevents a single frame in the
-    // wrong spot (top-left flash) on first paint.
+    // ── Start popover state ───────────────────────────────────────────────
+    const [popoverOpen, setPopoverOpen] = React.useState(false)
+    const [pickProjectId, setPickProjectId] = React.useState("")
+    const [pickDescription, setPickDescription] = React.useState("")
+    const [startError, setStartError] = React.useState<string | null>(null)
+
+    async function handleStart() {
+        setStartError(null)
+        if (!pickDescription.trim()) {
+            setStartError("What are you working on?")
+            return
+        }
+        try {
+            await startTimer.mutateAsync({
+                projectId: pickProjectId || null,
+                taskDescription: pickDescription.trim(),
+            })
+            setPopoverOpen(false)
+            setPickDescription("")
+            // Keep last-used project selected for next start
+        } catch (err) {
+            setStartError(err instanceof Error ? err.message : "Failed to start timer")
+        }
+    }
+
+    async function handleStop() {
+        if (!liveEntry) return
+        try {
+            await stopTimer.mutateAsync(liveEntry.id)
+        } catch {
+            /* surfaced via mutation state */
+        }
+    }
+
+    // ── Render gates ──────────────────────────────────────────────────────
+    if (isPublicSurface) return null
     if (!mounted) return null
-    if (!shouldRender) return null
+    // Show the pill when actively running OR on the time page. The popover
+    // can still be opened from the time page (or by drag handle) when idle.
+    if (!isActive && !onTimePage) return null
+
+    const displayTime = isActive ? formatTime(elapsed) : "00:00:00"
 
     return (
-        <motion.div
-            ref={containerRef}
-            drag
-            dragMomentum={false}
-            dragElastic={0}
-            // Using `style` for position so framer-motion's drag transform composes
-            // cleanly with our absolute placement. We reset transform after each
-            // drag by re-keying via the `position` state and resetting `x`/`y`
-            // animate values to 0 (drag deltas are baked into `position`).
-            style={{ position: "fixed", left: position.x, top: position.y, zIndex: 50 }}
-            animate={{ x: 0, y: 0, opacity: 1 }}
-            initial={{ opacity: 0 }}
-            transition={{ opacity: { duration: 0.2 } }}
-            onDragEnd={handleDragEnd}
-            className={cn(
-                "flex items-center gap-2 bg-zinc-900 shadow-lg rounded-full pl-2 pr-3 py-2 select-none",
-                "cursor-grab active:cursor-grabbing",
-                isActive && "ring-2 ring-blue-500 ring-offset-2",
-            )}
-        >
-            {/* Drag handle — explicit visual affordance */}
-            <div className="text-zinc-500 hover:text-zinc-300 transition-colors" aria-label="Drag handle">
-                <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
-            </div>
-
-            <div className="flex items-center gap-2 pr-2 border-r border-zinc-700">
-                <Timer className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
-                <span className="text-sm font-mono text-white tracking-widest tabular-nums">
-                    {formatTime(time)}
-                </span>
-            </div>
-
-            {/* Buttons — wrapped so click events on them don't get captured as drag-start */}
-            <div
-                className="flex items-center gap-1"
-                onPointerDown={(e) => e.stopPropagation()}
-            >
-                {!isActive ? (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsActive(true)}
-                        className="h-8 w-8 text-white hover:bg-zinc-800 hover:text-white rounded-full"
-                    >
-                        <Play className="h-4 w-4 fill-current" />
-                    </Button>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsActive(false)}
-                        className="h-8 w-8 text-white hover:bg-zinc-800 hover:text-white rounded-full"
-                    >
-                        <Square className="h-4 w-4 fill-current" />
-                    </Button>
+        <>
+            <motion.div
+                ref={containerRef}
+                drag
+                dragMomentum={false}
+                dragElastic={0}
+                style={{ position: "fixed", left: position.x, top: position.y, zIndex: 50 }}
+                animate={{ x: 0, y: 0, opacity: 1 }}
+                initial={{ opacity: 0 }}
+                transition={{ opacity: { duration: 0.2 } }}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                    "flex items-center gap-2 bg-zinc-900 shadow-lg rounded-full pl-2 pr-3 py-2 select-none",
+                    "cursor-grab active:cursor-grabbing",
+                    isActive && "ring-2 ring-blue-500 ring-offset-2",
                 )}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-white hover:bg-zinc-800 hover:text-white rounded-full"
+            >
+                <div className="text-zinc-500" aria-label="Drag handle">
+                    <GripVertical className="h-3.5 w-3.5" strokeWidth={1.5} />
+                </div>
+
+                <div className="flex items-center gap-2 pr-2 border-r border-zinc-700">
+                    <Timer className="h-4 w-4 text-zinc-400" strokeWidth={1.5} />
+                    <span className="text-sm font-mono text-white tracking-widest tabular-nums">
+                        {displayTime}
+                    </span>
+                    {isActive && liveEntry && (
+                        <span className="text-xs text-zinc-400 truncate max-w-[140px]" title={liveEntry.taskDescription}>
+                            {liveEntry.taskDescription}
+                        </span>
+                    )}
+                </div>
+
+                <div
+                    className="flex items-center gap-1"
+                    onPointerDown={(e) => e.stopPropagation()}
                 >
-                    <ChevronRight className="h-4 w-4" />
-                </Button>
+                    {!isActive ? (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Start timer"
+                            onClick={() => setPopoverOpen(true)}
+                            disabled={startTimer.isPending}
+                            className="h-8 w-8 text-white hover:bg-zinc-800 hover:text-white rounded-full"
+                        >
+                            {startTimer.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Play className="h-4 w-4 fill-current" />
+                            )}
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Stop timer"
+                            onClick={handleStop}
+                            disabled={stopTimer.isPending}
+                            className="h-8 w-8 text-white hover:bg-zinc-800 hover:text-white rounded-full"
+                        >
+                            {stopTimer.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Square className="h-4 w-4 fill-current" />
+                            )}
+                        </Button>
+                    )}
+                </div>
+            </motion.div>
+
+            {popoverOpen && (
+                <StartPopover
+                    projects={projects.map((p) => ({ id: p.id, label: p.name, client: p.client }))}
+                    projectId={pickProjectId}
+                    onProjectChange={setPickProjectId}
+                    description={pickDescription}
+                    onDescriptionChange={setPickDescription}
+                    error={startError}
+                    onCancel={() => {
+                        setPopoverOpen(false)
+                        setStartError(null)
+                    }}
+                    onStart={handleStart}
+                    pending={startTimer.isPending}
+                />
+            )}
+        </>
+    )
+}
+
+// ---------------------------------------------------------------------------
+// StartPopover — "what are you working on?" before starting the timer.
+// Once we have a tasks table per project, this gains a Task select filtered
+// by project. Today projects-as-tasks aren't structured; description-only
+// captures the work item.
+// ---------------------------------------------------------------------------
+
+function StartPopover({
+    projects,
+    projectId,
+    onProjectChange,
+    description,
+    onDescriptionChange,
+    error,
+    onCancel,
+    onStart,
+    pending,
+}: {
+    projects: { id: string; label: string; client?: string }[]
+    projectId: string
+    onProjectChange: (id: string) => void
+    description: string
+    onDescriptionChange: (s: string) => void
+    error: string | null
+    onCancel: () => void
+    onStart: () => void
+    pending: boolean
+}) {
+    React.useEffect(() => {
+        function onKey(e: KeyboardEvent) {
+            if (e.key === "Escape") onCancel()
+        }
+        document.addEventListener("keydown", onKey)
+        return () => document.removeEventListener("keydown", onKey)
+    }, [onCancel])
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+            <button
+                type="button"
+                aria-label="Close"
+                className="absolute inset-0 bg-black/30"
+                onClick={onCancel}
+            />
+            <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-md p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-base font-semibold text-zinc-900">Start timer</h3>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                            Pick the project and describe what you&apos;re working on.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        aria-label="Close start timer"
+                        onClick={onCancel}
+                        className="text-zinc-400 hover:text-zinc-700"
+                    >
+                        <X className="h-4 w-4" strokeWidth={1.5} />
+                    </button>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-700">
+                        Project <span className="text-zinc-400 font-normal">(optional)</span>
+                    </label>
+                    <select
+                        value={projectId}
+                        onChange={(e) => onProjectChange(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                    >
+                        <option value="">No project (untracked time)</option>
+                        {projects.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.label}
+                                {p.client && p.client !== "Unknown Client" ? ` — ${p.client}` : ""}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-zinc-700">
+                        What are you working on?
+                    </label>
+                    <input
+                        autoFocus
+                        type="text"
+                        value={description}
+                        onChange={(e) => onDescriptionChange(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault()
+                                onStart()
+                            }
+                        }}
+                        placeholder="e.g. Designing hero section"
+                        className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                    />
+                </div>
+
+                {error && (
+                    <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        {error}
+                    </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                    <Button variant="outline" onClick={onCancel} disabled={pending}>
+                        Cancel
+                    </Button>
+                    <Button onClick={onStart} disabled={pending} className="gap-2">
+                        {pending ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+                                Starting…
+                            </>
+                        ) : (
+                            <>
+                                <Play className="h-4 w-4 fill-current" />
+                                Start
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
-        </motion.div>
+        </div>
     )
 }

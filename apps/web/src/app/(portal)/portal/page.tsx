@@ -158,6 +158,41 @@ function OverviewTab({ contractId, contract }: OverviewTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* Contract body — the agreement the client is reviewing / has signed.
+          Previously the portal showed only metadata, leaving the client
+          with no way to read the contract from the share link. */}
+      {contract.sections && contract.sections.length > 0 && (
+        <Surface className="p-6 space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <Muted className="text-[10px] uppercase tracking-widest font-bold">
+                Contract
+              </Muted>
+              <P className="text-base font-semibold text-zinc-900 truncate">
+                {contract.title}
+              </P>
+            </div>
+            <div className="text-xs text-zinc-500 shrink-0">
+              {contract.signedByClient && contract.signedByFreelancer
+                ? "Signed by both parties"
+                : contract.signedByFreelancer
+                  ? "Awaiting your signature"
+                  : "Draft"}
+            </div>
+          </div>
+          <div className="space-y-5 text-sm leading-relaxed text-zinc-700">
+            {contract.sections.map((s) => (
+              <section key={s.id} className="space-y-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-zinc-900">
+                  {s.title}
+                </h3>
+                <div className="whitespace-pre-wrap">{s.content}</div>
+              </section>
+            ))}
+          </div>
+        </Surface>
+      )}
+
       {/* Progress Summary */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Surface className="p-5">

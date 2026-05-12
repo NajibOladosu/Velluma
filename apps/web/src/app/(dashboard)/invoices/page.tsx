@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useSearchParams } from "next/navigation";
 import { H1, Muted, P } from "@/components/ui/typography";
 import { CsvImportExport } from "@/components/data/csv-import-export";
 import { Surface } from "@/components/ui/surface";
@@ -253,11 +254,20 @@ function NewInvoiceDialog({
 // ---------------------------------------------------------------------------
 
 export default function InvoicesPage() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = React.useState<TabKey>("all");
   const [search, setSearch] = React.useState("");
   const [newInvoiceOpen, setNewInvoiceOpen] = React.useState(false);
   const { data: invoices = [], isLoading } = useInvoices();
   const { mutateAsync: updateInvoice } = useUpdateInvoice();
+
+  // Auto-open the New Invoice modal when arriving via /invoices?new=1
+  // (Dashboard "New Invoice" quick action).
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setNewInvoiceOpen(true);
+    }
+  }, [searchParams]);
 
   // Filter by tab then by search term (invoice number or client).
   const filtered = React.useMemo(() => {

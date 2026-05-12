@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
@@ -232,11 +232,20 @@ function AddClientDrawer({ onClose }: { onClose: () => void }) {
 
 export default function ClientsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery,   setSearchQuery]   = React.useState("");
   const [statusTab,     setStatusTab]     = React.useState<StatusTab>("all");
   const [tagFilter,     setTagFilter]     = React.useState("all");
   const [tagFilterOpen, setTagFilterOpen] = React.useState(false);
   const [addClientOpen, setAddClientOpen] = React.useState(false);
+
+  // Auto-open the Add Client drawer when arriving via /clients?new=1
+  // (Dashboard "New Client" quick action lands here).
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setAddClientOpen(true);
+    }
+  }, [searchParams]);
 
   const { data: clients = [], isLoading, isError, error, refetch } = useClients();
 
