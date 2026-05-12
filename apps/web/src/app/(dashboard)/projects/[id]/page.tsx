@@ -11,6 +11,8 @@ import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-hea
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProjectBillingSection } from "@/components/projects/billing-section";
+import { ProjectHubHeader, ProjectKpiRow, ProjectTimeSection, ProjectExpensesSection } from "@/components/projects/detail-hub";
+import { useProjectDetail } from "@/lib/queries/projects";
 import {
   Plus,
   MoreHorizontal,
@@ -327,6 +329,7 @@ export default function ProjectDetailPage() {
   const [addModal, setAddModal] = React.useState<{ open: boolean; status: TaskStatus }>({ open: false, status: "todo" });
 
   const { data: tasks, isLoading } = useTasks(projectId);
+  const { data: detail, isLoading: detailLoading } = useProjectDetail(projectId);
 
   // Status-change on drag would go here; for now done via drawer
   const moveMutation = useMutation({
@@ -350,38 +353,26 @@ export default function ProjectDetailPage() {
   return (
     <>
       <div className="space-y-8">
-        <DetailPageHeader
-          backHref="/projects"
-          backLabel="Back to Projects"
-          title={
-            <>
-              <H1 className="text-2xl font-medium truncate min-w-0">Project</H1>
-              <Badge variant="outline" className="flex-shrink-0 bg-transparent text-zinc-600 border-zinc-200">
-                In Progress
-              </Badge>
-            </>
-          }
-          meta={
-            <>
-              {tasks && (
-                <>
-                  <span className="whitespace-nowrap">{tasks.length} tasks</span>
-                  <MetaSeparator />
-                  <span className="whitespace-nowrap">{tasksByStatus.done.length} done</span>
-                </>
-              )}
-            </>
-          }
-          actions={
-            <Button size="sm" className="w-full sm:w-auto h-9 gap-2" onClick={() => setAddModal({ open: true, status: "todo" })}>
-              <Plus className="h-4 w-4" strokeWidth={1.5} />
-              Add Task
-            </Button>
-          }
+        {/* Header with real project metadata + linked client/contract/proposal */}
+        <ProjectHubHeader
+          detail={detail ?? null}
+          isLoading={detailLoading}
+          taskCount={tasks?.length ?? 0}
+          tasksDone={tasksByStatus.done.length}
+          onAddTask={() => setAddModal({ open: true, status: "todo" })}
         />
+
+        {/* KPI cards */}
+        <ProjectKpiRow detail={detail ?? null} isLoading={detailLoading} />
 
         {/* Billing — contract + milestones + invoices for this project */}
         <ProjectBillingSection projectId={projectId} />
+
+        {/* Time entries logged against this project */}
+        <ProjectTimeSection projectId={projectId} />
+
+        {/* Expenses linked to this project */}
+        <ProjectExpensesSection projectId={projectId} />
 
         {/* Kanban Board */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
