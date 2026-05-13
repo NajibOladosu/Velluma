@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useClient, useUpdateClient, useUpdateClientMeta, useDeleteClient } from "@/lib/queries/clients";
+import { useClient, useUpdateClient, useUpdateClientMeta, useDeleteClient, useClientRollup } from "@/lib/queries/clients";
 import { H1, H2, H3, Muted, P } from "@/components/ui/typography";
 import { Surface } from "@/components/ui/surface";
 import { Badge } from "@/components/ui/badge";
@@ -413,6 +413,7 @@ export default function ClientDetailPage() {
   const clientId = params.id as string;
 
   const { data: client, isLoading, isError, error } = useClient(clientId);
+  const { data: rollup } = useClientRollup(clientId);
   const updateClient = useUpdateClient();
   const updateMeta = useUpdateClientMeta();
   const deleteClient = useDeleteClient();
@@ -840,23 +841,60 @@ export default function ClientDetailPage() {
                 )}
               </div>
 
-              {/* Projects placeholder */}
+              {/* Projects — derived from projects.client_id = this client */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <H2 className="text-base">Projects</H2>
-                  <Link href="/projects">
+                  <H2 className="text-base">
+                    Projects
+                    {rollup?.projects.length ? (
+                      <span className="ml-1.5 text-xs text-zinc-400 font-normal">
+                        · {rollup.projects.length}
+                      </span>
+                    ) : null}
+                  </H2>
+                  <Link href="/projects?new=1">
                     <Button variant="ghost" size="sm" className="h-7 text-xs text-zinc-500 gap-1">
                       <Plus className="h-3 w-3" /> New Project
                     </Button>
                   </Link>
                 </div>
-                <Surface className="p-8 text-center">
-                  <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
-                    <Briefcase className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+                {(rollup?.projects.length ?? 0) === 0 ? (
+                  <Surface className="p-8 text-center">
+                    <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
+                      <Briefcase className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+                    </div>
+                    <Muted className="text-sm">No projects linked yet.</Muted>
+                    <Muted className="text-xs mt-1 block">Projects connected to this client will appear here.</Muted>
+                  </Surface>
+                ) : (
+                  <div className="space-y-2">
+                    {rollup!.projects.map((p) => (
+                      <Link key={p.id} href={`/projects/${p.id}`} className="block">
+                        <Surface className="p-4 flex items-center justify-between gap-3 group hover:bg-zinc-50/50 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center shrink-0">
+                              <Briefcase className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-zinc-900 truncate">{p.title}</div>
+                              <Muted className="text-[10px] capitalize">{p.status}</Muted>
+                            </div>
+                          </div>
+                          <div className="text-sm font-semibold text-zinc-900 shrink-0">
+                            {p.totalBudget > 0
+                              ? new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: rollup!.currency,
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 0,
+                                }).format(p.totalBudget)
+                              : "—"}
+                          </div>
+                        </Surface>
+                      </Link>
+                    ))}
                   </div>
-                  <Muted className="text-sm">No projects linked yet.</Muted>
-                  <Muted className="text-xs mt-1 block">Projects connected to this client will appear here.</Muted>
-                </Surface>
+                )}
               </div>
             </div>
 
@@ -1042,36 +1080,113 @@ export default function ClientDetailPage() {
           </Surface>
         )}
 
-        {/* ─── Invoices Tab ─── */}
+        {/* ─── Invoices Tab — derived from contract_payments via client's contracts ─── */}
         {activeTab === "invoices" && (
-          <Surface className="p-8 text-center">
-            <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
-              <CreditCard className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
-            </div>
-            <Muted className="text-sm">No invoices linked to this client yet.</Muted>
-            <Muted className="text-xs mt-1 block">Create an invoice from the Invoices page and link it to this client.</Muted>
-            <Link href="/invoices">
-              <Button size="sm" variant="outline" className="mt-4 border-zinc-200">
-                Go to Invoices
-              </Button>
-            </Link>
-          </Surface>
+          (rollup?.invoices.length ?? 0) === 0 ? (
+            <Surface className="p-8 text-center">
+              <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
+                <CreditCard className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+              </div>
+              <Muted className="text-sm">No invoices linked to this client yet.</Muted>
+              <Muted className="text-xs mt-1 block">
+                Generate one from a project, contract, or the Invoices page.
+              </Muted>
+              <Link href="/invoices?new=1">
+                <Button size="sm" variant="outline" className="mt-4 border-zinc-200">
+                  New Invoice
+                </Button>
+              </Link>
+            </Surface>
+          ) : (
+            <Surface className="overflow-hidden">
+              <div className="px-5 py-3 border-b border-zinc-200 flex items-center justify-between">
+                <H2 className="text-base">Invoices</H2>
+                <Muted className="text-xs">
+                  Lifetime revenue:{" "}
+                  <span className="font-semibold text-zinc-900">
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: rollup!.currency,
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(rollup!.lifetimeRevenue)}
+                  </span>
+                </Muted>
+              </div>
+              <div className="divide-y divide-zinc-100">
+                {rollup!.invoices.map((inv) => (
+                  <Link key={inv.id} href={`/invoices/${inv.id}`} className="block">
+                    <div className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-zinc-50/50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 truncate">
+                          {inv.invoiceNumber ?? "Draft invoice"}
+                        </div>
+                        <Muted className="text-[10px] capitalize">
+                          {inv.status}
+                          {inv.sentAt ? ` · Sent ${new Date(inv.sentAt).toLocaleDateString()}` : ""}
+                          {inv.paidAt ? ` · Paid ${new Date(inv.paidAt).toLocaleDateString()}` : ""}
+                        </Muted>
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-900 shrink-0">
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: inv.currency,
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(inv.amount)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </Surface>
+          )
         )}
 
-        {/* ─── Documents Tab ─── */}
+        {/* ─── Documents Tab — contracts linked to this client ─── */}
         {activeTab === "documents" && (
-          <Surface className="p-8 text-center">
-            <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
-              <FileText className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
-            </div>
-            <Muted className="text-sm">No documents linked to this client yet.</Muted>
-            <Muted className="text-xs mt-1 block">Contracts and proposals linked to this client will appear here.</Muted>
-            <Link href="/contracts">
-              <Button size="sm" variant="outline" className="mt-4 border-zinc-200">
-                Go to Contracts
-              </Button>
-            </Link>
-          </Surface>
+          (rollup?.contracts.length ?? 0) === 0 ? (
+            <Surface className="p-8 text-center">
+              <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
+                <FileText className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
+              </div>
+              <Muted className="text-sm">No contracts linked to this client yet.</Muted>
+              <Muted className="text-xs mt-1 block">Draft a contract under one of the client&apos;s projects.</Muted>
+              <Link href="/contracts">
+                <Button size="sm" variant="outline" className="mt-4 border-zinc-200">
+                  Go to Contracts
+                </Button>
+              </Link>
+            </Surface>
+          ) : (
+            <Surface className="overflow-hidden">
+              <div className="px-5 py-3 border-b border-zinc-200">
+                <H2 className="text-base">Contracts</H2>
+              </div>
+              <div className="divide-y divide-zinc-100">
+                {rollup!.contracts.map((c) => (
+                  <Link key={c.id} href={`/contracts/${c.id}`} className="block">
+                    <div className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-zinc-50/50 transition-colors">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-zinc-900 truncate">{c.title}</div>
+                        <Muted className="text-[10px] capitalize">
+                          {c.contractNumber ? `${c.contractNumber} · ` : ""}{c.status}
+                        </Muted>
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-900 shrink-0">
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: c.currency,
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(c.totalAmount)}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </Surface>
+          )
         )}
       </div>
 

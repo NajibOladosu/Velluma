@@ -26,7 +26,7 @@ import {
   Loader2,
   ChevronDown,
 } from "lucide-react";
-import { useClients, useCreateClient, type ClientRow } from "@/lib/queries/clients";
+import { useClients, useCreateClient, useClientsRollupMap, type ClientRow } from "@/lib/queries/clients";
 
 /* ═══════════════════════════════════════════════════════
    HELPERS
@@ -58,12 +58,16 @@ type StatusTab = "all" | "active" | "lead" | "past";
    ═══════════════════════════════════════════════════════ */
 
 function ClientMetrics({ clients }: { clients: ClientRow[] }) {
+  const { data: rollups = {} } = useClientsRollupMap();
   const totalClients = clients.length;
   const activeClients = clients.filter((c) => getClientStatus(c) === "active").length;
-  const lifetimeRevenue = clients.reduce((s, c) => {
-    const rev = Number((c.metadata as Record<string, unknown> | null)?.total_revenue ?? 0);
-    return s + rev;
-  }, 0);
+  // Lifetime revenue is the sum of paid invoices across every client. The
+  // legacy metadata.total_revenue field was never populated; derive it
+  // live from contract_payments via the rollup map.
+  const lifetimeRevenue = Object.values(rollups).reduce(
+    (s, r) => s + (r.lifetimeRevenue ?? 0),
+    0,
+  );
   const avgHealth =
     totalClients > 0
       ? Math.round(clients.reduce((s, c) => s + (c.health_score ?? 0), 0) / totalClients)
