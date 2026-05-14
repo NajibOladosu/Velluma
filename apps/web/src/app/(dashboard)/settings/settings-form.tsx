@@ -19,7 +19,12 @@ import {
   Palette,
   Upload,
   Image as ImageIcon,
+  Building2,
 } from "lucide-react";
+import {
+  useBusinessProfile,
+  useUpdateBusinessProfile,
+} from "@/lib/queries/business-profile";
 import { Button } from "@/components/ui/button";
 import { Surface } from "@/components/ui/surface";
 import { H1, H3, Muted, P } from "@/components/ui/typography";
@@ -32,7 +37,7 @@ import { cn } from "@/lib/utils";
 /* ────────────────── Types ────────────────── */
 
 type PlanTier = "free" | "professional" | "business";
-type Section = "workspace" | "branding" | "billing" | "integrations" | "danger";
+type Section = "workspace" | "business" | "branding" | "billing" | "integrations" | "danger";
 
 interface SettingsData {
   email: string;
@@ -186,6 +191,7 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
 
   const sections: { key: Section; label: string; icon: React.ElementType; hint: string }[] = [
     { key: "workspace", label: "Workspace", icon: Briefcase, hint: "Name, currency, locale" },
+    { key: "business", label: "Business Profile", icon: Building2, hint: "Legal name, tax ID, billing email" },
     { key: "branding", label: "Branding", icon: Palette, hint: "Logo, colors, client portal" },
     { key: "billing", label: "Billing & Plan", icon: CreditCard, hint: "Subscription and invoices" },
     { key: "integrations", label: "Integrations", icon: Plug, hint: "Stripe, Calendar, Slack" },
@@ -458,6 +464,8 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
               </form>
             </Surface>
           )}
+
+          {activeSection === "business" && <BusinessProfileSection />}
 
           {activeSection === "branding" && (
             <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -921,6 +929,240 @@ function IntegrationRow({
           {connected ? "Disconnect" : "Connect"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   BusinessProfileSection — writes to public.profiles (not user_metadata).
+   Drives every client-facing surface: invoice email, contract smart
+   fields, portal header, booking + lead-form public pages.
+   ════════════════════════════════════════════════════════════════════════ */
+
+function BusinessProfileSection() {
+  const { data: profile, isLoading } = useBusinessProfile();
+  const update = useUpdateBusinessProfile();
+  const [state, setState] = React.useState<FeedbackState>({ kind: "idle" });
+
+  // Local form state — initialized from query, syncs when query updates.
+  const [legalBusinessName, setLegalBusinessName] = React.useState("");
+  const [billingEmail, setBillingEmail] = React.useState("");
+  const [taxId, setTaxId] = React.useState("");
+  const [defaultCurrency, setDefaultCurrency] = React.useState("USD");
+  const [defaultTimezone, setDefaultTimezone] = React.useState("UTC");
+  const [paymentTermsDays, setPaymentTermsDays] = React.useState(14);
+  const [invoicePrefix, setInvoicePrefix] = React.useState("INV");
+  const [brandAccentHex, setBrandAccentHex] = React.useState("#18181b");
+  const [logoUrl, setLogoUrl] = React.useState("");
+
+  React.useEffect(() => {
+    if (!profile) return;
+    setLegalBusinessName(profile.legalBusinessName ?? "");
+    setBillingEmail(profile.billingEmail ?? "");
+    setTaxId(profile.taxId ?? "");
+    setDefaultCurrency(profile.defaultCurrency);
+    setDefaultTimezone(profile.defaultTimezone);
+    setPaymentTermsDays(profile.paymentTermsDays);
+    setInvoicePrefix(profile.invoicePrefix);
+    setBrandAccentHex(profile.brandAccentHex);
+    setLogoUrl(profile.logoUrl ?? "");
+  }, [profile]);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setState({ kind: "saving" });
+    try {
+      await update.mutateAsync({
+        legalBusinessName: legalBusinessName.trim() || null,
+        billingEmail: billingEmail.trim() || null,
+        taxId: taxId.trim() || null,
+        defaultCurrency: defaultCurrency.trim().toUpperCase() || "USD",
+        defaultTimezone: defaultTimezone.trim() || "UTC",
+        paymentTermsDays,
+        invoicePrefix: invoicePrefix.trim().toUpperCase() || "INV",
+        brandAccentHex: brandAccentHex.trim(),
+        logoUrl: logoUrl.trim() || null,
+      });
+      setState({ kind: "success", message: "Saved" });
+      setTimeout(() => setState({ kind: "idle" }), 2000);
+    } catch (err) {
+      setState({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Save failed",
+      });
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Surface className="p-6">
+        <Muted className="text-sm">Loading…</Muted>
+      </Surface>
+    );
+  }
+
+  return (
+    <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className="px-6 py-4 border-b border-zinc-200">
+        <H3 className="text-base">Business Profile</H3>
+        <Muted className="text-xs">
+          Used on every client-facing artifact: contracts, invoices, portal
+          header, public booking and lead-form pages.
+        </Muted>
+      </div>
+      <form onSubmit={handleSave} className="p-6 space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <BizField
+            label="Legal business name"
+            value={legalBusinessName}
+            onChange={setLegalBusinessName}
+            placeholder="Velluma Studios LLC"
+            hint="Shown on contracts and invoices."
+          />
+          <BizField
+            label="Billing email"
+            type="email"
+            value={billingEmail}
+            onChange={setBillingEmail}
+            placeholder="billing@yourdomain.com"
+            hint="Reply-to address on invoice emails."
+          />
+          <BizField
+            label="Tax ID / VAT number"
+            value={taxId}
+            onChange={setTaxId}
+            placeholder="EIN 12-3456789"
+            hint="Optional. Appears on invoice email footer."
+          />
+          <BizField
+            label="Logo URL"
+            value={logoUrl}
+            onChange={setLogoUrl}
+            placeholder="https://yourdomain.com/logo.svg"
+            hint="Square PNG/SVG. Renders on portal + emails."
+          />
+          <BizField
+            label="Default currency"
+            value={defaultCurrency}
+            onChange={(v) => setDefaultCurrency(v.toUpperCase())}
+            placeholder="USD"
+            maxLength={3}
+          />
+          <BizField
+            label="Default timezone"
+            value={defaultTimezone}
+            onChange={setDefaultTimezone}
+            placeholder="America/Los_Angeles"
+            hint="IANA name. Falls back on the booking page when no override."
+          />
+          <BizNumberField
+            label="Payment terms"
+            value={paymentTermsDays}
+            onChange={setPaymentTermsDays}
+            min={0}
+            max={365}
+            suffix="days"
+            hint="Sets due_date when generating an invoice."
+          />
+          <BizField
+            label="Invoice number prefix"
+            value={invoicePrefix}
+            onChange={(v) => setInvoicePrefix(v.toUpperCase())}
+            placeholder="INV"
+            maxLength={6}
+            hint={`Today: ${invoicePrefix || "INV"}-YYYYMMDD-NNNNNN`}
+          />
+          <BizField
+            label="Brand accent color"
+            type="color"
+            value={brandAccentHex}
+            onChange={setBrandAccentHex}
+            hint="Used on the portal CTA buttons + email Pay-Now button."
+          />
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-100">
+          <Feedback state={state} />
+          <Button type="submit" disabled={state.kind === "saving"} className="gap-2">
+            {state.kind === "saving" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
+            Save changes
+          </Button>
+        </div>
+      </form>
+    </Surface>
+  );
+}
+
+function BizField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  hint,
+  maxLength,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  hint?: string;
+  maxLength?: number;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-zinc-700">{label}</label>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          "flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900",
+          type === "color" && "p-1 h-10",
+        )}
+      />
+      {hint && <Muted className="text-[11px]">{hint}</Muted>}
+    </div>
+  );
+}
+
+function BizNumberField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  suffix,
+  hint,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  suffix?: string;
+  hint?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-medium text-zinc-700">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          value={value}
+          min={min}
+          max={max}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+        />
+        {suffix && <Muted className="text-xs shrink-0">{suffix}</Muted>}
+      </div>
+      {hint && <Muted className="text-[11px]">{hint}</Muted>}
     </div>
   );
 }
