@@ -11,8 +11,9 @@ import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-hea
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProjectBillingSection } from "@/components/projects/billing-section";
-import { ProjectHubHeader, ProjectKpiRow, ProjectTimeSection, ProjectExpensesSection } from "@/components/projects/detail-hub";
-import { useProjectDetail } from "@/lib/queries/projects";
+import { ProjectHubHeader, ProjectKpiRow, ProjectTimeSection, ProjectExpensesSection, ProjectMessagesSection } from "@/components/projects/detail-hub";
+import { useProjectDetail, useUpdateProject, useDeleteProject } from "@/lib/queries/projects";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   MoreHorizontal,
@@ -242,7 +243,19 @@ function AddTaskModal({
 
 function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: string; onClose: () => void }) {
   const qc = useQueryClient();
+  const [title, setTitle] = React.useState(task.title);
   const [status, setStatus] = React.useState<TaskStatus>(task.status);
+  const [priority, setPriority] = React.useState<TaskPriority>(task.priority);
+  const [description, setDescription] = React.useState(task.description ?? "");
+  const [dueDate, setDueDate] = React.useState(task.due_date ?? "");
+
+  React.useEffect(() => {
+    setTitle(task.title);
+    setStatus(task.status);
+    setPriority(task.priority);
+    setDescription(task.description ?? "");
+    setDueDate(task.due_date ?? "");
+  }, [task]);
 
   const updateMutation = useMutation({
     mutationFn: async (patch: Partial<Task>) => {
@@ -256,17 +269,55 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", projectId] }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks", projectId] });
+      onClose();
+    },
+  });
+
+  function commit<K extends keyof Task>(key: K, value: Task[K], localSetter?: (v: Task[K]) => void) {
+    if (localSetter) localSetter(value);
+    updateMutation.mutate({ [key]: value } as Partial<Task>);
+  }
+
   return (
     <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white border-l border-zinc-200 z-50 overflow-y-auto">
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <Muted className="text-[10px] uppercase tracking-widest font-bold">Task Detail</Muted>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-            <X className="h-4 w-4" strokeWidth={1.5} />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-zinc-500 hover:text-red-600"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              aria-label="Delete task"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+              <X className="h-4 w-4" strokeWidth={1.5} />
+            </Button>
+          </div>
         </div>
 
-        <H2 className="text-xl">{task.title}</H2>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => title.trim() && title !== task.title && commit("title", title.trim())}
+          className="w-full text-xl font-semibold text-zinc-900 bg-transparent border-0 px-0 focus-visible:outline-none focus-visible:ring-0"
+        />
         <Separator />
 
         <div className="grid grid-cols-2 gap-4">
@@ -286,32 +337,52 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
           </div>
           <div className="space-y-1.5">
             <Muted className="text-[10px] uppercase tracking-widest font-bold block">Priority</Muted>
-            <div className="flex items-center gap-2 h-9">
-              <div className={`h-2.5 w-2.5 rounded-full ${priorityDot[task.priority]}`} />
-              <span className="text-sm font-medium text-zinc-900 capitalize">{task.priority}</span>
-            </div>
+            <select
+              value={priority}
+              onChange={(e) => {
+                const p = e.target.value as TaskPriority;
+                setPriority(p);
+                updateMutation.mutate({ priority: p });
+              }}
+              className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
-          {task.due_date && (
-            <div className="space-y-1">
-              <Muted className="text-[10px] uppercase tracking-widest font-bold block">Due Date</Muted>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-3.5 w-3.5 text-zinc-400" strokeWidth={1.5} />
-                <span className="text-sm font-medium text-zinc-900">
-                  {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </span>
-              </div>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Muted className="text-[10px] uppercase tracking-widest font-bold block">Due Date</Muted>
+            <input
+              type="date"
+              value={dueDate ? dueDate.slice(0, 10) : ""}
+              onChange={(e) => {
+                const v = e.target.value || null;
+                setDueDate(v ?? "");
+                updateMutation.mutate({ due_date: v });
+              }}
+              className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            />
+          </div>
         </div>
 
-        {task.description && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <Muted className="text-[10px] uppercase tracking-widest font-bold block">Description</Muted>
-              <P className="text-sm text-zinc-600 leading-relaxed">{task.description}</P>
-            </div>
-          </>
+        <Separator />
+        <div className="space-y-2">
+          <Muted className="text-[10px] uppercase tracking-widest font-bold block">Description</Muted>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onBlur={() => description !== (task.description ?? "") && commit("description", description)}
+            placeholder="Add a description, acceptance criteria, links…"
+            rows={6}
+            className="w-full text-sm text-zinc-700 leading-relaxed rounded-md border border-zinc-200 bg-white px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 resize-y"
+          />
+        </div>
+
+        {updateMutation.isPending && (
+          <Muted className="text-xs flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+          </Muted>
         )}
       </div>
     </div>
@@ -350,6 +421,24 @@ export default function ProjectDetailPage() {
     return map;
   }, [tasks]);
 
+  const router = useRouter();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
+
+  function handleArchiveToggle() {
+    if (!detail) return;
+    const newStatus = detail.rawStatus === "completed" ? "active" : "completed";
+    updateProject.mutate({ id: detail.id, status: newStatus });
+  }
+
+  async function handleDelete() {
+    if (!detail) return;
+    await deleteProject.mutateAsync(detail.id);
+    router.push("/projects");
+  }
+
   return (
     <>
       <div className="space-y-8">
@@ -360,6 +449,9 @@ export default function ProjectDetailPage() {
           taskCount={tasks?.length ?? 0}
           tasksDone={tasksByStatus.done.length}
           onAddTask={() => setAddModal({ open: true, status: "todo" })}
+          onEdit={() => setEditOpen(true)}
+          onArchiveToggle={handleArchiveToggle}
+          onDelete={() => setConfirmDeleteOpen(true)}
         />
 
         {/* KPI cards */}
@@ -373,6 +465,9 @@ export default function ProjectDetailPage() {
 
         {/* Expenses linked to this project */}
         <ProjectExpensesSection projectId={projectId} />
+
+        {/* Client messages thread (project-scoped preview) */}
+        <ProjectMessagesSection projectId={projectId} clientId={detail?.client.id ?? null} />
 
         {/* Kanban Board */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -449,6 +544,184 @@ export default function ProjectDetailPage() {
           <TaskDrawer task={selectedTask} projectId={projectId} onClose={() => setSelectedTask(null)} />
         </>
       )}
+
+      {/* Edit project */}
+      {editOpen && detail && (
+        <EditProjectModal
+          project={detail}
+          onClose={() => setEditOpen(false)}
+          onSave={async (patch) => {
+            await updateProject.mutateAsync({ id: detail.id, ...patch });
+            setEditOpen(false);
+          }}
+          pending={updateProject.isPending}
+        />
+      )}
+
+      {/* Delete confirm */}
+      {confirmDeleteOpen && detail && (
+        <ConfirmDeleteProjectModal
+          name={detail.title}
+          onClose={() => setConfirmDeleteOpen(false)}
+          onConfirm={handleDelete}
+          pending={deleteProject.isPending}
+        />
+      )}
     </>
+  );
+}
+
+/* ────────── EditProjectModal ────────── */
+
+function EditProjectModal({
+  project,
+  onClose,
+  onSave,
+  pending,
+}: {
+  project: NonNullable<ReturnType<typeof useProjectDetail>["data"]>;
+  onClose: () => void;
+  onSave: (patch: { title?: string; description?: string | null; totalBudget?: number; status?: string }) => Promise<void> | void;
+  pending: boolean;
+}) {
+  const [title, setTitle] = React.useState(project.title);
+  const [description, setDescription] = React.useState(project.description ?? "");
+  const [budget, setBudget] = React.useState(String(project.totalBudget));
+  const [status, setStatus] = React.useState(project.rawStatus);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    await onSave({
+      title: title.trim(),
+      description: description.trim() || null,
+      totalBudget: Number(budget) || 0,
+      status,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30" onClick={() => !pending && onClose()} />
+      <form
+        onSubmit={submit}
+        className="relative w-full max-w-md bg-white rounded-lg border border-zinc-200 shadow-lg p-5 space-y-4"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-semibold text-zinc-900">Edit project</h3>
+          <button type="button" onClick={onClose} className="text-zinc-400 hover:text-zinc-700" aria-label="Close">
+            <X className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-zinc-700">Title</label>
+          <input
+            required
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-zinc-700">Description</label>
+          <textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Total budget</label>
+            <input
+              type="number"
+              min="0"
+              step="100"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-zinc-700">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="active">Active</option>
+              <option value="on-hold">On hold</option>
+              <option value="paused">Paused</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={pending} className="gap-2">
+            {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save changes
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ────────── ConfirmDeleteProjectModal ────────── */
+
+function ConfirmDeleteProjectModal({
+  name,
+  onClose,
+  onConfirm,
+  pending,
+}: {
+  name: string;
+  onClose: () => void;
+  onConfirm: () => Promise<void> | void;
+  pending: boolean;
+}) {
+  const [confirmInput, setConfirmInput] = React.useState("");
+  const canDelete = confirmInput.trim().toLowerCase() === name.trim().toLowerCase();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/30" onClick={() => !pending && onClose()} />
+      <div className="relative w-full max-w-md bg-white rounded-lg border border-zinc-200 shadow-lg p-5 space-y-4">
+        <h3 className="text-base font-semibold text-zinc-900">Delete project?</h3>
+        <p className="text-sm text-zinc-600 leading-relaxed">
+          This permanently removes the project, its tasks, milestones, and severs links from
+          contracts/invoices/time entries. Type the project name to confirm.
+        </p>
+        <code className="block text-xs font-mono text-zinc-500 bg-zinc-50 border border-zinc-200 rounded p-2 truncate">
+          {name}
+        </code>
+        <input
+          type="text"
+          value={confirmInput}
+          onChange={(e) => setConfirmInput(e.target.value)}
+          placeholder="Type project name to confirm"
+          className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+        />
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+          <Button type="button" variant="outline" onClick={onClose} disabled={pending}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canDelete || pending}
+            className="gap-2 bg-red-600 hover:bg-red-700"
+          >
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            Delete project
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

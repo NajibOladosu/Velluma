@@ -11,6 +11,10 @@ import {
   DollarSign,
   ExternalLink,
   FileText,
+  MoreHorizontal,
+  Pencil,
+  Archive,
+  Trash2,
   Plus,
   Receipt,
   ShieldCheck,
@@ -21,6 +25,12 @@ import {
 import { Surface } from "@/components/ui/surface"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 import { H1, H2, Muted, P } from "@/components/ui/typography"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -73,12 +83,18 @@ export function ProjectHubHeader({
   taskCount,
   tasksDone,
   onAddTask,
+  onEdit,
+  onArchiveToggle,
+  onDelete,
 }: {
   detail: ProjectDetail | null
   isLoading: boolean
   taskCount: number
   tasksDone: number
   onAddTask: () => void
+  onEdit?: () => void
+  onArchiveToggle?: () => void
+  onDelete?: () => void
 }) {
   if (isLoading || !detail) {
     return (
@@ -170,6 +186,33 @@ export function ProjectHubHeader({
             <Plus className="h-4 w-4" strokeWidth={1.5} />
             Add Task
           </Button>
+          {(onEdit || onArchiveToggle || onDelete) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Project actions" className="h-9 w-9">
+                  <MoreHorizontal className="h-4 w-4 text-zinc-500" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {onEdit && (
+                  <DropdownMenuItem onClick={onEdit} className="text-xs gap-2">
+                    <Pencil className="h-3.5 w-3.5 text-zinc-500" /> Edit details
+                  </DropdownMenuItem>
+                )}
+                {onArchiveToggle && (
+                  <DropdownMenuItem onClick={onArchiveToggle} className="text-xs gap-2">
+                    <Archive className="h-3.5 w-3.5 text-zinc-500" />
+                    {detail.rawStatus === "completed" ? "Reopen" : "Mark completed"}
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem onClick={onDelete} className="text-xs gap-2 text-red-600">
+                    <Trash2 className="h-3.5 w-3.5" /> Delete project
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </div>
@@ -446,6 +489,73 @@ export function ProjectExpensesSection({ projectId }: { projectId: string }) {
   )
 }
 
+// ─────────────────────────── Messages summary ────────────────────────────────
+
+/**
+ * Project Messages panel — surfaces the project's client thread without
+ * duplicating the full Messages page. Shows last few messages + a CTA to
+ * jump to the client thread.
+ */
+export function ProjectMessagesSection({
+  projectId,
+  clientId,
+}: {
+  projectId: string
+  clientId: string | null
+}) {
+  void projectId
+  const { data: thread, isLoading } = useProjectThreadPreview(clientId)
+
+  return (
+    <Surface className="p-0 overflow-hidden">
+      <SectionHeader
+        icon={<FileText className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />}
+        title="Messages"
+        right={
+          clientId ? (
+            <Link
+              href={`/messages`}
+              className="text-xs text-zinc-500 hover:text-zinc-900 inline-flex items-center gap-1"
+            >
+              Open inbox <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          ) : null
+        }
+      />
+      {!clientId ? (
+        <div className="p-6 text-center">
+          <Muted className="text-sm">Attach a client to enable messages on this project.</Muted>
+        </div>
+      ) : isLoading ? (
+        <div className="p-4 space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : (thread?.messages.length ?? 0) === 0 ? (
+        <div className="p-6 text-center">
+          <Muted className="text-sm">No messages yet. Send the first one from the inbox.</Muted>
+        </div>
+      ) : (
+        <div className="divide-y divide-zinc-100">
+          {thread!.messages.slice(0, 4).map((m) => (
+            <div key={m.id} className="px-5 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-zinc-900 truncate">
+                  {m.sender_name ?? m.sender_role ?? "Unknown"}
+                </span>
+                <Muted className="text-[10px] shrink-0">
+                  {fmtDate(m.created_at)}
+                </Muted>
+              </div>
+              <P className="text-xs text-zinc-600 line-clamp-2 mt-0.5">{m.message}</P>
+            </div>
+          ))}
+        </div>
+      )}
+    </Surface>
+  )
+}
+
 // ─────────────────────────── Shared section header ───────────────────────────
 
 function SectionHeader({
@@ -453,11 +563,13 @@ function SectionHeader({
   title,
   subtitle,
   href,
+  right,
 }: {
   icon: React.ReactNode
   title: string
   subtitle?: string
   href?: string
+  right?: React.ReactNode
 }) {
   return (
     <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-zinc-200">
@@ -476,6 +588,7 @@ function SectionHeader({
           Open <ArrowUpRight className="h-3 w-3" />
         </Link>
       )}
+      {right}
     </div>
   )
 }
@@ -486,3 +599,42 @@ export { useProjectDetail } from "@/lib/queries/projects"
 // Used by the page header — surfaced here so future detail-section tests
 // can import the same icon vocabulary.
 export { TrendingUp }
+
+// ─────────────────────────── Thread preview hook ────────────────────────────
+
+import { useQuery } from "@tanstack/react-query"
+import { createClient } from "@/utils/supabase/client"
+
+interface ThreadMessage {
+  id: string
+  message: string
+  sender_role: string | null
+  sender_name: string | null
+  created_at: string
+}
+
+function useProjectThreadPreview(clientId: string | null) {
+  return useQuery({
+    queryKey: ["project-thread-preview", clientId],
+    queryFn: async (): Promise<{ messages: ThreadMessage[] }> => {
+      if (!clientId) return { messages: [] }
+      const supabase = createClient()
+      const { data: convo } = await supabase
+        .from("contract_conversations")
+        .select("id")
+        .eq("client_id", clientId)
+        .is("project_id", null)
+        .maybeSingle<{ id: string }>()
+      if (!convo) return { messages: [] }
+      const { data } = await supabase
+        .from("contract_messages")
+        .select("id, message, sender_role, sender_name, created_at")
+        .eq("conversation_id", convo.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(6)
+      return { messages: ((data ?? []) as ThreadMessage[]).reverse() }
+    },
+    enabled: Boolean(clientId),
+  })
+}
