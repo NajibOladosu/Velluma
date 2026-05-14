@@ -184,6 +184,29 @@ export default async function ProposalViewPage({
   const videoEmbed   = videoUrl ? getVideoEmbed(videoUrl) : null
   const expiresAt    = meta.expires_at as string | undefined
 
+  // Structured deliverables (§1 Proposal-as-origin). When the new editor
+  // has been used, these rows are the canonical scope; render them before
+  // the legacy TipTap HTML.
+  const { data: deliverableRows } = await supabase
+    .from("proposal_deliverables")
+    .select("id, position, title, description, qty, unit_price, line_total, est_hours, is_optional")
+    .eq("proposal_id", id)
+    .order("position", { ascending: true })
+  const deliverables = (deliverableRows ?? []) as Array<{
+    id: string
+    position: number
+    title: string
+    description: string | null
+    qty: number | null
+    unit_price: number | null
+    line_total: number | null
+    est_hours: number | null
+    is_optional: boolean | null
+  }>
+  const deliverablesTotal = deliverables
+    .filter((d) => !d.is_optional)
+    .reduce((s, d) => s + (Number(d.line_total) || (Number(d.qty) || 0) * (Number(d.unit_price) || 0)), 0)
+
   // Payment methods the freelancer accepts
   const acceptedMethodIds = (meta.accepted_payment_methods as string[] | undefined) ?? []
   let paymentMethods: WithdrawalMethodRow[] = []

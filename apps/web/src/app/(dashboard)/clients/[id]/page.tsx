@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { createClient as createSupabaseClient } from "@/utils/supabase/client";
 import {
   ArrowLeft,
   Mail,
@@ -1033,11 +1035,13 @@ export default function ClientDetailPage() {
 
         {/* ─── Activity Tab ─── */}
         {activeTab === "activity" && (
-          <Surface className="p-6">
+          <>
+          <ClientAuditFeed clientId={clientId} rollup={rollup} />
+          <Surface className="p-6 mt-4">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <H2 className="text-base">Activity Timeline</H2>
-                <Muted className="text-xs">Every interaction with {client.name}.</Muted>
+                <H2 className="text-base">Logged notes</H2>
+                <Muted className="text-xs">Notes you&apos;ve manually logged for {client.name}.</Muted>
               </div>
               <Button
                 size="sm"
@@ -1078,6 +1082,7 @@ export default function ClientDetailPage() {
               </div>
             )}
           </Surface>
+          </>
         )}
 
         {/* ─── Invoices Tab — derived from contract_payments via client's contracts ─── */}
@@ -1238,5 +1243,98 @@ export default function ClientDetailPage() {
         />
       )}
     </>
+  );
+}
+
+/* ────────────────── ClientAuditFeed ──────────────────
+   Live activity feed sourced from audit_logs, scoped to the client's
+   contracts/projects/invoices. Composes alongside the user-logged notes
+   section in the Activity tab. */
+
+interface AuditRow {
+  id: string;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  created_at: string;
+  details: Record<string, unknown> | null;
+}
+
+function ClientAuditFeed({
+  clientId,
+  rollup,
+}: {
+  clientId: string;
+  rollup: ReturnType<typeof useClientRollup>["data"];
+}) {
+  const supabase = React.useMemo(() => createSupabaseClient(), []);
+
+  // Resource ids that belong to this client.
+  const contractIds = rollup?.contracts.map((c) => c.id) ?? [];
+  const projectIds  = rollup?.projects.map((p) => p.id) ?? [];
+  const invoiceIds  = rollup?.invoices.map((i) => i.id) ?? [];
+  const allIds = [...contractIds, ...projectIds, ...invoiceIds, clientId];
+
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["client-audit", clientId, allIds.length],
+    queryFn: async (): Promise<AuditRow[]> => {
+      if (allIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("id, action, resource_type, resource_id, created_at, details")
+        .in("resource_id", allIds)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AuditRow[];
+    },
+    enabled: allIds.length > 0,
+  });
+
+  if (isLoading) {
+    return (
+      <Surface className="p-6 space-y-2">
+        <Muted className="text-[10px] uppercase tracking-widest font-bold">System activity</Muted>
+        <Skeleton className="h-4 w-64" />
+        <Skeleton className="h-4 w-48" />
+      </Surface>
+    );
+  }
+  if (events.length === 0) {
+    return (
+      <Surface className="p-6">
+        <Muted className="text-[10px] uppercase tracking-widest font-bold mb-2 block">
+          System activity
+        </Muted>
+        <Muted className="text-xs">No tracked events yet for this client.</Muted>
+      </Surface>
+    );
+  }
+
+  return (
+    <Surface className="p-6">
+      <Muted className="text-[10px] uppercase tracking-widest font-bold mb-4 block">
+        System activity
+      </Muted>
+      <ul className="space-y-3">
+        {events.map((e) => (
+          <li key={e.id} className="flex items-start gap-3">
+            <div className="h-2 w-2 rounded-full bg-zinc-400 mt-2 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm text-zinc-900 truncate">
+                <span className="font-medium capitalize">{e.action.replace(/[._]/g, " ")}</span>
+                <span className="text-zinc-500"> · {e.resource_type}</span>
+              </div>
+              <Muted className="text-xs">
+                {new Date(e.created_at).toLocaleString("en-US", {
+                  month: "short", day: "numeric", year: "numeric",
+                  hour: "numeric", minute: "2-digit", hour12: true,
+                })}
+              </Muted>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Surface>
   );
 }

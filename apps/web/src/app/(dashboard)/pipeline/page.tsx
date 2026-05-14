@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KanbanBoard, KanbanColumn, KanbanCard } from "@/components/ui/kanban";
 import { cn } from "@/lib/utils";
+import { useFinancialKPIs } from "@/lib/queries/financial-kpis";
 import {
   Plus,
   Sparkles,
@@ -70,13 +71,10 @@ type ViewMode = "board" | "list";
 function PipelineMetrics({ stages, isLoading }: { stages: PipelineStageData[]; isLoading: boolean }) {
   const allLeads = stages.flatMap((s) => s.leads);
   const totalValue = allLeads.reduce((s, l) => s + l.numericValue, 0);
-  const bookedValue = stages
-    .filter((s) => s.id === "contract_signed" || s.id === "active")
-    .flatMap((s) => s.leads)
-    .reduce((s, l) => s + l.numericValue, 0);
-  // A lead is "won" the moment its contract is signed — not when execution
-  // starts. Counting only the `active` column ignored every signed deal that
-  // hadn't yet moved to delivery, making conversion look ~5× worse than reality.
+  // Booked revenue is sourced from contracts directly so the number can't
+  // drift the moment a card's `deal_value` metadata diverges from reality.
+  const { data: kpis } = useFinancialKPIs();
+  const bookedValue = kpis?.bookedRevenue ?? 0;
   const wonLeads = stages
     .filter((s) => s.id === "contract_signed" || s.id === "active")
     .reduce((sum, s) => sum + s.leads.length, 0);

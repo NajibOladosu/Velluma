@@ -99,10 +99,60 @@ export async function POST(
     metadata: { meeting_type: mt.name, starts_at: booking.starts_at },
   })
 
+  // Build an RFC-5545 .ics so the booker can add the meeting to their
+  // calendar. Inline in the response so the page can offer a Download
+  // button without a second round-trip.
+  const ics = buildICS({
+    uid: booking.id,
+    title: mt.name,
+    description: body.notes?.trim() ?? "",
+    startsAt: booking.starts_at,
+    endsAt: booking.ends_at,
+    organizerName: "Velluma",
+  })
+
   return NextResponse.json({
     bookingId: booking.id,
     startsAt: booking.starts_at,
     endsAt: booking.ends_at,
     cancellationUrl: `/book/${slug}/cancel/${booking.cancellation_token}`,
+    ics,
   }, { status: 201 })
+}
+
+/**
+ * Minimal RFC-5545 VCALENDAR. Times serialized as UTC (Z suffix) so any
+ * client app interprets them correctly regardless of its local TZ.
+ */
+function buildICS(args: {
+  uid: string
+  title: string
+  description: string
+  startsAt: string
+  endsAt: string
+  organizerName: string
+}): string {
+  const fmt = (iso: string) =>
+    new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")
+  const esc = (s: string) =>
+    s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;")
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Velluma//Bookings//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${args.uid}@velluma`,
+    `DTSTAMP:${fmt(new Date().toISOString())}`,
+    `DTSTART:${fmt(args.startsAt)}`,
+    `DTEND:${fmt(args.endsAt)}`,
+    `SUMMARY:${esc(args.title)}`,
+    `DESCRIPTION:${esc(args.description)}`,
+    `ORGANIZER;CN=${esc(args.organizerName)}:mailto:noreply@velluma.app`,
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n")
 }

@@ -54,6 +54,20 @@ export function DeliverablesEditor({
 
   // Service picker UI state
   const [pickerOpen, setPickerOpen] = React.useState(false)
+  const [pickerCategory, setPickerCategory] = React.useState<string>("all")
+
+  // Available categories from the loaded services
+  const categories = React.useMemo(() => {
+    const set = new Set<string>()
+    for (const s of services) if (s.category) set.add(s.category)
+    return Array.from(set).sort()
+  }, [services])
+  const filteredServices = React.useMemo(
+    () => pickerCategory === "all"
+      ? services
+      : services.filter((s) => s.category === pickerCategory),
+    [services, pickerCategory],
+  )
 
   async function addBlankRow() {
     await create.mutateAsync({
@@ -111,11 +125,24 @@ export function DeliverablesEditor({
       </div>
 
       {pickerOpen && (
-        <div className="p-3 border-b border-zinc-200 bg-zinc-50/50 max-h-56 overflow-y-auto">
-          <div className="flex items-center justify-between mb-2">
+        <div className="p-3 border-b border-zinc-200 bg-zinc-50/50 max-h-72 overflow-y-auto">
+          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
             <Muted className="text-[10px] uppercase tracking-widest font-bold">
               Pick a service
             </Muted>
+            {categories.length > 0 && (
+              <select
+                value={pickerCategory}
+                onChange={(e) => setPickerCategory(e.target.value)}
+                aria-label="Filter by category"
+                className="h-7 text-xs rounded-md border border-zinc-200 bg-white px-2 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              >
+                <option value="all">All categories</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               aria-label="Close picker"
@@ -126,7 +153,11 @@ export function DeliverablesEditor({
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {services.map((svc) => (
+            {filteredServices.length === 0 ? (
+              <div className="col-span-full p-4 text-center">
+                <Muted className="text-xs">No services in this category.</Muted>
+              </div>
+            ) : filteredServices.map((svc) => (
               <button
                 key={svc.id}
                 type="button"
@@ -280,10 +311,25 @@ function DeliverableRow({
         />
       </RowField>
 
-      <div className={cn("col-span-2 md:col-span-2 flex flex-col items-end justify-start pt-5")}>
-        <span className="text-sm font-semibold text-zinc-900">
+      <div className={cn("col-span-2 md:col-span-2 flex flex-col items-end justify-start pt-5 gap-1")}>
+        <span className={cn("text-sm font-semibold", deliverable.isOptional ? "text-zinc-400 line-through" : "text-zinc-900")}>
           {fmtCurrency(lineTotal, currency)}
         </span>
+        <label className="inline-flex items-center gap-1 text-[10px] text-zinc-500 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={deliverable.isOptional}
+            onChange={(e) =>
+              update.mutate({
+                id: deliverable.id,
+                proposalId: deliverable.proposalId,
+                isOptional: e.target.checked,
+              })
+            }
+            className="h-3 w-3 rounded border-zinc-300 accent-zinc-900"
+          />
+          optional
+        </label>
         <button
           type="button"
           aria-label="Delete deliverable"
