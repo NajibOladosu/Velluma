@@ -21,6 +21,7 @@ import { Surface } from "@/components/ui/surface"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Muted, P } from "@/components/ui/typography"
+import { useToast } from "@/components/ui/toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   useProjectMilestones,
@@ -110,6 +111,7 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
   const supabase = React.useMemo(() => createClient(), [])
   const router = useRouter()
   const qc = useQueryClient()
+  const { toast } = useToast()
 
   const { data: contracts, isLoading: contractsLoading } = useQuery({
     queryKey: ["project-billing-contracts", projectId],
@@ -167,7 +169,11 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
       status: string
     }>
     if (rows.length === 0) {
-      alert("No approved time entries to bill. Submit or approve entries first.")
+      toast({
+        title: "No billable time",
+        description: "No approved time entries to bill. Submit or approve entries first.",
+        variant: "info",
+      })
       return
     }
     const items = rows
@@ -184,7 +190,11 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
       })
     const total = items.reduce((s, i) => s + i.total, 0)
     if (total <= 0) {
-      alert("Time entries have no billable rate yet. Set hourly_rate on entries first.")
+      toast({
+        title: "No billable rate",
+        description: "Time entries have no hourly_rate yet. Set rates on the entries first.",
+        variant: "info",
+      })
       return
     }
     const result = await createInvoice.mutateAsync({

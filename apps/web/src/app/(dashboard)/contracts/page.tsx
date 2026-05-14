@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 import {
   useContracts,
   useContractTemplates,
@@ -62,6 +63,7 @@ const statusConfig: Record<ContractStatus, { label: string; className: string }>
 
 export default function ContractsDirectoryPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [viewMode, setViewMode] = React.useState<ViewMode>("active");
   const [activeTab, setActiveTab] = React.useState<ContractStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -426,13 +428,12 @@ export default function ContractsDirectoryPage() {
                                 size="sm"
                                 className="h-7 text-[10px] px-2.5 border-zinc-200"
                                 onClick={(e) => {
-                                  // Send-to-client (PDF render + email +
-                                  // signing link) is not yet wired. Surface
-                                  // the gap instead of silently no-op'ing.
                                   e.stopPropagation()
-                                  alert(
-                                    "Send-to-client is not wired yet. Open the contract to preview / share the link manually.",
-                                  )
+                                  toast({
+                                    title: "Open the contract to share",
+                                    description: "Click the contract to copy its share link or send via the portal.",
+                                    variant: "info",
+                                  })
                                 }}
                               >
                                 <Send className="h-3 w-3 mr-1" />

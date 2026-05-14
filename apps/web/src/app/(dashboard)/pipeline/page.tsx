@@ -608,6 +608,14 @@ function LeadDetailDrawer({
             <Button
               variant="outline"
               size="sm"
+              className="border-zinc-200 text-xs gap-1.5 justify-start text-red-600 hover:text-red-700"
+              onClick={() => onMoveStage(lead.id, "lost")}
+            >
+              <X className="h-3.5 w-3.5" /> Mark Lost
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               className="border-zinc-200 text-xs gap-1.5 justify-start text-zinc-500 hover:text-zinc-900"
               onClick={() => onArchive(lead)}
             >

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 import { H1, Muted, P } from "@/components/ui/typography";
 import { CsvImportExport } from "@/components/data/csv-import-export";
 import { Surface } from "@/components/ui/surface";
@@ -255,6 +256,7 @@ function NewInvoiceDialog({
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState<TabKey>("all");
   const [search, setSearch] = React.useState("");
   const [newInvoiceOpen, setNewInvoiceOpen] = React.useState(false);
@@ -544,9 +546,11 @@ export default function InvoicesPage() {
                             size="sm"
                             className="h-7 text-[10px] px-2.5 border-zinc-200"
                             onClick={() =>
-                              alert(
-                                "Reminder emails are not wired yet — Stripe Connect onboarding required first.",
-                              )
+                              toast({
+                                title: "Reminders not yet enabled",
+                                description: "Set RESEND_API_KEY + complete Stripe Connect to send reminders.",
+                                variant: "info",
+                              })
                             }
                           >
                             <Send className="h-3 w-3 mr-1" />
