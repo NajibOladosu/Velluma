@@ -19,6 +19,7 @@ import {
   type MeetingType, type DayAvailability,
 } from "@/lib/queries/booking"
 import { cn } from "@/lib/utils"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -327,25 +328,12 @@ export default function BookingSettingsPage() {
             </Surface>
           ) : (
             displayedBookings.map((b) => (
-              <Surface key={b.id} className="p-4 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <P className="text-sm font-medium truncate">{b.guest_name}</P>
-                  {bookingsTab === "past" && (
-                    <span className="text-[10px] uppercase tracking-widest text-zinc-400 shrink-0">
-                      done
-                    </span>
-                  )}
-                </div>
-                <Muted className="text-xs truncate block">{b.guest_email}</Muted>
-                <div className="flex items-center gap-1.5 text-xs text-zinc-600 mt-1">
-                  <Clock className="h-3 w-3" strokeWidth={1.5} />
-                  {new Date(b.starts_at).toLocaleString("en-US", {
-                    month: "short", day: "numeric", year: "numeric",
-                    hour: "numeric", minute: "2-digit", hour12: true,
-                  })}
-                </div>
-                {b.notes && <Muted className="text-xs line-clamp-2 pt-1">{b.notes}</Muted>}
-              </Surface>
+              <BookingRow
+                key={b.id}
+                booking={b}
+                pageSlug={page?.slug ?? ""}
+                isPast={bookingsTab === "past"}
+              />
             ))
           )}
         </div>
@@ -359,6 +347,159 @@ export default function BookingSettingsPage() {
         />
       )}
     </div>
+  )
+}
+
+/* ─── BookingRow — admin row with Cancel / Reschedule menu ─── */
+
+function BookingRow({
+  booking,
+  pageSlug,
+  isPast,
+}: {
+  booking: {
+    id: string
+    guest_name: string
+    guest_email: string | null
+    starts_at: string
+    notes: string | null
+    status: string
+  }
+  pageSlug: string
+  isPast: boolean
+}) {
+  const qc = useQueryClient()
+  const [confirming, setConfirming] = React.useState<null | "cancel" | "reschedule">(null)
+  const [reason, setReason] = React.useState("")
+  const [newStart, setNewStart] = React.useState("")
+
+  const action = useMutation({
+    mutationFn: async (body: { action: "cancel" | "reschedule"; reason?: string; startsAt?: string }) => {
+      const res = await fetch(`/api/book/${pageSlug}/bookings/${booking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed")
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["bookings"] })
+      setConfirming(null)
+      setReason("")
+      setNewStart("")
+    },
+  })
+
+  const isCancelled = booking.status === "cancelled"
+  const startsAtLocal = new Date(booking.starts_at).toISOString().slice(0, 16)
+
+  return (
+    <Surface className="p-4 space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <P className="text-sm font-medium truncate">{booking.guest_name}</P>
+        {isCancelled ? (
+          <span className="text-[10px] uppercase tracking-widest text-red-500 shrink-0">cancelled</span>
+        ) : isPast ? (
+          <span className="text-[10px] uppercase tracking-widest text-zinc-400 shrink-0">done</span>
+        ) : null}
+      </div>
+      <Muted className="text-xs truncate block">{booking.guest_email}</Muted>
+      <div className="flex items-center gap-1.5 text-xs text-zinc-600 mt-1">
+        <Clock className="h-3 w-3" strokeWidth={1.5} />
+        {new Date(booking.starts_at).toLocaleString("en-US", {
+          month: "short", day: "numeric", year: "numeric",
+          hour: "numeric", minute: "2-digit", hour12: true,
+        })}
+      </div>
+      {booking.notes && <Muted className="text-xs line-clamp-2 pt-1">{booking.notes}</Muted>}
+
+      {!isCancelled && !isPast && confirming == null && (
+        <div className="flex items-center gap-2 pt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-[11px] gap-1.5"
+            onClick={() => { setNewStart(startsAtLocal); setConfirming("reschedule") }}
+          >
+            Reschedule
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-[11px] gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => setConfirming("cancel")}
+          >
+            Cancel
+          </Button>
+        </div>
+      )}
+
+      {confirming === "cancel" && (
+        <div className="space-y-2 pt-2 border-t border-zinc-100 mt-2">
+          <textarea
+            rows={2}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Reason (optional)"
+            className="flex w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-900 resize-y"
+          />
+          {action.isError && (
+            <Muted className="text-[10px] text-red-600">
+              {action.error instanceof Error ? action.error.message : "Failed"}
+            </Muted>
+          )}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-[11px] bg-red-600 hover:bg-red-700 gap-1"
+              onClick={() => action.mutate({ action: "cancel", reason })}
+              disabled={action.isPending}
+            >
+              {action.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Confirm cancel
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setConfirming(null)}>
+              Back
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {confirming === "reschedule" && (
+        <div className="space-y-2 pt-2 border-t border-zinc-100 mt-2">
+          <input
+            type="datetime-local"
+            value={newStart}
+            onChange={(e) => setNewStart(e.target.value)}
+            className="flex w-full rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+          {action.isError && (
+            <Muted className="text-[10px] text-red-600">
+              {action.error instanceof Error ? action.error.message : "Failed"}
+            </Muted>
+          )}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="h-7 text-[11px] gap-1"
+              onClick={() =>
+                action.mutate({
+                  action: "reschedule",
+                  startsAt: new Date(newStart).toISOString(),
+                })
+              }
+              disabled={action.isPending || !newStart}
+            >
+              {action.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              Confirm new time
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setConfirming(null)}>
+              Back
+            </Button>
+          </div>
+        </div>
+      )}
+    </Surface>
   )
 }
 
