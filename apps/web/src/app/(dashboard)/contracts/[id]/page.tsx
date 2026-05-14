@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MinimalEditor } from "@/components/editor/editor";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
+import { FilesPanel } from "@/components/files/files-panel";
 import { SharePortalLink } from "@/components/portal/share-portal-link";
 import {
   resolveContractMeta,
@@ -891,7 +892,10 @@ export default function ContractBuilderPage() {
             )}
 
             {activeTab === "milestones" && fetchFromDB && id && (
-              <MilestonesPanel contractId={id} />
+              <div className="space-y-6">
+                <MilestonesPanel contractId={id} />
+                <FilesPanel scope={{ contractId: id }} title="Contract files" />
+              </div>
             )}
 
             {activeTab === "settings" && (
