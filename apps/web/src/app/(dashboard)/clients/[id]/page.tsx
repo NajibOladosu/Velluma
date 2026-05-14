@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { createClient as createSupabaseClient } from "@/utils/supabase/client";
+import { FilesPanel } from "@/components/files/files-panel";
 import {
   ArrowLeft,
   Mail,
@@ -1148,22 +1149,11 @@ export default function ClientDetailPage() {
           )
         )}
 
-        {/* ─── Documents Tab — contracts linked to this client ─── */}
+        {/* ─── Documents Tab — uploaded files + linked contracts ─── */}
         {activeTab === "documents" && (
-          (rollup?.contracts.length ?? 0) === 0 ? (
-            <Surface className="p-8 text-center">
-              <div className="h-10 w-10 rounded-md bg-zinc-100 flex items-center justify-center mx-auto mb-3">
-                <FileText className="h-5 w-5 text-zinc-300" strokeWidth={1.5} />
-              </div>
-              <Muted className="text-sm">No contracts linked to this client yet.</Muted>
-              <Muted className="text-xs mt-1 block">Draft a contract under one of the client&apos;s projects.</Muted>
-              <Link href="/contracts">
-                <Button size="sm" variant="outline" className="mt-4 border-zinc-200">
-                  Go to Contracts
-                </Button>
-              </Link>
-            </Surface>
-          ) : (
+          <div className="space-y-4">
+            <FilesPanel scope={{ clientId }} title="Files" />
+            {(rollup?.contracts.length ?? 0) === 0 ? null : (
             <Surface className="overflow-hidden">
               <div className="px-5 py-3 border-b border-zinc-200">
                 <H2 className="text-base">Contracts</H2>
@@ -1191,7 +1181,8 @@ export default function ClientDetailPage() {
                 ))}
               </div>
             </Surface>
-          )
+            )}
+          </div>
         )}
       </div>
 

@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ProjectBillingSection } from "@/components/projects/billing-section";
 import { ProjectHubHeader, ProjectKpiRow, ProjectTimeSection, ProjectExpensesSection, ProjectMessagesSection } from "@/components/projects/detail-hub";
+import { FilesPanel } from "@/components/files/files-panel";
 import { useProjectDetail, useUpdateProject, useDeleteProject } from "@/lib/queries/projects";
 import { useRouter } from "next/navigation";
 import {
@@ -468,6 +469,9 @@ export default function ProjectDetailPage() {
 
         {/* Client messages thread (project-scoped preview) */}
         <ProjectMessagesSection projectId={projectId} clientId={detail?.client.id ?? null} />
+
+        {/* Files attached to this project */}
+        <FilesPanel scope={{ projectId }} title="Files" />
 
         {/* Kanban Board */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
