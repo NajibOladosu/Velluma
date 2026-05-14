@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { H1, H2, Muted, P } from "@/components/ui/typography"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/components/ui/toast"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -62,6 +63,7 @@ export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params?.id ?? ""
   const router = useRouter()
+  const { toast } = useToast()
 
   const { data: invoice, isLoading, isError, refetch } = useInvoice(id)
   const update = useUpdateInvoice()
@@ -165,9 +167,11 @@ export default function InvoiceDetailPage() {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  alert(
-                    "PDF download is not wired yet. Use the Send dialog and forward the email for now.",
-                  )
+                  toast({
+                    title: "PDF download coming soon",
+                    description: "Forward the rendered email from the Send dialog for now.",
+                    variant: "info",
+                  })
                 }
                 className="text-xs gap-2"
               >

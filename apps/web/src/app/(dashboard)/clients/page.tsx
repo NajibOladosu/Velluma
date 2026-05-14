@@ -35,7 +35,10 @@ import { useClients, useCreateClient, useClientsRollupMap, type ClientRow } from
 function getClientStatus(client: ClientRow): "active" | "lead" | "past" {
   const meta = client.metadata as Record<string, unknown> | null;
   const raw = meta?.status;
-  if (raw === "active" || raw === "lead" || raw === "past") return raw;
+  if (raw === "active" || raw === "lead" || raw === "past") return raw as "active" | "lead" | "past";
+  // Won pipeline leads with no other status default to "past" so they
+  // collect in the Past tab as the natural place to find closed deals.
+  if (raw === "won" || meta?.pipeline_stage === "won") return "past";
   return "active";
 }
 
