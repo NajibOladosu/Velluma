@@ -122,22 +122,29 @@ function buildEmailData(
 
 async function loadBusinessProfile(userId: string) {
   const service = await createServiceClient()
+  // Reads from the §7 Business Profile fields on `profiles`. Falls back
+  // through legal_business_name → company_name → display_name → email
+  // local-part so freelancers who haven't filled the form yet still get a
+  // sensible client-facing name.
   const { data: profile } = await service
     .from("profiles")
-    .select("display_name, company_name")
+    .select("display_name, company_name, legal_business_name, billing_email")
     .eq("id", userId)
     .maybeSingle<{
       display_name: string | null
       company_name: string | null
+      legal_business_name: string | null
+      billing_email: string | null
     }>()
   const { data: authData } = await service.auth.admin.getUserById(userId)
   return {
     name:
+      profile?.legal_business_name?.trim() ||
       profile?.company_name?.trim() ||
       profile?.display_name?.trim() ||
       authData?.user?.email?.split("@")[0] ||
       "Velluma Workspace",
-    email: authData?.user?.email ?? null,
+    email: profile?.billing_email?.trim() || authData?.user?.email || null,
   }
 }
 
