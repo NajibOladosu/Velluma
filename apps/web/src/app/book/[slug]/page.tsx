@@ -134,10 +134,24 @@ export default function BookPage() {
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed")
-      return res.json()
+      return res.json() as Promise<{ bookingId: string; ics?: string }>
     },
     onSuccess: () => setStep("confirmed"),
   })
+
+  function downloadIcs() {
+    const ics = createBooking.data?.ics
+    if (!ics) return
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "meeting.ics"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   const meetingType = pageData?.meetingTypes.find((m) => m.id === meetingTypeId)
 
@@ -381,6 +395,16 @@ export default function BookPage() {
               </Muted>
             </div>
             <Muted className="text-xs">A confirmation has been sent to {form.guestEmail}.</Muted>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={downloadIcs}
+              disabled={!createBooking.data?.ics}
+              className="gap-2"
+            >
+              <CalendarClock className="h-4 w-4" strokeWidth={1.5} />
+              Add to calendar (.ics)
+            </Button>
           </Surface>
         )}
       </div>

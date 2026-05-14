@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useAnalyticsStats } from "@/lib/queries/dashboard"
 import { useCohorts, useWinRate } from "@/lib/queries/analytics-advanced"
+import { useFinancialKPIs } from "@/lib/queries/financial-kpis"
 
 function fmtCurrency(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -172,11 +173,8 @@ function CohortAndWinRateSection() {
 export function AnalyticsView() {
   const { data: stats, isLoading } = useAnalyticsStats()
 
-  const goalTarget = 100_000
-  const goalProgress =
-    stats && stats.totalRevenue > 0
-      ? Math.min(100, Math.round((stats.totalRevenue / goalTarget) * 100))
-      : 0
+  // Old static $100K goal removed — RevenueSplitSurface below renders the
+  // real booked/recognized/collected split sourced from contracts/payments.
 
   return (
     <div className="space-y-8">
@@ -329,24 +327,47 @@ export function AnalyticsView() {
             </div>
           </Surface>
 
-          <Surface className="bg-zinc-900 border-zinc-800 p-6 space-y-2 text-white">
-            <Target className="h-5 w-5 mb-2 text-white" strokeWidth={1.5} />
-            <P className="font-semibold text-sm truncate text-white">Goal: $100K Revenue</P>
-            <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-              <div className="bg-white h-full transition-all" style={{ width: `${goalProgress}%` }} />
-            </div>
-            {isLoading ? (
-              <Skeleton className="h-3 w-40 bg-white/20 mt-2" />
-            ) : (
-              <Muted className="text-zinc-400 text-[10px] block pt-2 truncate">
-                {goalProgress}% of your $100K annual target reached.
-              </Muted>
-            )}
-          </Surface>
+          <RevenueSplitSurface />
         </div>
       </div>
 
       <CohortAndWinRateSection />
     </div>
+  )
+}
+
+/**
+ * Three-row revenue split — replaces the old static "Goal: $100K" panel.
+ * Booked  = signed/active contract totals
+ * Recognized = milestones flipped to paid (or completed legacy)
+ * Collected = paid invoices
+ */
+function RevenueSplitSurface() {
+  const { data: kpis, isLoading } = useFinancialKPIs()
+  const rows = [
+    { label: "Booked",     value: kpis?.bookedRevenue ?? 0,     hint: "Signed + active contract value" },
+    { label: "Recognized", value: kpis?.recognizedRevenue ?? 0, hint: "Milestones flipped to paid" },
+    { label: "Collected",  value: kpis?.collectedRevenue ?? 0,  hint: "Invoices marked paid" },
+  ]
+  return (
+    <Surface className="bg-zinc-900 border-zinc-800 p-6 space-y-3 text-white">
+      <Target className="h-5 w-5 text-white" strokeWidth={1.5} />
+      <P className="font-semibold text-sm text-white">Revenue lifecycle</P>
+      <div className="space-y-2 pt-1">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">{r.label}</div>
+              <div className="text-[10px] text-zinc-500">{r.hint}</div>
+            </div>
+            {isLoading ? (
+              <Skeleton className="h-4 w-16 bg-white/20" />
+            ) : (
+              <div className="text-sm font-bold tabular-nums">{fmtCurrency(r.value)}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Surface>
   )
 }

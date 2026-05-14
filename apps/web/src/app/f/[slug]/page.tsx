@@ -11,7 +11,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 type FieldType = "text" | "email" | "tel" | "textarea" | "select" | "checkbox"
 interface FormField { id: string; label: string; type: FieldType; required?: boolean; options?: string[]; placeholder?: string }
-interface FormDef { id: string; slug: string; title: string; intro: string | null; thank_you: string | null; fields: FormField[] }
+interface Branding { displayName: string | null; logoUrl: string | null; accentHex: string }
+interface FormDef {
+  id: string
+  slug: string
+  title: string
+  intro: string | null
+  thank_you: string | null
+  fields: FormField[]
+  branding?: Branding
+}
 
 export default function PublicLeadFormPage() {
   const params = useParams()
@@ -83,12 +92,25 @@ export default function PublicLeadFormPage() {
     <div className="min-h-screen bg-zinc-50 px-4 py-8 sm:py-12">
       <div className="max-w-lg mx-auto space-y-6">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-md bg-zinc-900 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-white" strokeWidth={1.5} />
-          </div>
+          {form.branding?.logoUrl ? (
+            <img
+              src={form.branding.logoUrl}
+              alt={form.branding.displayName ?? form.title}
+              className="h-9 w-9 rounded-md object-cover border border-zinc-200"
+            />
+          ) : (
+            <div
+              className="h-9 w-9 rounded-md flex items-center justify-center"
+              style={{ background: form.branding?.accentHex ?? "#18181b" }}
+            >
+              <ShieldCheck className="h-5 w-5 text-white" strokeWidth={1.5} />
+            </div>
+          )}
           <div className="min-w-0">
             <H1 className="text-xl truncate">{form.title}</H1>
-            {form.intro && <Muted className="text-sm block">{form.intro}</Muted>}
+            <Muted className="text-sm block truncate">
+              {form.branding?.displayName ?? form.intro ?? ""}
+            </Muted>
           </div>
         </div>
 

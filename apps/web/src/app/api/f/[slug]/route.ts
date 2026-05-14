@@ -15,13 +15,36 @@ export async function GET(
   const supabase = await createServiceClient()
   const { data, error } = await supabase
     .from("lead_forms")
-    .select("id, slug, title, intro, thank_you, fields")
+    .select("id, slug, title, intro, thank_you, fields, user_id")
     .eq("slug", slug)
     .eq("is_published", true)
     .maybeSingle()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data) return NextResponse.json({ error: "Form not found" }, { status: 404 })
-  return NextResponse.json(data)
+
+  // §7 Business Profile branding for the public page header.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name, company_name, legal_business_name, logo_url, brand_accent_hex")
+    .eq("id", data.user_id)
+    .maybeSingle<{
+      display_name: string | null
+      company_name: string | null
+      legal_business_name: string | null
+      logo_url: string | null
+      brand_accent_hex: string | null
+    }>()
+  const branding = {
+    displayName:
+      profile?.legal_business_name?.trim() ||
+      profile?.company_name?.trim() ||
+      profile?.display_name?.trim() ||
+      null,
+    logoUrl: profile?.logo_url ?? null,
+    accentHex: profile?.brand_accent_hex ?? "#18181b",
+  }
+
+  return NextResponse.json({ ...data, branding })
 }
 
 export async function POST(

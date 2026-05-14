@@ -147,6 +147,58 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
 
   const primary = contracts?.[0]
 
+  /**
+   * Sum approved + submitted time entries on this project that haven't yet
+   * been invoiced, then create a single line-itemized invoice. Marks the
+   * entries as invoiced in metadata so the next generate-cycle skips them.
+   */
+  async function generateHourlyInvoice() {
+    if (!primary) return
+    const { data: entries } = await supabase
+      .from("time_entries")
+      .select("id, task_description, duration_minutes, hourly_rate, status")
+      .eq("project_id", projectId)
+      .in("status", ["approved", "submitted"])
+    const rows = (entries ?? []) as Array<{
+      id: string
+      task_description: string
+      duration_minutes: number | null
+      hourly_rate: number | null
+      status: string
+    }>
+    if (rows.length === 0) {
+      alert("No approved time entries to bill. Submit or approve entries first.")
+      return
+    }
+    const items = rows
+      .filter((r) => (r.duration_minutes ?? 0) > 0)
+      .map((r) => {
+        const hours = (r.duration_minutes ?? 0) / 60
+        const rate = Number(r.hourly_rate) || 0
+        return {
+          description: r.task_description,
+          qty: Number(hours.toFixed(2)),
+          unit_price: rate,
+          total: Number((hours * rate).toFixed(2)),
+        }
+      })
+    const total = items.reduce((s, i) => s + i.total, 0)
+    if (total <= 0) {
+      alert("Time entries have no billable rate yet. Set hourly_rate on entries first.")
+      return
+    }
+    const result = await createInvoice.mutateAsync({
+      projectId,
+      contractId: primary.id,
+      amount: total,
+      currency: primary.currency,
+      paymentType: "escrow",
+      lineItems: items,
+    })
+    qc.invalidateQueries({ queryKey: ["project-billing-invoices", projectId] })
+    router.push(`/invoices/${result.id}`)
+  }
+
   async function generateFixedInvoice() {
     if (!primary) return
     const result = await createInvoice.mutateAsync({
@@ -240,10 +292,18 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
           </Button>
         )}
         {primary && primary.payment_type === "hourly" && (
-          <Muted className="text-xs text-zinc-500 max-w-[260px] text-right">
-            Hourly billing: invoice generation from approved time entries is
-            coming. Use New Invoice manually for now.
-          </Muted>
+          <Button
+            onClick={() => generateHourlyInvoice()}
+            disabled={createInvoice.isPending}
+            className="gap-2 shrink-0"
+          >
+            {createInvoice.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" strokeWidth={1.5} />
+            )}
+            Generate from time
+          </Button>
         )}
       </div>
 

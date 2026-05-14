@@ -901,6 +901,8 @@ export default function ContractBuilderPage() {
                   <Muted className="mt-1 text-sm">Configure defaults and automations for this template.</Muted>
                 </div>
 
+                <PaymentStructureField contractId={id} />
+
                 <Surface className="p-8">
                   <H3 className="text-base mb-6">Template Details</H3>
                   <div className="space-y-6 max-w-md">
@@ -954,5 +956,83 @@ export default function ContractBuilderPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+/* ─── PaymentStructureField — contract.payment_type editor ─── */
+
+const PAYMENT_TYPES: { value: "fixed" | "milestone" | "hourly" | "retainer"; label: string; hint: string }[] = [
+  { value: "fixed",     label: "Fixed fee",         hint: "One total, one invoice." },
+  { value: "milestone", label: "Milestones",        hint: "Generate an invoice per milestone." },
+  { value: "hourly",    label: "Hourly",            hint: "Bill from approved time entries." },
+  { value: "retainer",  label: "Monthly retainer",  hint: "Recurring invoice on a schedule." },
+];
+
+function PaymentStructureField({ contractId }: { contractId: string }) {
+  const supabase = React.useMemo(() => createSupabaseClient(), []);
+  const qc = useQueryClient();
+  const { data: current } = useQuery({
+    queryKey: ["contract-payment-type", contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("payment_type")
+        .eq("id", contractId)
+        .single<{ payment_type: string }>();
+      if (error) throw new Error(error.message);
+      return data?.payment_type ?? "fixed";
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: async (value: string) => {
+      const { error } = await supabase
+        .from("contracts")
+        .update({ payment_type: value })
+        .eq("id", contractId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contract-payment-type", contractId] });
+      qc.invalidateQueries({ queryKey: ["project-billing-contracts"] });
+    },
+  });
+
+  return (
+    <Surface className="p-8">
+      <H3 className="text-base mb-2">Payment structure</H3>
+      <Muted className="text-xs mb-5">
+        Drives how invoices generate from this contract on the project page.
+      </Muted>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+        {PAYMENT_TYPES.map((opt) => {
+          const isActive = current === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update.mutate(opt.value)}
+              disabled={update.isPending}
+              className={cn(
+                "text-left p-4 rounded-md border transition-colors",
+                isActive
+                  ? "border-zinc-900 bg-zinc-50"
+                  : "border-zinc-200 hover:border-zinc-400",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-900">{opt.label}</span>
+                {isActive && (
+                  <Badge variant="default" className="text-[10px]">
+                    Active
+                  </Badge>
+                )}
+              </div>
+              <Muted className="text-xs mt-1 block">{opt.hint}</Muted>
+            </button>
+          );
+        })}
+      </div>
+    </Surface>
   );
 }
