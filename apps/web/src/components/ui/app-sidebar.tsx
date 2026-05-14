@@ -68,8 +68,7 @@ const navItems = [
     },
     {
         group: "Insights", items: [
-            { name: "Analytics",     href: "/analytics",     icon: BarChart3 },
-            { name: "Profitability", href: "/profitability", icon: PieChart  },
+            { name: "Insights", href: "/insights", icon: BarChart3 },
         ]
     },
     {
