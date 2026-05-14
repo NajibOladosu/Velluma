@@ -20,9 +20,44 @@ import {
     BarChart3,
     DollarSign,
     User,
+    Loader2,
 } from "lucide-react"
 import { useAppStore } from "@/store/use-app-store"
 import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+
+// Live search across DB entities. Hits /api/search which queries clients,
+// projects, contracts, invoices, proposals in parallel under RLS.
+interface SearchHit {
+    id: string
+    kind: "client" | "project" | "contract" | "invoice" | "proposal"
+    label: string
+    subtitle?: string
+    href: string
+}
+
+const KIND_ICON: Record<SearchHit["kind"], React.ElementType> = {
+    client: Users,
+    project: Briefcase,
+    contract: ShieldCheck,
+    invoice: Wallet,
+    proposal: FileText,
+}
+
+function useGlobalSearch(query: string) {
+    const trimmed = query.trim()
+    return useQuery({
+        queryKey: ["global-search", trimmed],
+        queryFn: async (): Promise<SearchHit[]> => {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
+            if (!res.ok) return []
+            const { hits } = (await res.json()) as { hits: SearchHit[] }
+            return hits
+        },
+        enabled: trimmed.length >= 2,
+        staleTime: 30_000,
+    })
+}
 
 interface CommandItem {
     name: string
@@ -72,7 +107,14 @@ export function CommandPalette() {
     const listRef = React.useRef<HTMLDivElement>(null)
     const router = useRouter()
 
-    const results = React.useMemo(() => filterItems(query), [query])
+    const staticResults = React.useMemo(() => filterItems(query), [query])
+    const { data: entityHits = [], isFetching: searching } = useGlobalSearch(query)
+    // Build the combined navigation array (static commands + live entity hits)
+    // so keyboard arrow navigation can advance through both.
+    const results = React.useMemo<Array<CommandItem | (SearchHit & { isEntity: true })>>(() => {
+        const live = entityHits.map((h) => ({ ...h, isEntity: true as const }))
+        return [...staticResults, ...live]
+    }, [staticResults, entityHits])
 
     // Reset state when opening/closing
     React.useEffect(() => {
@@ -132,12 +174,14 @@ export function CommandPalette() {
         }
     }
 
-    // Group results for display
+    // Group results for display — static commands by their group, live
+    // entity hits under "Results" so they render visually separated.
     const grouped = React.useMemo(() => {
-        const groups: Record<string, CommandItem[]> = {}
+        const groups: Record<string, Array<CommandItem | (SearchHit & { isEntity: true })>> = {}
         for (const item of results) {
-            if (!groups[item.group]) groups[item.group] = []
-            groups[item.group].push(item)
+            const key = "isEntity" in item ? "Results" : item.group
+            if (!groups[key]) groups[key] = []
+            groups[key].push(item)
         }
         return groups
     }, [results])
@@ -162,13 +206,17 @@ export function CommandPalette() {
                         className="relative w-full max-w-xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg"
                     >
                         <div className="flex items-center px-4 h-14 border-b border-zinc-100">
-                            <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+                            {searching ? (
+                                <Loader2 className="h-4 w-4 text-zinc-400 shrink-0 animate-spin" />
+                            ) : (
+                                <Search className="h-4 w-4 text-zinc-400 shrink-0" />
+                            )}
                             <input
                                 ref={inputRef}
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder="Search commands, pages, actions..."
+                                placeholder="Search clients, projects, contracts, invoices…"
                                 className="flex-1 bg-transparent px-3 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none"
                             />
                             <div className="flex items-center gap-1">
@@ -201,9 +249,11 @@ export function CommandPalette() {
                                                 {items.map((item) => {
                                                     const globalIndex = results.indexOf(item)
                                                     const isSelected = globalIndex === selectedIndex
+                                                    const isEntity = "isEntity" in item
+                                                    const Icon = isEntity ? KIND_ICON[item.kind] : item.icon
                                                     return (
                                                         <button
-                                                            key={item.href}
+                                                            key={item.href + (isEntity ? `:${item.id}` : "")}
                                                             data-index={globalIndex}
                                                             onClick={() => navigate(item.href)}
                                                             onMouseEnter={() => setSelectedIndex(globalIndex)}
@@ -213,10 +263,22 @@ export function CommandPalette() {
                                                                     : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                                                             }`}
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <item.icon className="h-4 w-4 text-zinc-400" />
-                                                                {item.name}
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <Icon className="h-4 w-4 text-zinc-400 shrink-0" />
+                                                                <span className="truncate">
+                                                                    {isEntity ? item.label : item.name}
+                                                                </span>
+                                                                {isEntity && item.subtitle && (
+                                                                    <span className="text-xs text-zinc-400 truncate">
+                                                                        · {item.subtitle}
+                                                                    </span>
+                                                                )}
                                                             </div>
+                                                            {isEntity && (
+                                                                <span className="text-[10px] uppercase tracking-widest text-zinc-400 capitalize shrink-0">
+                                                                    {item.kind}
+                                                                </span>
+                                                            )}
                                                         </button>
                                                     )
                                                 })}
