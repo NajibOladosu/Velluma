@@ -418,7 +418,7 @@ export function useCreateProject() {
 export interface UpdateProjectPayload {
   id: string
   title?: string
-  description?: string
+  description?: string | null
   status?: string
   totalBudget?: number
   metadata?: Record<string, unknown>
