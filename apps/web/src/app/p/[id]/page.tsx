@@ -10,6 +10,7 @@
 import React from "react"
 import { notFound } from "next/navigation"
 import { createServiceClient } from "@/utils/supabase/server"
+import { substituteSmartFields, type SmartFieldContext } from "@/lib/smart-fields"
 import { Check, Shield, Clock, Calendar, ChevronRight } from "lucide-react"
 
 // ---------------------------------------------------------------------------
@@ -177,9 +178,40 @@ export default async function ProposalViewPage({
   const balance       = total - deposit
   const addOnsTotal   = enabledAddOns.reduce((s, a) => s + a.price, 0)
 
-  // Scope content (HTML from TipTap)
-  const scopeHtml    = meta.scope_content as string | undefined
-  const welcomeMsg   = meta.welcome_message as string | undefined
+  // §1 Smart Field substitution — build a context up front so every text
+  // surface (scope HTML, welcome message, clauses) resolves
+  // {{client.name}} / {{payment.total}} / {{business.name}} etc.
+  const smartCtx: SmartFieldContext = {
+    client: {
+      name: row.crm_clients?.name ?? null,
+      email: row.crm_clients?.email ?? null,
+    },
+    project: {
+      title: row.title,
+      description: row.description,
+    },
+    contract: {
+      total,
+      currency: (meta.currency as string) ?? "USD",
+    },
+    payment: {
+      total,
+      deposit,
+      balance,
+      milestones,
+      currency: (meta.currency as string) ?? "USD",
+    },
+    business: {
+      name: row.profiles?.display_name ?? null,
+    },
+    date: { today: new Date().toISOString() },
+  }
+
+  // Scope content (HTML from TipTap) — tokens substituted before render
+  const rawScopeHtml = meta.scope_content as string | undefined
+  const scopeHtml    = substituteSmartFields(rawScopeHtml ?? "", smartCtx)
+  const rawWelcome   = meta.welcome_message as string | undefined
+  const welcomeMsg   = substituteSmartFields(rawWelcome ?? "", smartCtx)
   const videoUrl     = meta.video_url as string | undefined
   const videoEmbed   = videoUrl ? getVideoEmbed(videoUrl) : null
   const expiresAt    = meta.expires_at as string | undefined
@@ -444,7 +476,9 @@ export default async function ProposalViewPage({
               {clauses.map((clause, i) => (
                 <div key={i} className="pl-4 border-l-2 border-zinc-200">
                   <h3 className="text-sm font-semibold text-zinc-900 mb-1">{clause.title}</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed">{clause.body}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                    {substituteSmartFields(clause.body, smartCtx)}
+                  </p>
                 </div>
               ))}
             </div>

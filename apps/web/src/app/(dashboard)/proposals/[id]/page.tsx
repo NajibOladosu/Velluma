@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTierCard } from "@/components/ui/pricing-tier";
 import { SignatureBlock } from "@/components/ui/signature-block";
 import { DeliverablesEditor } from "@/components/proposals/deliverables-editor";
+import { useProposalDeliverables } from "@/lib/queries/proposal-deliverables";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { SharePortalLink } from "@/components/portal/share-portal-link";
 import { MinimalEditor } from "@/components/editor/editor";
@@ -183,11 +184,35 @@ const statusConfig: Record<ProposalStatus, { label: string; className: string }>
   expired: { label: "Expired", className: "text-zinc-400 border-zinc-200" },
 };
 
-const tierPrices: Record<string, number> = {
+// Default tier multipliers when no deliverables sum is available. Once the
+// editor has rows, tier prices are derived live from the proposal total
+// (see `useTierPrices` below).
+const DEFAULT_TIER_PRICES: Record<string, number> = {
   foundation: 2500,
   scale: 5500,
   enterprise: 9500,
 };
+
+const TIER_MULTIPLIER: Record<string, number> = {
+  foundation: 0.5,
+  scale: 1.0,
+  enterprise: 1.5,
+};
+
+function deriveTierPrices(deliverablesTotal: number): Record<string, number> {
+  if (deliverablesTotal <= 0) return DEFAULT_TIER_PRICES;
+  return {
+    foundation: Math.round(deliverablesTotal * TIER_MULTIPLIER.foundation),
+    scale: Math.round(deliverablesTotal),
+    enterprise: Math.round(deliverablesTotal * TIER_MULTIPLIER.enterprise),
+  };
+}
+
+function fmtPrice(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(n);
+}
 
 /* ═══════════════════════════════════════════════════════
    PAGE
@@ -439,7 +464,17 @@ export default function ProposalBuilderPage() {
   }, [proposalId, updateStatus]);
 
   /* ── Pricing ────────────────────────────────────────── */
-  const selectedTierPrice = selectedTier ? (tierPrices[selectedTier] ?? 0) : 0;
+  // Tier prices are derived from the structured deliverables sum so the
+  // Packages section stops showing hardcoded $2,500 / $5,500 / $9,500
+  // numbers that bore no relation to the proposal's actual scope.
+  const { data: liveDeliverables = [] } = useProposalDeliverables(proposalId);
+  const deliverablesTotal = liveDeliverables
+    .filter((d) => !d.isOptional)
+    .reduce((s, d) => s + d.lineTotal, 0);
+  const tierPrices = deriveTierPrices(deliverablesTotal);
+  const selectedTierPrice = selectedTier
+    ? (tierPrices[selectedTier] ?? customTiers.find((t) => t.id === selectedTier)?.price ?? 0)
+    : 0;
   const customTierTotal = customTiers
     .filter((t) => t.id === selectedTier)
     .reduce((s, t) => s + t.price, 0);
@@ -886,29 +921,39 @@ export default function ProposalBuilderPage() {
                   <Muted>Select a tier. The total updates dynamically.</Muted>
                 </div>
 
-                {/* Standard tiers */}
+                {/* Standard tiers — derived from the Deliverables editor
+                    total when present. Foundation = 50%, Scale = 100%,
+                    Enterprise = 150%. Falls back to default flat numbers
+                    when no rows exist yet. */}
+                {deliverablesTotal > 0 && (
+                  <Muted className="text-xs">
+                    Pricing scales from your{" "}
+                    <span className="font-semibold text-zinc-900">{fmtPrice(deliverablesTotal)}</span>{" "}
+                    deliverables total. Edit deliverables in the Scope tab to update.
+                  </Muted>
+                )}
                 <div className="flex flex-col gap-3">
                   <PricingTierCard
                     title="Foundation"
-                    price="$2,500"
-                    description="Core setup and essential features."
-                    features={["5 Core Landing Pages", "Contact Integration", "Basic SEO Setup", "2 Revision Rounds"]}
+                    price={fmtPrice(tierPrices.foundation)}
+                    description="Core scope at a reduced fee — essentials only."
+                    features={["Core deliverables only", "Basic onboarding", "Async support", "2 revision rounds"]}
                     isSelected={selectedTier === "foundation"}
                     onSelect={() => setSelectedTier(selectedTier === "foundation" ? null : "foundation")}
                   />
                   <PricingTierCard
                     title="Scale"
-                    price="$5,500"
-                    description="Advanced features for growing teams."
-                    features={["Everything in Foundation", "E-Commerce Setup", "Analytics Dashboard", "Priority Support"]}
+                    price={fmtPrice(tierPrices.scale)}
+                    description="The full Scope as priced in your deliverables."
+                    features={["All deliverables included", "Priority response", "Live working sessions", "3 revision rounds"]}
                     isSelected={selectedTier === "scale"}
                     onSelect={() => setSelectedTier(selectedTier === "scale" ? null : "scale")}
                   />
                   <PricingTierCard
                     title="Enterprise"
-                    price="$9,500"
-                    description="Full-service for established brands."
-                    features={["Everything in Scale", "Custom Integrations", "Dedicated Account Manager", "Unlimited Revisions"]}
+                    price={fmtPrice(tierPrices.enterprise)}
+                    description="Scope + dedicated account manager and extras."
+                    features={["Everything in Scale", "Dedicated account manager", "Stakeholder workshops", "Unlimited revisions"]}
                     isSelected={selectedTier === "enterprise"}
                     onSelect={() => setSelectedTier(selectedTier === "enterprise" ? null : "enterprise")}
                   />
