@@ -173,7 +173,25 @@ export function useUpcomingBookings() {
         .select("*")
         .gte("starts_at", new Date().toISOString())
         .order("starts_at", { ascending: true })
-        .limit(20)
+        .limit(50)
+      if (error) throw new Error(error.message)
+      return data ?? []
+    },
+  })
+}
+
+/** Past bookings — for the /booking-settings "Past" tab. */
+export function usePastBookings() {
+  return useQuery({
+    queryKey: [...bookingKeys.all, "past"] as const,
+    queryFn: async (): Promise<Booking[]> => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .lt("starts_at", new Date().toISOString())
+        .order("starts_at", { ascending: false })
+        .limit(50)
       if (error) throw new Error(error.message)
       return data ?? []
     },

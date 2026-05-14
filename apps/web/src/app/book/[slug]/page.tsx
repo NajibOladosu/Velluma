@@ -32,6 +32,12 @@ interface Page {
   timezone: string
 }
 
+interface Branding {
+  displayName: string | null
+  logoUrl: string | null
+  accentHex: string
+}
+
 type Step = "meeting" | "time" | "form" | "confirmed"
 
 const LOCATION_ICON = {
@@ -41,8 +47,43 @@ const LOCATION_ICON = {
   custom: MessageCircle,
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+// Common IANA zones plus the freelancer's own timezone; merged at render
+// so the page-owner's region is always pickable.
+const COMMON_TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Africa/Lagos",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+]
+
+function detectBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+  } catch {
+    return "UTC"
+  }
+}
+
+function formatTime(iso: string, tz: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz,
+  })
+}
+
+function formatDateLong(iso: string, tz: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric", timeZone: tz,
+  })
 }
 
 export default function BookPage() {
@@ -55,9 +96,14 @@ export default function BookPage() {
   const [selectedSlot, setSelectedSlot] = React.useState<string | null>(null)
   const [form, setForm] = React.useState({ guestName: "", guestEmail: "", guestPhone: "", notes: "" })
 
+  // Booker's preferred display timezone — defaults to their browser's
+  // detected zone. Falls back to the page owner's TZ once the query
+  // returns (booker can still override via the picker).
+  const [displayTimezone, setDisplayTimezone] = React.useState<string>(detectBrowserTimezone())
+
   const { data: pageData, isLoading: pageLoading } = useQuery({
     queryKey: ["booking-page", slug],
-    queryFn: async (): Promise<{ page: Page; meetingTypes: MeetingType[] }> => {
+    queryFn: async (): Promise<{ page: Page; meetingTypes: MeetingType[]; branding?: Branding }> => {
       const res = await fetch(`/api/book/${slug}`)
       if (!res.ok) throw new Error("Not found")
       return res.json()
@@ -119,19 +165,40 @@ export default function BookPage() {
     )
   }
 
-  const { page, meetingTypes } = pageData
+  const { page, meetingTypes, branding } = pageData
+  const accent = branding?.accentHex ?? "#18181b"
+
+  // Merge owner's TZ with the common list so it's always pickable.
+  const timezoneOptions = Array.from(new Set([
+    detectBrowserTimezone(),
+    page.timezone,
+    ...COMMON_TIMEZONES,
+  ])).filter(Boolean)
 
   return (
     <div className="min-h-screen bg-zinc-50 px-4 py-8 sm:py-12">
       <div className="max-w-3xl mx-auto space-y-6">
-        {/* Brand header */}
+        {/* Brand header — pulls logo + business name from §7 Business Profile */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-md bg-zinc-900 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5 text-white" strokeWidth={1.5} />
-          </div>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={branding.displayName ?? page.title}
+              className="h-9 w-9 rounded-md object-cover border border-zinc-200"
+            />
+          ) : (
+            <div
+              className="h-9 w-9 rounded-md flex items-center justify-center"
+              style={{ background: accent }}
+            >
+              <ShieldCheck className="h-5 w-5 text-white" strokeWidth={1.5} />
+            </div>
+          )}
           <div className="min-w-0">
             <H1 className="text-xl truncate">{page.title}</H1>
-            {page.intro && <Muted className="text-sm block truncate">{page.intro}</Muted>}
+            <Muted className="text-sm block truncate">
+              {branding?.displayName ?? page.intro ?? ""}
+            </Muted>
           </div>
         </div>
 
@@ -186,12 +253,26 @@ export default function BookPage() {
 
         {step === "time" && meetingType && (
           <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <Surface className="p-5 flex items-center gap-3">
+            <Surface className="p-5 flex items-center gap-3 flex-wrap">
               {(() => { const Icon = LOCATION_ICON[meetingType.location_type]; return <Icon className="h-5 w-5 text-zinc-600" strokeWidth={1.5} /> })()}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <P className="text-sm font-medium">{meetingType.name}</P>
-                <Muted className="text-xs">{meetingType.duration_minutes} min · {page.timezone}</Muted>
+                <Muted className="text-xs">{meetingType.duration_minutes} min</Muted>
               </div>
+              {/* Timezone picker — booker can switch to their own. Default
+                  is browser TZ (detected on mount). Page owner's TZ is
+                  always present in the list so they can preview their
+                  side. */}
+              <select
+                value={displayTimezone}
+                onChange={(e) => setDisplayTimezone(e.target.value)}
+                aria-label="Display timezone"
+                className="h-9 max-w-[200px] truncate rounded-md border border-zinc-200 bg-white px-2 text-xs text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              >
+                {timezoneOptions.map((tz) => (
+                  <option key={tz} value={tz}>{tz}</option>
+                ))}
+              </select>
             </Surface>
 
             <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-5">
@@ -220,7 +301,7 @@ export default function BookPage() {
                         onClick={() => { setSelectedSlot(iso); setStep("form") }}
                         className="h-10 rounded-md border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:border-zinc-900 hover:bg-zinc-50 transition-colors"
                       >
-                        {formatTime(iso)}
+                        {formatTime(iso, displayTimezone)}
                       </button>
                     ))}
                   </div>
@@ -247,9 +328,9 @@ export default function BookPage() {
                 <div className="min-w-0">
                   <P className="text-sm font-medium">{meetingType.name}</P>
                   <Muted className="text-xs">
-                    {new Date(selectedSlot).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                    {formatDateLong(selectedSlot, displayTimezone)}
                     {" · "}
-                    {formatTime(selectedSlot)} · {meetingType.duration_minutes} min · {page.timezone}
+                    {formatTime(selectedSlot, displayTimezone)} · {meetingType.duration_minutes} min · {displayTimezone}
                   </Muted>
                 </div>
               </div>
@@ -296,7 +377,7 @@ export default function BookPage() {
             <div>
               <H3 className="text-lg">You&apos;re booked</H3>
               <Muted className="text-sm block mt-1">
-                {new Date(selectedSlot).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} at {formatTime(selectedSlot)} ({page.timezone})
+                {formatDateLong(selectedSlot, displayTimezone)} at {formatTime(selectedSlot, displayTimezone)} ({displayTimezone})
               </Muted>
             </div>
             <Muted className="text-xs">A confirmation has been sent to {form.guestEmail}.</Muted>

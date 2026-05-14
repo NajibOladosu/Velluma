@@ -15,6 +15,7 @@ import {
   useBookingPage, useUpsertBookingPage,
   useMeetingTypes, useCreateMeetingType, useUpdateMeetingType, useDeleteMeetingType,
   useUpcomingBookings,
+  usePastBookings,
   type MeetingType, type DayAvailability,
 } from "@/lib/queries/booking"
 import { cn } from "@/lib/utils"
@@ -30,6 +31,9 @@ export default function BookingSettingsPage() {
   const upsert = useUpsertBookingPage()
   const { data: meetingTypes = [], isLoading: mtLoading } = useMeetingTypes(page?.id)
   const { data: upcoming = [] } = useUpcomingBookings()
+  const { data: past = [] } = usePastBookings()
+  const [bookingsTab, setBookingsTab] = React.useState<"upcoming" | "past">("upcoming")
+  const displayedBookings = bookingsTab === "upcoming" ? upcoming : past
 
   // Local draft — reset when the page loads.
   const [draft, setDraft] = React.useState<{
@@ -280,22 +284,65 @@ export default function BookingSettingsPage() {
           )}
         </div>
 
-        {/* Upcoming sidebar */}
+        {/* Bookings sidebar — Upcoming / Past tabs */}
         <div className="space-y-4">
-          <H3 className="text-sm uppercase tracking-wider font-semibold">Upcoming</H3>
-          {upcoming.length === 0 ? (
+          <div className="flex items-center justify-between">
+            <H3 className="text-sm uppercase tracking-wider font-semibold">Bookings</H3>
+            <div
+              role="tablist"
+              aria-label="Bookings filter"
+              className="inline-flex bg-zinc-100/70 p-0.5 rounded-md border border-zinc-200"
+            >
+              {(["upcoming", "past"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  role="tab"
+                  aria-selected={bookingsTab === tab}
+                  onClick={() => setBookingsTab(tab)}
+                  className={
+                    bookingsTab === tab
+                      ? "px-2.5 py-1 text-[11px] font-medium rounded bg-white text-zinc-900 border border-zinc-200 capitalize"
+                      : "px-2.5 py-1 text-[11px] font-medium rounded text-zinc-500 hover:text-zinc-900 transition-colors capitalize"
+                  }
+                >
+                  {tab}
+                  {(tab === "upcoming" ? upcoming.length : past.length) > 0 && (
+                    <span className="ml-1 text-zinc-400">
+                      {tab === "upcoming" ? upcoming.length : past.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {displayedBookings.length === 0 ? (
             <Surface className="p-6 text-center">
               <CalendarClock className="h-8 w-8 text-zinc-300 mx-auto mb-2" strokeWidth={1.5} />
-              <Muted className="text-sm">No upcoming bookings.</Muted>
+              <Muted className="text-sm">
+                {bookingsTab === "upcoming"
+                  ? "No upcoming bookings."
+                  : "No past bookings yet."}
+              </Muted>
             </Surface>
           ) : (
-            upcoming.map((b) => (
+            displayedBookings.map((b) => (
               <Surface key={b.id} className="p-4 space-y-1">
-                <P className="text-sm font-medium truncate">{b.guest_name}</P>
+                <div className="flex items-center justify-between gap-2">
+                  <P className="text-sm font-medium truncate">{b.guest_name}</P>
+                  {bookingsTab === "past" && (
+                    <span className="text-[10px] uppercase tracking-widest text-zinc-400 shrink-0">
+                      done
+                    </span>
+                  )}
+                </div>
                 <Muted className="text-xs truncate block">{b.guest_email}</Muted>
                 <div className="flex items-center gap-1.5 text-xs text-zinc-600 mt-1">
                   <Clock className="h-3 w-3" strokeWidth={1.5} />
-                  {new Date(b.starts_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}
+                  {new Date(b.starts_at).toLocaleString("en-US", {
+                    month: "short", day: "numeric", year: "numeric",
+                    hour: "numeric", minute: "2-digit", hour12: true,
+                  })}
                 </div>
                 {b.notes && <Muted className="text-xs line-clamp-2 pt-1">{b.notes}</Muted>}
               </Surface>
