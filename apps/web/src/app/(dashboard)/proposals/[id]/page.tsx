@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PricingTierCard } from "@/components/ui/pricing-tier";
 import { SignatureBlock } from "@/components/ui/signature-block";
+import { DeliverablesEditor } from "@/components/proposals/deliverables-editor";
 import { DetailPageHeader, MetaSeparator } from "@/components/ui/detail-page-header";
 import { SharePortalLink } from "@/components/portal/share-portal-link";
 import { MinimalEditor } from "@/components/editor/editor";
@@ -840,26 +841,40 @@ export default function ProposalBuilderPage() {
 
           {/* ── 2. Scope ────────────────────── */}
           {activeSection === "scope" && (
-            <Surface className="p-8 space-y-6">
-              <div className="space-y-2">
-                <H2 className="text-2xl tracking-tight">Project Scope & Deliverables</H2>
-                <Muted>
-                  Detail your deliverables, timelines, and milestones. Smart Fields like{" "}
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-100 rounded text-[10px] font-mono text-zinc-600">
-                    <Sparkles className="h-2.5 w-2.5" />
-                    {"{{client.name}}"}
-                  </span>{" "}
-                  will auto-populate for the client.
-                </Muted>
-              </div>
-              <Separator />
-              <MinimalEditor
-                content={scopeContent}
-                onChange={setScopeContent}
-                className="border-none p-0"
-                placeholder="Describe the project scope, deliverables, timeline, and milestones..."
-              />
-            </Surface>
+            <div className="space-y-6">
+              <Surface className="p-8 space-y-4">
+                <div className="space-y-2">
+                  <H2 className="text-2xl tracking-tight">Project Scope &amp; Deliverables</H2>
+                  <Muted>
+                    Add structured deliverables below — each becomes a contract clause AND a
+                    project task on acceptance. Pricing on the next tab auto-sums from these
+                    rows. Use the rich-text field for narrative context.
+                  </Muted>
+                </div>
+                <Separator />
+                <DeliverablesEditor proposalId={proposalId} />
+              </Surface>
+
+              <Surface className="p-8 space-y-3">
+                <div className="space-y-1">
+                  <H2 className="text-base tracking-tight">Narrative</H2>
+                  <Muted className="text-xs">
+                    Optional. Smart Fields like{" "}
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-100 rounded text-[10px] font-mono text-zinc-600">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      {"{{client.name}}"}
+                    </span>{" "}
+                    auto-populate for the client.
+                  </Muted>
+                </div>
+                <MinimalEditor
+                  content={scopeContent}
+                  onChange={setScopeContent}
+                  className="border-none p-0"
+                  placeholder="Background, approach, timeline notes — anything the deliverables list doesn't cover…"
+                />
+              </Surface>
+            </div>
           )}
 
           {/* ── 3. Packages ─────────────────── */}
