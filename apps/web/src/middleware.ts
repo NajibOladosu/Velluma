@@ -61,6 +61,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/automations") ||
     pathname.startsWith("/analytics") ||
     pathname.startsWith("/profitability") ||
+    pathname.startsWith("/insights") ||
     pathname.startsWith("/services") ||
     pathname.startsWith("/booking-settings") ||
     pathname.startsWith("/bookings") ||
