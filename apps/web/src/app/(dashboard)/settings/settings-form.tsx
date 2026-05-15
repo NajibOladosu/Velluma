@@ -470,8 +470,26 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
           {activeSection === "branding" && (
             <Surface className="animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div className="px-6 py-4 border-b border-zinc-200">
-                <H3 className="text-base">Branding</H3>
-                <Muted className="text-xs">Personalize the client portal. Seen by clients on <code className="font-mono text-zinc-700">/portal</code> and share links.</Muted>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <H3 className="text-base">Branding</H3>
+                    <Muted className="text-xs">Personalize the client portal. Seen by clients on <code className="font-mono text-zinc-700">/portal</code> and share links.</Muted>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSection("business")}
+                    className="text-[11px] font-medium text-amber-700 hover:text-amber-900 underline-offset-2 hover:underline"
+                  >
+                    Move logo + accent color → Business Profile
+                  </button>
+                </div>
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  This section is being phased out. The <strong>Logo</strong> and{" "}
+                  <strong>Accent color</strong> fields now live on the Business Profile
+                  page and apply to every client surface (proposals, contracts, invoice
+                  emails, booking + lead-form pages). The cover image and tagline
+                  fields here remain portal-only for now.
+                </div>
               </div>
               <form onSubmit={handleSaveBranding}>
                 <div className="p-6 space-y-6">
@@ -952,6 +970,7 @@ function BusinessProfileSection() {
   const [defaultTimezone, setDefaultTimezone] = React.useState("UTC");
   const [paymentTermsDays, setPaymentTermsDays] = React.useState(14);
   const [invoicePrefix, setInvoicePrefix] = React.useState("INV");
+  const [requiresTimeApproval, setRequiresTimeApproval] = React.useState(false);
   const [brandAccentHex, setBrandAccentHex] = React.useState("#18181b");
   const [logoUrl, setLogoUrl] = React.useState("");
 
@@ -964,6 +983,7 @@ function BusinessProfileSection() {
     setDefaultTimezone(profile.defaultTimezone);
     setPaymentTermsDays(profile.paymentTermsDays);
     setInvoicePrefix(profile.invoicePrefix);
+    setRequiresTimeApproval(profile.requiresTimeApproval);
     setBrandAccentHex(profile.brandAccentHex);
     setLogoUrl(profile.logoUrl ?? "");
   }, [profile]);
@@ -980,6 +1000,7 @@ function BusinessProfileSection() {
         defaultTimezone: defaultTimezone.trim() || "UTC",
         paymentTermsDays,
         invoicePrefix: invoicePrefix.trim().toUpperCase() || "INV",
+        requiresTimeApproval,
         brandAccentHex: brandAccentHex.trim(),
         logoUrl: logoUrl.trim() || null,
       });
@@ -1079,6 +1100,24 @@ function BusinessProfileSection() {
             onChange={setBrandAccentHex}
             hint="Used on the portal CTA buttons + email Pay-Now button."
           />
+        </div>
+        {/* Time approval workflow toggle (solo accounts hide Submit/Approve). */}
+        <div className="border-t border-zinc-100 pt-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requiresTimeApproval}
+              onChange={(e) => setRequiresTimeApproval(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-300 accent-zinc-900"
+            />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-zinc-900">Require time approval</div>
+              <Muted className="text-xs">
+                When on, time entries flow Draft → Submitted → Approved before they bill.
+                Off (default) for solo freelancers — the Submit/Approve buttons disappear.
+              </Muted>
+            </div>
+          </label>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2 border-t border-zinc-100">
           <Feedback state={state} />

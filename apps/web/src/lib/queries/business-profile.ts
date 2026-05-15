@@ -30,6 +30,8 @@ export interface BusinessProfile {
   avatarUrl: string | null
   brandAccentHex: string
   invoicePrefix: string
+  /** Hides Submit/Approve/Reject buttons on time entries for solo accounts. */
+  requiresTimeApproval: boolean
 }
 
 interface ProfileRow {
@@ -48,6 +50,7 @@ interface ProfileRow {
   avatar_url: string | null
   brand_accent_hex: string
   invoice_prefix: string
+  requires_time_approval: boolean
 }
 
 function mapRow(r: ProfileRow): BusinessProfile {
@@ -67,6 +70,7 @@ function mapRow(r: ProfileRow): BusinessProfile {
     avatarUrl: r.avatar_url,
     brandAccentHex: r.brand_accent_hex,
     invoicePrefix: r.invoice_prefix,
+    requiresTimeApproval: r.requires_time_approval ?? false,
   }
 }
 
@@ -92,7 +96,8 @@ export function useBusinessProfile() {
         .select(
           "id, display_name, company_name, legal_business_name, billing_email, " +
             "website, bio, tax_id, default_currency, default_timezone, " +
-            "payment_terms_days, logo_url, avatar_url, brand_accent_hex, invoice_prefix",
+            "payment_terms_days, logo_url, avatar_url, brand_accent_hex, invoice_prefix, " +
+            "requires_time_approval",
         )
         .eq("id", user.id)
         .maybeSingle()
@@ -118,6 +123,7 @@ export interface UpdateBusinessProfilePayload {
   avatarUrl?: string | null
   brandAccentHex?: string
   invoicePrefix?: string
+  requiresTimeApproval?: boolean
 }
 
 export function useUpdateBusinessProfile() {
@@ -142,6 +148,7 @@ export function useUpdateBusinessProfile() {
       if (p.avatarUrl !== undefined)         patch.avatar_url = p.avatarUrl
       if (p.brandAccentHex !== undefined)    patch.brand_accent_hex = p.brandAccentHex
       if (p.invoicePrefix !== undefined)     patch.invoice_prefix = p.invoicePrefix
+      if (p.requiresTimeApproval !== undefined) patch.requires_time_approval = p.requiresTimeApproval
       const { data, error } = await supabase
         .from("profiles")
         .update(patch)
