@@ -31,6 +31,12 @@ import {
   type MilestoneStatus,
 } from "@/lib/queries/milestones"
 import { useCreateInvoice } from "@/lib/queries/invoices"
+import {
+  useRecurringByProject,
+  useAdvanceRecurring,
+  useUpdateRecurring,
+  type RecurringInvoiceWithLinks,
+} from "@/lib/queries/recurring-invoices"
 
 /**
  * Billing section that lands at the top of the project detail page.
@@ -315,7 +321,18 @@ export function ProjectBillingSection({ projectId }: { projectId: string }) {
             Generate from time
           </Button>
         )}
+        {primary && primary.payment_type === "retainer" && (
+          <Muted className="text-xs text-zinc-500 max-w-[280px] text-right">
+            Schedule below auto-bills the retainer. Use Run now to invoice
+            ahead of the next cycle.
+          </Muted>
+        )}
       </div>
+
+      {/* Retainer schedule (only when payment_type === 'retainer') */}
+      {primary?.payment_type === "retainer" && (
+        <RetainerSchedules projectId={projectId} contractId={primary.id} />
+      )}
 
       {/* Milestones list (only when payment_type === 'milestone') */}
       {primary?.payment_type === "milestone" && (
@@ -533,6 +550,128 @@ function AddMilestoneInline({
       >
         Cancel
       </Button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RetainerSchedules — recurring invoice cycles for retainer contracts
+// ---------------------------------------------------------------------------
+
+function RetainerSchedules({
+  projectId,
+  contractId,
+}: {
+  projectId: string
+  contractId: string
+}) {
+  const router = useRouter()
+  const { data: schedules = [], isLoading } = useRecurringByProject(projectId)
+  const advance = useAdvanceRecurring()
+  const update = useUpdateRecurring()
+  const { toast } = useToast()
+
+  const scopeForContract = schedules.filter((s) => s.contract_id === contractId)
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+          Retainer schedule
+        </h3>
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
+  }
+  if (scopeForContract.length === 0) {
+    return (
+      <Surface className="p-5 text-center">
+        <Muted className="text-sm">
+          No schedule yet. The retainer will auto-seed once the contract is saved.
+        </Muted>
+      </Surface>
+    )
+  }
+
+  async function runNow(s: RecurringInvoiceWithLinks) {
+    try {
+      const invoiceId = await advance.mutateAsync({
+        id: s.id, projectId, contractId,
+      })
+      toast({ title: "Invoice generated", variant: "success" })
+      router.push(`/invoices/${invoiceId}`)
+    } catch (err) {
+      toast({
+        title: "Run failed",
+        description: err instanceof Error ? err.message : "Try again",
+        variant: "error",
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+        Retainer schedule
+      </h3>
+      {scopeForContract.map((s) => (
+        <Surface key={s.id} className="p-4 flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-zinc-900 truncate">{s.title}</div>
+            <div className="flex items-center gap-2 flex-wrap text-xs text-zinc-500 mt-0.5">
+              <Badge variant="outline" className="capitalize text-[10px]">{s.cadence}</Badge>
+              <span>{fmtCurrency(s.amount, s.currency)} / cycle</span>
+              {s.next_run_at && (
+                <span>· Next run {fmtDate(s.next_run_at)}</span>
+              )}
+              {!s.is_active && (
+                <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-200">
+                  paused
+                </Badge>
+              )}
+            </div>
+            {s.last_invoice_at && (
+              <Muted className="text-[10px] mt-1">
+                Last invoice {fmtDate(s.last_invoice_at)}
+              </Muted>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              disabled={advance.isPending || !s.is_active}
+              onClick={() => runNow(s)}
+            >
+              {advance.isPending && advance.variables?.id === s.id ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Send className="h-3 w-3" strokeWidth={1.5} />
+              )}
+              Run now
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              disabled={update.isPending || !s.is_active}
+              onClick={() => update.mutate({ id: s.id, skipNext: true })}
+            >
+              Skip next
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              disabled={update.isPending}
+              onClick={() => update.mutate({ id: s.id, isActive: !s.is_active })}
+            >
+              {s.is_active ? "Pause" : "Resume"}
+            </Button>
+          </div>
+        </Surface>
+      ))}
     </div>
   )
 }

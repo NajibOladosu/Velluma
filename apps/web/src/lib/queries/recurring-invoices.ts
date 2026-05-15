@@ -132,3 +132,123 @@ export function useDeleteRecurringInvoice() {
     onSuccess: () => qc.invalidateQueries({ queryKey: recurringKeys.list() }),
   })
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// §3 Retainer schedule — contract/project-scoped helpers wired to the
+// `advance_recurring_invoice` SECURITY DEFINER fn (see migration
+// 20260515000000_retainer_recurring_invoices.sql).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface RecurringInvoiceWithLinks extends RecurringInvoice {
+  contract_id: string | null
+  project_id: string | null
+}
+
+export const recurringByEntityKeys = {
+  byContract: (id: string) => [...recurringKeys.all, "contract", id] as const,
+  byProject:  (id: string) => [...recurringKeys.all, "project", id] as const,
+}
+
+export function useRecurringByContract(contractId: string) {
+  return useQuery({
+    queryKey: recurringByEntityKeys.byContract(contractId),
+    queryFn: async (): Promise<RecurringInvoiceWithLinks[]> => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("recurring_invoices")
+        .select("*")
+        .eq("contract_id", contractId)
+        .order("created_at", { ascending: false })
+      if (error) throw new Error(error.message)
+      return (data ?? []) as RecurringInvoiceWithLinks[]
+    },
+    enabled: Boolean(contractId),
+  })
+}
+
+export function useRecurringByProject(projectId: string) {
+  return useQuery({
+    queryKey: recurringByEntityKeys.byProject(projectId),
+    queryFn: async (): Promise<RecurringInvoiceWithLinks[]> => {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("recurring_invoices")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+      if (error) throw new Error(error.message)
+      return (data ?? []) as RecurringInvoiceWithLinks[]
+    },
+    enabled: Boolean(projectId),
+  })
+}
+
+/** Run the next billing cycle right now via the SECURITY DEFINER RPC. */
+export function useAdvanceRecurring() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; projectId?: string; contractId?: string }) => {
+      const supabase = createClient()
+      const { data, error } = await supabase.rpc("advance_recurring_invoice", { p_id: id })
+      if (error) throw new Error(error.message)
+      return data as string
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: recurringKeys.all })
+      if (vars.projectId)
+        qc.invalidateQueries({ queryKey: recurringByEntityKeys.byProject(vars.projectId) })
+      if (vars.contractId)
+        qc.invalidateQueries({ queryKey: recurringByEntityKeys.byContract(vars.contractId) })
+      qc.invalidateQueries({ queryKey: ["invoices"] })
+      qc.invalidateQueries({ queryKey: ["project-billing-invoices"] })
+    },
+  })
+}
+
+/** Pause / resume / skip-next on a schedule. */
+export interface UpdateRecurringPayload {
+  id: string
+  isActive?: boolean
+  skipNext?: boolean
+  cadence?: Cadence
+  amount?: number
+  endsOn?: string | null
+}
+
+export function useUpdateRecurring() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (p: UpdateRecurringPayload) => {
+      const supabase = createClient()
+      const patch: Record<string, unknown> = {}
+      if (p.isActive !== undefined) patch.is_active = p.isActive
+      if (p.cadence !== undefined)  patch.cadence = p.cadence
+      if (p.amount !== undefined)   patch.amount = p.amount
+      if (p.endsOn !== undefined)   patch.ends_on = p.endsOn
+
+      if (p.skipNext) {
+        const { data: cur } = await supabase
+          .from("recurring_invoices")
+          .select("next_run_at, cadence")
+          .eq("id", p.id)
+          .single<{ next_run_at: string | null; cadence: Cadence }>()
+        const base = cur?.next_run_at ? new Date(cur.next_run_at) : new Date()
+        const days = cur?.cadence === "weekly" ? 7
+          : cur?.cadence === "biweekly" ? 14
+          : cur?.cadence === "monthly" ? 30
+          : cur?.cadence === "quarterly" ? 90
+          : cur?.cadence === "yearly" ? 365 : 30
+        patch.next_run_at = new Date(base.getTime() + days * 86_400_000).toISOString()
+      }
+
+      const { error } = await supabase
+        .from("recurring_invoices")
+        .update(patch)
+        .eq("id", p.id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recurringKeys.all })
+    },
+  })
+}
