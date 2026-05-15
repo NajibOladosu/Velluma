@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import {
@@ -105,6 +106,7 @@ export default function ProposalsDirectoryPage() {
   const duplicateProposal = useDuplicateProposal();
   const deleteProposal = useDeleteProposal();
   const updateStatus = useUpdateProposalStatus();
+  const { toast } = useToast();
 
   // ── Client search ────────────────────────────────
   const filteredClients = React.useMemo(() => {
@@ -158,9 +160,15 @@ export default function ProposalsDirectoryPage() {
       setSelectedClientName("");
       setClientSearch("");
       setNewTemplate("blank");
+      toast({ title: "Proposal created", variant: "success" });
       router.push(`/proposals/${proposal.id}`);
     } catch (err) {
       console.error("[create proposal]", err);
+      toast({
+        title: "Failed to create proposal",
+        description: err instanceof Error ? err.message : "Try again.",
+        variant: "error",
+      });
     }
   }, [
     newTitle,
@@ -168,6 +176,7 @@ export default function ProposalsDirectoryPage() {
     newTemplate,
     createProposal,
     router,
+    toast,
   ]);
 
   const resetDrawer = () => {
