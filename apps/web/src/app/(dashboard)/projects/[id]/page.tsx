@@ -101,7 +101,15 @@ function TaskCard({
 
   return (
     <Surface
-      className="p-3 sm:p-4 space-y-3 cursor-pointer hover:border-zinc-300 transition-colors group"
+      draggable
+      onDragStart={(e) => {
+        // Encode task id + current status so the drop handler can decide
+        // if it's a column move vs a same-column reorder.
+        e.dataTransfer.setData("text/x-task-id", task.id)
+        e.dataTransfer.setData("text/x-task-status", task.status)
+        e.dataTransfer.effectAllowed = "move"
+      }}
+      className="p-3 sm:p-4 space-y-3 cursor-grab active:cursor-grabbing hover:border-zinc-300 transition-colors group"
       onClick={() => onSelect(task)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -503,8 +511,25 @@ export default function ProjectDetailPage() {
 
                 <div className="h-px bg-zinc-200" />
 
-                {/* Task Cards */}
-                <div className="space-y-2 min-h-[48px]">
+                {/* Task Cards — column body is the drop target. Native HTML5
+                    dnd: TaskCard sets text/x-task-id on dragstart; we read
+                    it here and call moveMutation when status differs. */}
+                <div
+                  className="space-y-2 min-h-[48px] rounded-lg transition-colors"
+                  onDragOver={(e) => {
+                    if (e.dataTransfer.types.includes("text/x-task-id")) {
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = "move"
+                    }
+                  }}
+                  onDrop={(e) => {
+                    const taskId = e.dataTransfer.getData("text/x-task-id")
+                    const fromStatus = e.dataTransfer.getData("text/x-task-status")
+                    if (!taskId) return
+                    if (fromStatus === column.id) return
+                    moveMutation.mutate({ taskId, status: column.id })
+                  }}
+                >
                   {isLoading ? (
                     [1, 2].map((i) => <Skeleton key={i} className="h-20 w-full" />)
                   ) : colTasks.length === 0 ? (
