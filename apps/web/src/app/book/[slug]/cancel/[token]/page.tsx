@@ -79,6 +79,128 @@ export default function CancelBookingPage() {
     hour: "numeric", minute: "2-digit", hour12: true,
   })
 
+  function ManageContent() {
+    const [mode, setMode] = React.useState<"cancel" | "reschedule">("cancel")
+    const [newStart, setNewStart] = React.useState<string>(
+      new Date(b.starts_at).toISOString().slice(0, 16),
+    )
+    const reschedule = useMutation({
+      mutationFn: async () => {
+        const res = await fetch(`/api/book/cancel/${token}/reschedule`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            startsAt: new Date(newStart).toISOString(),
+          }),
+        })
+        if (!res.ok) throw new Error((await res.json()).error ?? "Failed")
+        return res.json() as Promise<{ startsAt: string; endsAt: string }>
+      },
+      onSuccess: () => refetch(),
+    })
+
+    return (
+      <Surface className="p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <CalendarClock className="h-5 w-5 text-zinc-500 mt-0.5" strokeWidth={1.5} />
+          <div className="min-w-0">
+            <P className="text-sm font-medium">{b.meeting_type?.name ?? "Meeting"}</P>
+            <Muted className="text-xs">{when}</Muted>
+          </div>
+        </div>
+
+        {/* Tab switch */}
+        <div className="inline-flex bg-zinc-100/70 p-0.5 rounded-md border border-zinc-200">
+          {(["cancel", "reschedule"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={
+                mode === m
+                  ? "px-3 py-1.5 text-xs font-medium rounded bg-white text-zinc-900 border border-zinc-200 capitalize"
+                  : "px-3 py-1.5 text-xs font-medium rounded text-zinc-500 hover:text-zinc-900 transition-colors capitalize"
+              }
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {mode === "cancel" ? (
+          <>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">
+                Reason for cancelling <span className="text-zinc-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Something came up, want to reschedule, etc."
+                className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 resize-y"
+              />
+            </div>
+            {cancel.isError && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                {cancel.error instanceof Error ? cancel.error.message : "Cancel failed"}
+              </div>
+            )}
+            <Button
+              type="button"
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+              className="w-full bg-red-600 hover:bg-red-700 gap-2"
+            >
+              {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Cancel booking
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-medium text-zinc-700">
+                New time
+              </label>
+              <input
+                type="datetime-local"
+                value={newStart}
+                onChange={(e) => setNewStart(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+              <Muted className="text-[11px] mt-1">
+                Pick a time that works. The host will be notified automatically.
+              </Muted>
+            </div>
+            {reschedule.isError && (
+              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                {reschedule.error instanceof Error ? reschedule.error.message : "Reschedule failed"}
+              </div>
+            )}
+            {reschedule.isSuccess && (
+              <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md p-2.5">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+                Booking moved to{" "}
+                {new Date(reschedule.data!.startsAt).toLocaleString()}
+              </div>
+            )}
+            <Button
+              type="button"
+              onClick={() => reschedule.mutate()}
+              disabled={reschedule.isPending || !newStart}
+              className="w-full gap-2"
+            >
+              {reschedule.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Confirm new time
+            </Button>
+          </>
+        )}
+      </Surface>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 px-4 py-8 sm:py-12">
       <div className="max-w-md mx-auto space-y-6">
@@ -107,45 +229,7 @@ export default function CancelBookingPage() {
             )}
           </Surface>
         ) : (
-          <Surface className="p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <CalendarClock className="h-5 w-5 text-zinc-500 mt-0.5" strokeWidth={1.5} />
-              <div className="min-w-0">
-                <P className="text-sm font-medium">{b.meeting_type?.name ?? "Meeting"}</P>
-                <Muted className="text-xs">{when}</Muted>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-zinc-700">
-                Reason for cancelling <span className="text-zinc-400 font-normal">(optional)</span>
-              </label>
-              <textarea
-                rows={3}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Something came up, want to reschedule, etc."
-                className="flex w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 resize-y"
-              />
-            </div>
-            {cancel.isError && (
-              <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-                {cancel.error instanceof Error ? cancel.error.message : "Cancel failed"}
-              </div>
-            )}
-            <Button
-              type="button"
-              onClick={() => cancel.mutate()}
-              disabled={cancel.isPending}
-              className="w-full bg-red-600 hover:bg-red-700 gap-2"
-            >
-              {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Cancel booking
-            </Button>
-            <Muted className="text-xs text-center">
-              Need to reschedule instead? Book a new time at <code className="font-mono">/{b.page?.slug}</code>.
-            </Muted>
-          </Surface>
+          <ManageContent />
         )}
       </div>
     </div>
