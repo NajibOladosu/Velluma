@@ -85,12 +85,17 @@ function TaskCard({
   task,
   projectId,
   onSelect,
+  onDropReorder,
+  index,
 }: {
   task: Task;
   projectId: string;
   onSelect: (t: Task) => void;
+  onDropReorder?: (fromTaskId: string, fromStatus: TaskStatus, targetStatus: TaskStatus, targetIndex: number) => void;
+  index: number;
 }) {
   const qc = useQueryClient();
+  const [dragOver, setDragOver] = React.useState(false);
   const deleteMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, { method: "DELETE" });
@@ -109,7 +114,27 @@ function TaskCard({
         e.dataTransfer.setData("text/x-task-status", task.status)
         e.dataTransfer.effectAllowed = "move"
       }}
-      className="p-3 sm:p-4 space-y-3 cursor-grab active:cursor-grabbing hover:border-zinc-300 transition-colors group"
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("text/x-task-id")) {
+          e.preventDefault()
+          setDragOver(true)
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        setDragOver(false)
+        const fromId = e.dataTransfer.getData("text/x-task-id")
+        const fromStatus = e.dataTransfer.getData("text/x-task-status") as TaskStatus
+        if (!fromId || fromId === task.id) return
+        e.preventDefault()
+        e.stopPropagation()
+        // Drop target index = this card's index. (Above-this-card insert.)
+        onDropReorder?.(fromId, fromStatus, task.status, index)
+      }}
+      className={cn(
+        "p-3 sm:p-4 space-y-3 cursor-grab active:cursor-grabbing hover:border-zinc-300 transition-colors group",
+        dragOver && "border-zinc-900 ring-1 ring-zinc-900",
+      )}
       onClick={() => onSelect(task)}
     >
       <div className="flex items-start justify-between gap-2">
@@ -427,8 +452,51 @@ export default function ProjectDetailPage() {
   const tasksByStatus = React.useMemo(() => {
     const map: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], review: [], done: [] };
     for (const t of tasks ?? []) map[t.status]?.push(t);
+    // Sort each column by order_index for stable drag reordering.
+    for (const k of Object.keys(map) as TaskStatus[]) {
+      map[k].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    }
     return map;
   }, [tasks]);
+
+  // Multi-row reorder: persist new order_index across the affected column.
+  const reorderMutation = useMutation({
+    mutationFn: async (items: { id: string; order_index: number; status?: TaskStatus }[]) => {
+      const res = await fetch(`/api/projects/${projectId}/tasks/reorder`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      if (!res.ok) throw new Error("Reorder failed");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", projectId] }),
+  });
+
+  function handleDropReorder(
+    fromTaskId: string,
+    fromStatus: TaskStatus,
+    targetStatus: TaskStatus,
+    targetIndex: number,
+  ) {
+    const targetCol = [...tasksByStatus[targetStatus]];
+    // If same column, splice out the dragged task first so target index aligns.
+    let from: Task | undefined;
+    if (fromStatus === targetStatus) {
+      const fromIdx = targetCol.findIndex((t) => t.id === fromTaskId);
+      if (fromIdx !== -1) [from] = targetCol.splice(fromIdx, 1);
+    } else {
+      const allFrom = tasksByStatus[fromStatus];
+      from = allFrom.find((t) => t.id === fromTaskId);
+    }
+    if (!from) return;
+    targetCol.splice(targetIndex, 0, { ...from, status: targetStatus });
+    const items = targetCol.map((t, i) => ({
+      id: t.id,
+      order_index: i,
+      status: t.id === fromTaskId ? targetStatus : undefined,
+    }));
+    reorderMutation.mutate(items);
+  }
 
   const router = useRouter();
   const updateProject = useUpdateProject();
@@ -541,12 +609,14 @@ export default function ProjectDetailPage() {
                       + Add task
                     </button>
                   ) : (
-                    colTasks.map((task) => (
+                    colTasks.map((task, idx) => (
                       <TaskCard
                         key={task.id}
                         task={task}
+                        index={idx}
                         projectId={projectId}
                         onSelect={setSelectedTask}
+                        onDropReorder={handleDropReorder}
                       />
                     ))
                   )}
