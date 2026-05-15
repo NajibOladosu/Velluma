@@ -12,7 +12,7 @@ import { PORTAL_SESSION_COOKIE, verifyPortalSession } from "@/lib/portal/session
  * 4. Protect /portal routes — require a scoped portal session cookie
  *    (set by /pt/[token]). No password sign-in for clients.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
