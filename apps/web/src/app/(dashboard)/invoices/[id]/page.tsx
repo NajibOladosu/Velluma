@@ -166,13 +166,10 @@ export default function InvoiceDetailPage() {
                 Back to list
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() =>
-                  toast({
-                    title: "PDF download coming soon",
-                    description: "Forward the rendered email from the Send dialog for now.",
-                    variant: "info",
-                  })
-                }
+                onClick={() => {
+                  // Direct browser download — no fetch+blob roundtrip needed.
+                  window.open(`/api/invoices/${invoice.id}/pdf`, "_blank")
+                }}
                 className="text-xs gap-2"
               >
                 <Download className="h-3.5 w-3.5 text-zinc-500" />
