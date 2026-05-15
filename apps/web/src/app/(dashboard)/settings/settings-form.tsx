@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Briefcase,
   CreditCard,
@@ -149,6 +150,7 @@ function slugify(v: string): string {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 }
 
@@ -176,6 +178,7 @@ function Feedback({ state }: { state: FeedbackState }) {
 
 export default function SettingsForm({ data }: { data: SettingsData }) {
   const supabase = React.useMemo(() => createClient(), []);
+  const router = useRouter();
 
   const [form, setForm] = React.useState(data);
   const [activeSection, setActiveSection] = React.useState<Section>("workspace");
@@ -201,21 +204,53 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
   async function handleSaveWorkspace(e: React.FormEvent) {
     e.preventDefault();
     setWorkspaceState({ kind: "saving" });
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        workspace_name: form.workspace.name,
-        workspace_slug: form.workspace.slug,
-        default_currency: form.workspace.currency,
-        timezone: form.workspace.timezone,
-        date_format: form.workspace.dateFormat,
-      },
-    });
-    if (error) {
-      setWorkspaceState({ kind: "error", message: error.message });
-    } else {
-      setWorkspaceState({ kind: "success", message: "Saved" });
-      setTimeout(() => setWorkspaceState({ kind: "idle" }), 2500);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setWorkspaceState({ kind: "error", message: "Not authenticated" });
+      return;
     }
+
+    const slugInput = form.workspace.slug.trim();
+    const slug = slugInput.length === 0 ? null : slugify(slugInput);
+    // Slug must match profiles_workspace_slug_format_check: 3–48 chars, lowercase alphanumeric + dash,
+    // no leading/trailing dash. Surface format errors before sending the round-trip.
+    if (slug !== null && !/^[a-z0-9][a-z0-9-]{1,46}[a-z0-9]$/.test(slug)) {
+      setWorkspaceState({
+        kind: "error",
+        message: "Slug must be 3–48 chars, lowercase letters, digits, or dashes.",
+      });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        workspace_name: form.workspace.name.trim() || null,
+        workspace_slug: slug,
+        default_currency: form.workspace.currency,
+        default_timezone: form.workspace.timezone,
+        date_format: form.workspace.dateFormat,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      const msg =
+        error.code === "23505"
+          ? "That URL slug is already taken. Try another."
+          : error.message;
+      setWorkspaceState({ kind: "error", message: msg });
+      return;
+    }
+
+    // Reflect saved value in the form (slugify may have transformed input).
+    setForm((p) => ({
+      ...p,
+      workspace: { ...p.workspace, slug: slug ?? "" },
+    }));
+    setWorkspaceState({ kind: "success", message: "Saved" });
+    router.refresh();
+    setTimeout(() => setWorkspaceState({ kind: "idle" }), 2500);
   }
 
   async function toggleIntegration(key: keyof SettingsData["integrations"]) {
