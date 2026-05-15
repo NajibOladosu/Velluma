@@ -95,7 +95,7 @@ export function GlobalTimer() {
         pathname?.startsWith("/login") ||
         pathname?.startsWith("/signup")
 
-    const onTimePage = pathname?.startsWith("/time")
+    void pathname // (was used for /time gate; pill now renders on every dashboard page)
 
     // Server-side mutations
     const startTimer = useStartTimer()
@@ -212,9 +212,8 @@ export function GlobalTimer() {
     // ── Render gates ──────────────────────────────────────────────────────
     if (isPublicSurface) return null
     if (!mounted) return null
-    // Show the pill when actively running OR on the time page. The popover
-    // can still be opened from the time page (or by drag handle) when idle.
-    if (!isActive && !onTimePage) return null
+    // Render on every dashboard page so the timer is always one click away.
+    // The pill stays compact when idle (just the timer icon + Start button).
 
     const displayTime = isActive ? formatTime(elapsed) : "00:00:00"
 

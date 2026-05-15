@@ -38,6 +38,7 @@ import {
   type TimeEntry,
 } from "@/lib/queries/time";
 import { useContracts } from "@/lib/queries/contracts";
+import { useBusinessProfile } from "@/lib/queries/business-profile";
 import { useProjects } from "@/lib/queries/projects";
 
 /* ═══════════════════════════════════════════════════════
@@ -76,6 +77,10 @@ function EntryActions({ entry }: { entry: TimeEntry }) {
   const approve = useApproveTimeEntry();
   const reject  = useRejectTimeEntry();
   const del     = useDeleteTimeEntry();
+  // Solo accounts (default) hide the Submit/Approve/Reject workflow.
+  // Toggle in Settings → Business Profile when a team needs approvals.
+  const { data: profile } = useBusinessProfile();
+  const approvalEnabled = profile?.requiresTimeApproval ?? false;
 
   const isPending =
     submit.isPending ||
@@ -109,22 +114,24 @@ function EntryActions({ entry }: { entry: TimeEntry }) {
   if (entry.status === "draft") {
     return (
       <div className="flex gap-1">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 px-2 text-[11px] gap-1"
-          disabled={isPending}
-          onClick={() => submit.mutate(entry.id)}
-        >
-          <Send className="h-3 w-3" strokeWidth={1.5} />
-          Submit
-        </Button>
+        {approvalEnabled && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[11px] gap-1"
+            disabled={isPending}
+            onClick={() => submit.mutate(entry.id)}
+          >
+            <Send className="h-3 w-3" strokeWidth={1.5} />
+            Submit
+          </Button>
+        )}
         {DeleteButton}
       </div>
     );
   }
 
-  if (entry.status === "submitted") {
+  if (entry.status === "submitted" && approvalEnabled) {
     return (
       <div className="flex gap-1">
         <Button
