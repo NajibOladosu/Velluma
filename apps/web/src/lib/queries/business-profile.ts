@@ -16,6 +16,10 @@ export interface BusinessProfile {
   displayName: string | null
   companyName: string | null
   legalBusinessName: string | null
+  // Workspace
+  workspaceName: string | null
+  workspaceSlug: string | null
+  dateFormat: string
   // Contact
   billingEmail: string | null
   website: string | null
@@ -39,6 +43,9 @@ interface ProfileRow {
   display_name: string | null
   company_name: string | null
   legal_business_name: string | null
+  workspace_name: string | null
+  workspace_slug: string | null
+  date_format: string
   billing_email: string | null
   website: string | null
   bio: string | null
@@ -59,6 +66,9 @@ function mapRow(r: ProfileRow): BusinessProfile {
     displayName: r.display_name,
     companyName: r.company_name,
     legalBusinessName: r.legal_business_name,
+    workspaceName: r.workspace_name,
+    workspaceSlug: r.workspace_slug,
+    dateFormat: r.date_format ?? "MMM d, yyyy",
     billingEmail: r.billing_email,
     website: r.website,
     bio: r.bio,
@@ -94,8 +104,9 @@ export function useBusinessProfile() {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "id, display_name, company_name, legal_business_name, billing_email, " +
-            "website, bio, tax_id, default_currency, default_timezone, " +
+          "id, display_name, company_name, legal_business_name, " +
+            "workspace_name, workspace_slug, date_format, " +
+            "billing_email, website, bio, tax_id, default_currency, default_timezone, " +
             "payment_terms_days, logo_url, avatar_url, brand_accent_hex, invoice_prefix, " +
             "requires_time_approval",
         )
@@ -112,6 +123,9 @@ export interface UpdateBusinessProfilePayload {
   displayName?: string | null
   companyName?: string | null
   legalBusinessName?: string | null
+  workspaceName?: string | null
+  workspaceSlug?: string | null
+  dateFormat?: string
   billingEmail?: string | null
   website?: string | null
   bio?: string | null
@@ -137,6 +151,9 @@ export function useUpdateBusinessProfile() {
       if (p.displayName !== undefined)       patch.display_name = p.displayName
       if (p.companyName !== undefined)       patch.company_name = p.companyName
       if (p.legalBusinessName !== undefined) patch.legal_business_name = p.legalBusinessName
+      if (p.workspaceName !== undefined)     patch.workspace_name = p.workspaceName
+      if (p.workspaceSlug !== undefined)     patch.workspace_slug = p.workspaceSlug
+      if (p.dateFormat !== undefined)        patch.date_format = p.dateFormat
       if (p.billingEmail !== undefined)      patch.billing_email = p.billingEmail
       if (p.website !== undefined)           patch.website = p.website
       if (p.bio !== undefined)               patch.bio = p.bio

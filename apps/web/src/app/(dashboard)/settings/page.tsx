@@ -26,23 +26,38 @@ export default async function SettingsPage() {
 
   const branding = (meta.branding ?? {}) as Record<string, string | null>;
 
+  // Workspace identity lives on profiles (queryable, slug-unique). Auth metadata
+  // is a fallback only for very-new accounts before the profile insert lands.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select(
+      "workspace_name, workspace_slug, default_currency, default_timezone, date_format, subscription_tier",
+    )
+    .eq("id", user.id)
+    .maybeSingle();
+
   const data = {
     email: user.email ?? "",
     workspace: {
       name:
-        (meta.workspace_name as string) ||
+        profile?.workspace_name ??
+        (meta.workspace_name as string) ??
         (fullName ? `${fullName}'s Workspace` : "My Workspace"),
-      slug: (meta.workspace_slug as string) ?? "",
-      currency: (meta.default_currency as string) ?? "USD",
+      slug: profile?.workspace_slug ?? (meta.workspace_slug as string) ?? "",
+      currency: profile?.default_currency ?? (meta.default_currency as string) ?? "USD",
       timezone:
+        profile?.default_timezone ??
         (meta.timezone as string) ??
         (typeof Intl !== "undefined"
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
           : "UTC"),
-      dateFormat: (meta.date_format as string) ?? "MMM d, yyyy",
+      dateFormat:
+        profile?.date_format ??
+        (meta.date_format as string) ??
+        "MMM d, yyyy",
     },
     plan: {
-      tier: ((meta.subscription_tier as string) ?? "free") as
+      tier: (profile?.subscription_tier ?? (meta.subscription_tier as string) ?? "free") as
         | "free"
         | "professional"
         | "business",
