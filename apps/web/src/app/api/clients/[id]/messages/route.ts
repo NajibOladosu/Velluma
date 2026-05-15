@@ -13,15 +13,17 @@ async function ensureClientConversation(
   service: Awaited<ReturnType<typeof createServiceClient>>,
   tenantId: string,
   clientId: string,
+  projectId: string | null,
 ): Promise<string> {
-  // Look up existing project-less thread first.
-  const { data: existing } = await service
+  // Look up the matching thread — project-less main thread OR a
+  // project-scoped sub-thread depending on projectId.
+  let q = service
     .from("contract_conversations")
     .select("id")
     .eq("tenant_id", tenantId)
     .eq("client_id", clientId)
-    .is("project_id", null)
-    .maybeSingle()
+  q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null)
+  const { data: existing } = await q.maybeSingle()
   if (existing) return existing.id
 
   const { data: client } = await service
@@ -30,12 +32,23 @@ async function ensureClientConversation(
     .eq("id", clientId)
     .maybeSingle()
 
+  let subject = client?.name ?? client?.email ?? "Client"
+  if (projectId) {
+    const { data: project } = await service
+      .from("projects")
+      .select("title")
+      .eq("id", projectId)
+      .maybeSingle()
+    if (project?.title) subject = project.title
+  }
+
   const { data, error } = await service
     .from("contract_conversations")
     .insert({
       tenant_id: tenantId,
       client_id: clientId,
-      subject: client?.name ?? client?.email ?? "Client",
+      project_id: projectId,
+      subject,
       last_message_at: new Date().toISOString(),
     })
     .select("id")
@@ -57,10 +70,11 @@ async function assertClientOwnership(
 }
 
 export async function GET(
-  _req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: clientId } = await params
+  const projectId = new URL(request.url).searchParams.get("projectId")
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -69,13 +83,13 @@ export async function GET(
   }
 
   const service = await createServiceClient()
-  const { data: convo } = await service
+  let q = service
     .from("contract_conversations")
     .select("id")
     .eq("tenant_id", user.id)
     .eq("client_id", clientId)
-    .is("project_id", null)
-    .maybeSingle()
+  q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null)
+  const { data: convo } = await q.maybeSingle()
   if (!convo) return NextResponse.json({ data: [], conversationId: null })
 
   const { data, error } = await service
@@ -96,6 +110,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: clientId } = await params
+  const projectId = new URL(request.url).searchParams.get("projectId")
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -109,7 +124,7 @@ export async function POST(
   if (!text) return NextResponse.json({ error: "Message required" }, { status: 400 })
 
   const service = await createServiceClient()
-  const conversationId = await ensureClientConversation(service, user.id, clientId)
+  const conversationId = await ensureClientConversation(service, user.id, clientId, projectId)
 
   const { data, error } = await service
     .from("contract_messages")
