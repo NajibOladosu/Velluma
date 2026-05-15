@@ -14,6 +14,7 @@ import {
   useLeadForms, useUpsertLeadForm, useDeleteLeadForm,
   type LeadForm, type FormField, type FieldType,
 } from "@/lib/queries/lead-forms"
+import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 function slugify(v: string) {
@@ -121,6 +122,7 @@ function FormCard({ form, onEdit }: { form: LeadForm; onEdit: () => void }) {
 
 function FormModal({ form, onClose }: { form: LeadForm | null; onClose: () => void }) {
   const upsert = useUpsertLeadForm()
+  const { toast } = useToast()
   const isEdit = form !== null
 
   const [slug, setSlug] = React.useState(form?.slug ?? "")
@@ -152,8 +154,13 @@ function FormModal({ form, onClose }: { form: LeadForm | null; onClose: () => vo
         fields,
         is_published: true,
       })
+      toast({ title: isEdit ? "Form updated" : "Form created", variant: "success" })
       onClose()
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed to save") }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save"
+      setError(msg)
+      toast({ title: isEdit ? "Update failed" : "Create failed", description: msg, variant: "error" })
+    }
   }
 
   function updateField(idx: number, patch: Partial<FormField>) {

@@ -17,6 +17,7 @@ import {
   useAutomations, useToggleAutomation, useCreateAutomation, useUpdateAutomation, useDeleteAutomation,
   type Automation,
 } from "@/lib/queries/automations";
+import { useToast } from "@/components/ui/toast";
 
 /* ── Trigger & action catalogs ─────────────────────────────── */
 
@@ -250,6 +251,7 @@ function AutomationModal({
   const create = useCreateAutomation()
   const update = useUpdateAutomation()
   const del = useDeleteAutomation()
+  const { toast } = useToast()
   const isEdit = automation !== null
 
   const [name, setName] = React.useState(automation?.name ?? prefill?.name ?? "")
@@ -276,6 +278,7 @@ function AutomationModal({
           action,
           description: description.trim() || undefined,
         })
+        toast({ title: "Automation updated", variant: "success" })
       } else {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -286,9 +289,14 @@ function AutomationModal({
           description: description.trim() || undefined,
           tenantId: user.id,
         })
+        toast({ title: "Automation created", variant: "success" })
       }
       onClose()
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed") }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed"
+      setError(msg)
+      toast({ title: isEdit ? "Update failed" : "Create failed", description: msg, variant: "error" })
+    }
   }
 
   async function handleDelete() {

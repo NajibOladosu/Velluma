@@ -14,6 +14,7 @@ import {
   useServices, useCreateService, useUpdateService, useDeleteService,
   type Service, type ServiceUnit,
 } from "@/lib/queries/services"
+import { useToast } from "@/components/ui/toast"
 
 const UNIT_LABEL: Record<ServiceUnit, string> = {
   flat: "Flat fee",
@@ -155,6 +156,7 @@ function ServiceCard({ service, onEdit }: { service: Service; onEdit: () => void
 function ServiceModal({ service, onClose }: { service: Service | null; onClose: () => void }) {
   const create = useCreateService()
   const update = useUpdateService()
+  const { toast } = useToast()
   const isEdit = service !== null
 
   const [name, setName] = React.useState(service?.name ?? "")
@@ -181,11 +183,17 @@ function ServiceModal({ service, onClose }: { service: Service | null; onClose: 
       }
       if (isEdit && service) {
         await update.mutateAsync({ id: service.id, ...payload })
+        toast({ title: "Service updated", variant: "success" })
       } else {
         await create.mutateAsync(payload)
+        toast({ title: "Service created", variant: "success" })
       }
       onClose()
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed to save") }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to save"
+      setError(msg)
+      toast({ title: isEdit ? "Update failed" : "Create failed", description: msg, variant: "error" })
+    }
   }
 
   return (
