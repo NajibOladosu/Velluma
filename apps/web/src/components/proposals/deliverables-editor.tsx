@@ -48,6 +48,7 @@ export function DeliverablesEditor({
   const { data: services = [] } = useServices()
   const create = useCreateProposalDeliverable()
   const remove = useDeleteProposalDeliverable()
+  const update = useUpdateProposalDeliverable()
 
   const total = deliverables.reduce((s, d) => s + d.lineTotal, 0)
   const totalHours = deliverables.reduce((s, d) => s + d.estHours, 0)
@@ -193,8 +194,28 @@ export function DeliverablesEditor({
         </div>
       ) : (
         <div className="divide-y divide-zinc-100">
-          {deliverables.map((d) => (
-            <DeliverableRow key={d.id} deliverable={d} currency={currency} onDelete={(id) => remove.mutate({ id, proposalId })} deletePending={remove.isPending} />
+          {deliverables.map((d, index) => (
+            <DeliverableRow
+              key={d.id}
+              deliverable={d}
+              index={index}
+              currency={currency}
+              onDelete={(id) => remove.mutate({ id, proposalId })}
+              deletePending={remove.isPending}
+              onReorder={(fromId, toIndex) => {
+                const sorted = [...deliverables].sort((a, b) => a.position - b.position)
+                const fromIdx = sorted.findIndex((x) => x.id === fromId)
+                if (fromIdx === -1 || fromIdx === toIndex) return
+                const [moved] = sorted.splice(fromIdx, 1)
+                sorted.splice(toIndex, 0, moved)
+                // Persist the new order — patch every row whose position changed
+                sorted.forEach((row, i) => {
+                  if (row.position !== i) {
+                    update.mutate({ id: row.id, proposalId, position: i })
+                  }
+                })
+              }}
+            />
           ))}
         </div>
       )}
@@ -222,15 +243,20 @@ export function DeliverablesEditor({
 
 function DeliverableRow({
   deliverable,
+  index,
   currency,
   onDelete,
   deletePending,
+  onReorder,
 }: {
   deliverable: ProposalDeliverable
+  index: number
   currency: string
   onDelete: (id: string) => void
   deletePending: boolean
+  onReorder: (fromId: string, toIndex: number) => void
 }) {
+  const [dragOver, setDragOver] = React.useState(false)
   const update = useUpdateProposalDeliverable()
   const [title, setTitle] = React.useState(deliverable.title)
   const [description, setDescription] = React.useState(deliverable.description ?? "")
@@ -255,7 +281,30 @@ function DeliverableRow({
   const lineTotal = (Number(qty) || 0) * (Number(unitPrice) || 0)
 
   return (
-    <div className="p-4 grid grid-cols-12 gap-2 items-start">
+    <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/x-deliverable-id", deliverable.id)
+        e.dataTransfer.effectAllowed = "move"
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("text/x-deliverable-id")) {
+          e.preventDefault()
+          setDragOver(true)
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setDragOver(false)
+        const fromId = e.dataTransfer.getData("text/x-deliverable-id")
+        if (fromId && fromId !== deliverable.id) onReorder(fromId, index)
+      }}
+      className={cn(
+        "p-4 grid grid-cols-12 gap-2 items-start cursor-grab active:cursor-grabbing transition-colors",
+        dragOver && "bg-zinc-50",
+      )}
+    >
       <div className="col-span-12 md:col-span-6 space-y-1.5">
         <input
           type="text"
