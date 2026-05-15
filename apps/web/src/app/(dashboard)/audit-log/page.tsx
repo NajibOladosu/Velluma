@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 function fmtShort(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
     ", " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
@@ -11,7 +12,28 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuditLogs, type AuditLog } from "@/lib/queries/audit-logs"
-import { Shield, AlertTriangle, Info, XCircle } from "lucide-react"
+import { Shield, AlertTriangle, Info, XCircle, ChevronRight } from "lucide-react"
+
+/**
+ * Map an audit log row to its resource detail page. Returns null when the
+ * resource type doesn't have a drill-down target (settings, team, etc.).
+ */
+function drillDownHref(resourceType: string, resourceId: string | null): string | null {
+  if (!resourceId) return null
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resourceId)
+  if (!isUuid) return null
+  switch (resourceType) {
+    case "contract": return `/contracts/${resourceId}`
+    case "invoice": return `/invoices/${resourceId}`
+    case "proposal": return `/proposals/${resourceId}`
+    case "client": return `/clients/${resourceId}`
+    case "project": return `/projects/${resourceId}`
+    case "expense": return `/expenses`
+    case "booking": return `/bookings`
+    case "portal": return `/clients/${resourceId}`
+    default: return null
+  }
+}
 
 const RESOURCE_TYPES = [
   { value: "", label: "All resources" },
@@ -45,6 +67,7 @@ function SkeletonRow() {
 }
 
 export default function AuditLogPage() {
+  const router = useRouter()
   const [resourceType, setResourceType] = useState<string>("")
   const { data: logs, isLoading } = useAuditLogs({
     resource_type: resourceType || undefined,
@@ -90,30 +113,59 @@ export default function AuditLogPage() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-100">
-              {logs.map((log) => (
-                <div key={log.id} className="px-6 py-3 flex items-start gap-4 hover:bg-zinc-50 transition-colors">
-                  <div className="mt-0.5">{severityIcon(log.severity, log.success)}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-zinc-900">{log.action}</span>
-                      <Badge variant="outline">{log.resource_type}</Badge>
-                      {log.success === false && (
-                        <Badge variant="outline" className="border-red-200 text-red-700">failed</Badge>
+              {logs.map((log) => {
+                const href = drillDownHref(log.resource_type, log.resource_id)
+                const clickable = href !== null
+                const onClick = clickable ? () => router.push(href) : undefined
+                return (
+                  <div
+                    key={log.id}
+                    role={clickable ? "link" : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onClick={onClick}
+                    onKeyDown={
+                      clickable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              onClick?.()
+                            }
+                          }
+                        : undefined
+                    }
+                    className={
+                      "px-6 py-3 flex items-start gap-4 transition-colors group " +
+                      (clickable
+                        ? "cursor-pointer hover:bg-zinc-50 focus-visible:bg-zinc-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-zinc-900"
+                        : "hover:bg-zinc-50")
+                    }
+                  >
+                    <div className="mt-0.5">{severityIcon(log.severity, log.success)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-zinc-900">{log.action}</span>
+                        <Badge variant="outline">{log.resource_type}</Badge>
+                        {log.success === false && (
+                          <Badge variant="outline" className="border-red-200 text-red-700">failed</Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-zinc-500 mt-1 truncate">
+                        {log.resource_id}
+                        {log.ip_address ? ` · ${log.ip_address}` : ""}
+                      </div>
+                      {log.error_message && (
+                        <div className="text-xs text-red-600 mt-1">{log.error_message}</div>
                       )}
                     </div>
-                    <div className="text-xs text-zinc-500 mt-1 truncate">
-                      {log.resource_id}
-                      {log.ip_address ? ` · ${log.ip_address}` : ""}
+                    <div className="text-xs text-zinc-400 whitespace-nowrap flex items-center gap-1">
+                      {fmtShort(new Date(log.created_at))}
+                      {clickable && (
+                        <ChevronRight className="h-3.5 w-3.5 text-zinc-300 group-hover:text-zinc-500 transition-colors" strokeWidth={1.5} />
+                      )}
                     </div>
-                    {log.error_message && (
-                      <div className="text-xs text-red-600 mt-1">{log.error_message}</div>
-                    )}
                   </div>
-                  <div className="text-xs text-zinc-400 whitespace-nowrap">
-                    {fmtShort(new Date(log.created_at))}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
