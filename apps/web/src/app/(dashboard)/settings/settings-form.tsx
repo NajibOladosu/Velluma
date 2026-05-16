@@ -40,6 +40,15 @@ import { cn } from "@/lib/utils";
 type PlanTier = "free" | "professional" | "business";
 type Section = "workspace" | "business" | "branding" | "billing" | "integrations" | "danger";
 
+const SECTION_KEYS: Section[] = [
+  "workspace",
+  "business",
+  "branding",
+  "billing",
+  "integrations",
+  "danger",
+];
+
 interface SettingsData {
   email: string;
   workspace: {
@@ -181,7 +190,28 @@ export default function SettingsForm({ data }: { data: SettingsData }) {
   const router = useRouter();
 
   const [form, setForm] = React.useState(data);
-  const [activeSection, setActiveSection] = React.useState<Section>("workspace");
+  const initialSection: Section =
+    typeof window !== "undefined" && SECTION_KEYS.includes(window.location.hash.slice(1) as Section)
+      ? (window.location.hash.slice(1) as Section)
+      : "workspace";
+  const [activeSection, setActiveSectionState] = React.useState<Section>(initialSection);
+
+  // Keep URL hash in sync. Also subscribe to hashchange so back/forward + cross-link works.
+  const setActiveSection = React.useCallback((s: Section) => {
+    setActiveSectionState(s);
+    if (typeof window !== "undefined" && window.location.hash !== `#${s}`) {
+      window.history.replaceState(null, "", `#${s}`);
+    }
+  }, []);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    function onHash() {
+      const next = window.location.hash.slice(1) as Section;
+      if (SECTION_KEYS.includes(next)) setActiveSectionState(next);
+    }
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   const [workspaceState, setWorkspaceState] = React.useState<FeedbackState>({ kind: "idle" });
   const [integrationState, setIntegrationState] = React.useState<FeedbackState>({ kind: "idle" });
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
