@@ -42,6 +42,7 @@ import {
   type CreateInvoicePayload,
 } from "@/lib/queries/invoices";
 import { useContracts } from "@/lib/queries/contracts";
+import { useProjects } from "@/lib/queries/projects";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -76,51 +77,68 @@ function NewInvoiceDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const { data: contracts = [] } = useContracts();
+  const { data: projects = [] } = useProjects();
   const { mutateAsync: createInvoice, isPending } = useCreateInvoice();
 
+  type Mode = "simple" | "contract";
+  const defaultDueDate = () =>
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const [mode, setMode] = React.useState<Mode>("simple");
   const [form, setForm] = React.useState<{
     contractId: string;
+    projectId: string;
     amount: string;
     currency: string;
     dueDate: string;
     notes: string;
   }>(() => ({
     contractId: "",
+    projectId: "",
     amount: "",
     currency: "USD",
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10),
+    dueDate: defaultDueDate(),
     notes: "",
   }));
   const [error, setError] = React.useState<string | null>(null);
+
+  function resetForm() {
+    setMode("simple");
+    setForm({
+      contractId: "",
+      projectId: "",
+      amount: "",
+      currency: "USD",
+      dueDate: defaultDueDate(),
+      notes: "",
+    });
+    setError(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     const amount = parseFloat(form.amount);
-    if (!form.contractId) return setError("Please select a contract.");
+    if (mode === "contract" && !form.contractId)
+      return setError("Please select a contract.");
+    if (mode === "simple" && !form.projectId)
+      return setError("Please select a project for this invoice.");
     if (isNaN(amount) || amount <= 0)
       return setError("Amount must be a positive number.");
 
     try {
       const payload: CreateInvoicePayload = {
-        contractId: form.contractId,
+        contractId: mode === "contract" ? form.contractId : null,
+        projectId: mode === "simple" ? form.projectId : null,
         amount,
         currency: form.currency,
+        dueDate: form.dueDate || undefined,
+        notes: form.notes.trim() || undefined,
       };
       await createInvoice(payload);
       onOpenChange(false);
-      setForm({
-        contractId: "",
-        amount: "",
-        currency: "USD",
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .slice(0, 10),
-        notes: "",
-      });
+      resetForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create invoice.");
     }
@@ -136,24 +154,79 @@ function NewInvoiceDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-zinc-700">Contract</label>
-            <select
-              value={form.contractId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, contractId: e.target.value }))
-              }
-              className="w-full h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1"
-              required
-            >
-              <option value="">Select a contract…</option>
-              {contracts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
+          <div
+            role="tablist"
+            aria-label="Invoice type"
+            className="grid grid-cols-2 gap-1 rounded-md border border-zinc-200 bg-zinc-50 p-1"
+          >
+            {(
+              [
+                { key: "simple", label: "Simple invoice", hint: "Project-only, no contract" },
+                { key: "contract", label: "Contract-linked", hint: "Tied to an agreement" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                role="tab"
+                aria-selected={mode === opt.key}
+                onClick={() => setMode(opt.key)}
+                className={cn(
+                  "rounded px-3 py-2 text-left transition-colors",
+                  mode === opt.key
+                    ? "bg-white text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-zinc-200"
+                    : "text-zinc-600 hover:text-zinc-900",
+                )}
+              >
+                <div className="text-xs font-medium">{opt.label}</div>
+                <div className="text-[10px] text-zinc-500 leading-tight">{opt.hint}</div>
+              </button>
+            ))}
           </div>
+
+          {mode === "contract" ? (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700">Contract</label>
+              <select
+                value={form.contractId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, contractId: e.target.value }))
+                }
+                className="w-full h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1"
+                required
+              >
+                <option value="">Select a contract…</option>
+                {contracts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-zinc-700">
+                Project{" "}
+                <span className="text-zinc-400 font-normal">(billed to)</span>
+              </label>
+              <select
+                value={form.projectId}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, projectId: e.target.value }))
+                }
+                className="w-full h-10 rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1"
+                required
+              >
+                <option value="">Select a project…</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.client && p.client !== "Unknown Client" ? ` — ${p.client}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
