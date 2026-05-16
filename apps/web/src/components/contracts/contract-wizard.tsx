@@ -21,7 +21,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { contractKeys } from "@/lib/queries/contracts"
-import { useProjects } from "@/lib/queries/projects"
+import { useProjects, useCreateProject } from "@/lib/queries/projects"
+import { useClient, useClients } from "@/lib/queries/clients"
 import { cn } from "@/lib/utils"
 import {
   X,
@@ -327,12 +328,9 @@ export function ContractWizard({ open, onClose, onSuccess }: ContractWizardProps
   function canAdvanceStep(): boolean {
     switch (step) {
       case 1:
-        // Project is required — every contract must live under a project.
-        return Boolean(
-          form.projectId &&
-          form.clientName.trim() &&
-          form.clientEmail.trim(),
-        )
+        // Only a project + contract type are user inputs now; client info
+        // is auto-derived from the linked project, freelancer info from auth.
+        return Boolean(form.projectId)
       case 2:
         return Boolean(form.title.trim() && form.projectDescription.trim() && form.deliverables.trim())
       case 3:
@@ -497,34 +495,88 @@ function Step1TypeAndParties({
   setField: <K extends keyof WizardForm>(k: K, v: WizardForm[K]) => void
 }) {
   const { data: projects = [], isLoading: projectsLoading } = useProjects()
+  const { data: clients = [] } = useClients()
+  const createProject = useCreateProject()
+
+  // Selected project's linked client id, used to fetch full client record.
+  const selectedProject = React.useMemo(
+    () => projects.find((p) => p.id === form.projectId) ?? null,
+    [projects, form.projectId],
+  )
+  const { data: selectedClient } = useClient(selectedProject?.clientId ?? "")
+
+  // Auto-derive clientName/clientEmail/clientCompany whenever the linked client loads.
+  React.useEffect(() => {
+    if (!selectedClient) return
+    setField("clientName", selectedClient.name ?? "")
+    setField("clientEmail", selectedClient.email ?? "")
+    setField("clientCompany", selectedClient.company_name ?? "")
+  // setField identity changes per render but is safe; avoid loop by including primitives.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClient?.id, selectedClient?.name, selectedClient?.email, selectedClient?.company_name])
+
+  // Inline quick-create state.
+  const [quickOpen, setQuickOpen] = React.useState(false)
+  const [quickTitle, setQuickTitle] = React.useState("")
+  const [quickClientId, setQuickClientId] = React.useState("")
+  const [quickError, setQuickError] = React.useState<string | null>(null)
+
+  async function handleQuickCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setQuickError(null)
+    if (!quickTitle.trim()) {
+      setQuickError("Project title is required")
+      return
+    }
+    try {
+      const project = await createProject.mutateAsync({
+        title: quickTitle.trim(),
+        clientId: quickClientId || null,
+        status: "active",
+      })
+      setField("projectId", project.id)
+      setQuickOpen(false)
+      setQuickTitle("")
+      setQuickClientId("")
+    } catch (err) {
+      setQuickError(err instanceof Error ? err.message : "Failed to create project")
+    }
+  }
 
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-zinc-900">Project</h3>
         <p className="text-xs text-zinc-500">
-          Contracts always belong to a project. Pick one or{" "}
-          <a href="/projects" className="underline hover:text-zinc-900" target="_blank" rel="noreferrer">
-            create one
-          </a>{" "}
-          first.
+          Contracts always belong to a project. Pick one or create a new one inline.
         </p>
       </div>
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-zinc-700">
-          Project <span className="text-red-400">*</span>
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-xs font-semibold text-zinc-700">
+            Project <span className="text-red-400">*</span>
+          </label>
+          {!quickOpen && (
+            <button
+              type="button"
+              onClick={() => setQuickOpen(true)}
+              className="text-[11px] font-medium text-zinc-900 underline-offset-2 hover:underline"
+            >
+              + New project
+            </button>
+          )}
+        </div>
         <select
           value={form.projectId}
           onChange={(e) => setField("projectId", e.target.value)}
-          disabled={projectsLoading}
+          disabled={projectsLoading || quickOpen}
           className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 disabled:opacity-60"
         >
           <option value="">
             {projectsLoading
               ? "Loading projects…"
               : projects.length === 0
-                ? "No projects yet — create one first"
+                ? "No projects yet — use “+ New project” above"
                 : "Select a project…"}
           </option>
           {projects.map((p) => (
@@ -534,10 +586,70 @@ function Step1TypeAndParties({
             </option>
           ))}
         </select>
-        {!projectsLoading && projects.length === 0 && (
+
+        {quickOpen && (
+          <form
+            onSubmit={handleQuickCreate}
+            className="rounded-md border border-zinc-200 bg-zinc-50/50 p-3 space-y-2"
+          >
+            <Input
+              placeholder="Project title"
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+              autoFocus
+            />
+            <select
+              value={quickClientId}
+              onChange={(e) => setQuickClientId(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+            >
+              <option value="">No client (add later)</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.company_name ? ` — ${c.company_name}` : ""}
+                </option>
+              ))}
+            </select>
+            {quickError && (
+              <p className="text-[11px] text-red-600">{quickError}</p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  setQuickOpen(false)
+                  setQuickError(null)
+                }}
+                disabled={createProject.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-8"
+                disabled={createProject.isPending}
+              >
+                {createProject.isPending ? "Creating…" : "Create + select"}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {selectedProject?.client && selectedProject.client !== "Unknown Client" && (
+          <p className="text-[11px] text-zinc-500">
+            Client: <span className="text-zinc-900 font-medium">{selectedProject.client}</span>
+            {selectedClient?.email ? ` · ${selectedClient.email}` : ""}
+          </p>
+        )}
+        {selectedProject && !selectedProject.clientId && (
           <p className="text-[11px] text-amber-600">
-            You need at least one project to draft a contract. Open the Projects
-            page in a new tab, create one, then return here.
+            This project has no client attached. Add one on the project page so
+            the contract can be addressed.
           </p>
         )}
       </div>
@@ -572,52 +684,6 @@ function Step1TypeAndParties({
             </div>
           </button>
         ))}
-      </div>
-
-      <div className="space-y-4 pt-2">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-zinc-700">Your Name</label>
-          <Input
-            placeholder="Your full name"
-            value={form.freelancerName}
-            onChange={(e) => setField("freelancerName", e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-700">
-              Client Name <span className="text-red-400">*</span>
-            </label>
-            <Input
-              placeholder="Client's full name"
-              value={form.clientName}
-              onChange={(e) => setField("clientName", e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-700">
-              Client Email <span className="text-red-400">*</span>
-            </label>
-            <Input
-              type="email"
-              placeholder="client@company.com"
-              value={form.clientEmail}
-              onChange={(e) => setField("clientEmail", e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-zinc-700">
-            Client Company <span className="text-zinc-400 font-normal">(optional)</span>
-          </label>
-          <Input
-            placeholder="Acme Corp"
-            value={form.clientCompany}
-            onChange={(e) => setField("clientCompany", e.target.value)}
-          />
-        </div>
       </div>
     </div>
   )
