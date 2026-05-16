@@ -416,20 +416,42 @@ export default function ProposalsDirectoryPage() {
                         className="h-8 w-8 text-zinc-300"
                         strokeWidth={1.5}
                       />
-                      <p className="text-sm text-zinc-500">
-                        No proposals match your filters.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setActiveTab("all");
-                        }}
-                      >
-                        Clear Filters
-                      </Button>
+                      {proposalsData.length === 0 ? (
+                        <>
+                          <p className="text-sm text-zinc-500">
+                            No proposals yet. Create your first one to start
+                            tracking your pipeline.
+                          </p>
+                          <Button
+                            size="sm"
+                            className="mt-2 gap-2"
+                            onClick={() => setShowNewDrawer(true)}
+                          >
+                            <Plus
+                              className="h-3.5 w-3.5"
+                              strokeWidth={1.5}
+                            />
+                            New proposal
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-zinc-500">
+                            No proposals match your filters.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => {
+                              setSearchQuery("");
+                              setActiveTab("all");
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
