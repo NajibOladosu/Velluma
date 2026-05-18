@@ -82,20 +82,39 @@ export interface PipelineStageData {
 export const pipelineKeys = {
   all: ["pipeline"] as const,
   stages: () => [...pipelineKeys.all, "stages"] as const,
+  stagesConfig: () => [...pipelineKeys.all, "stages-config"] as const,
 }
 
 // ---------------------------------------------------------------------------
-// Stage config (fixed order, colours only)
+// Stage config
 // ---------------------------------------------------------------------------
 
-const STAGE_CONFIG: Record<string, { title: string; color: string }> = {
-  inquiry:          { title: "Inquiry",          color: "bg-zinc-900" },
-  proposal_sent:    { title: "Proposal Sent",    color: "bg-zinc-700" },
-  contract_signed:  { title: "Contract Signed",  color: "bg-zinc-500" },
-  active:           { title: "Active Project",   color: "bg-zinc-400" },
+export interface StageConfig {
+  id: string
+  title: string
+  color: string
+  /** True for built-in stages referenced by DB auto-transition triggers; users cannot delete these. */
+  system?: boolean
 }
 
-const STAGE_ORDER = ["inquiry", "proposal_sent", "contract_signed", "active"]
+/**
+ * Default stages for accounts that haven't customized their pipeline.
+ * The first four are referenced by the DB auto-transition triggers; "won" and "lost"
+ * are terminal stages. Keep the IDs stable — they're keys, not labels.
+ */
+export const DEFAULT_PIPELINE_STAGES: StageConfig[] = [
+  { id: "inquiry",         title: "Inquiry",         color: "bg-zinc-900", system: true },
+  { id: "proposal_sent",   title: "Proposal Sent",   color: "bg-zinc-700", system: true },
+  { id: "contract_signed", title: "Contract Signed", color: "bg-zinc-500", system: true },
+  { id: "active",          title: "Active Project",  color: "bg-zinc-400", system: true },
+  { id: "won",             title: "Won",             color: "bg-emerald-600", system: true },
+  { id: "lost",            title: "Lost",            color: "bg-zinc-300", system: true },
+]
+
+/** Built-in IDs that drive DB triggers — protected from deletion. */
+export const SYSTEM_STAGE_IDS = new Set(
+  DEFAULT_PIPELINE_STAGES.filter((s) => s.system).map((s) => s.id),
+)
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -163,10 +182,64 @@ function mapRowToLead(row: PipelineClientRow): PipelineLead {
 // Hooks
 // ---------------------------------------------------------------------------
 
-/** Fetch all pipeline leads grouped into stages. */
-export function usePipelineStages() {
+/**
+ * Fetch the user's stage configuration. Returns DEFAULT_PIPELINE_STAGES when
+ * the user hasn't customized their pipeline.
+ */
+export function usePipelineStagesConfig() {
   return useQuery({
-    queryKey: pipelineKeys.stages(),
+    queryKey: pipelineKeys.stagesConfig(),
+    queryFn: async (): Promise<StageConfig[]> => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return DEFAULT_PIPELINE_STAGES
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("pipeline_stages")
+        .eq("id", user.id)
+        .maybeSingle()
+      if (error) throw new Error(error.message)
+      const stored = data?.pipeline_stages as StageConfig[] | null | undefined
+      if (!Array.isArray(stored) || stored.length === 0) return DEFAULT_PIPELINE_STAGES
+      return stored
+    },
+  })
+}
+
+/** Persist the entire stage configuration. NULL clears back to defaults. */
+export function useUpsertPipelineStages() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (stages: StageConfig[] | null) => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+      // Never let users delete a system stage — triggers depend on the IDs.
+      if (stages) {
+        const presentIds = new Set(stages.map((s) => s.id))
+        for (const id of SYSTEM_STAGE_IDS) {
+          if (!presentIds.has(id)) {
+            throw new Error(`Built-in stage "${id}" cannot be removed.`)
+          }
+        }
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pipeline_stages: stages })
+        .eq("id", user.id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pipelineKeys.all })
+    },
+  })
+}
+
+/** Fetch all pipeline leads grouped into stages, using the user's config. */
+export function usePipelineStages() {
+  const { data: stageConfig = DEFAULT_PIPELINE_STAGES } = usePipelineStagesConfig()
+  return useQuery({
+    queryKey: [...pipelineKeys.stages(), stageConfig.map((s) => s.id).join("|")],
     queryFn: async (): Promise<PipelineStageData[]> => {
       const supabase = createClient()
       const { data, error } = await supabase
@@ -178,24 +251,23 @@ export function usePipelineStages() {
 
       const rows = (data ?? []) as PipelineClientRow[]
 
-      // Build a map of stage → leads
+      const validIds = new Set(stageConfig.map((s) => s.id))
       const stageMap: Record<string, PipelineLead[]> = {}
-      for (const stageId of STAGE_ORDER) {
-        stageMap[stageId] = []
-      }
+      for (const s of stageConfig) stageMap[s.id] = []
 
       for (const row of rows) {
         if (row.metadata?.archived === true) continue // skip archived
-        const stageId = (row.metadata?.pipeline_stage as string) || "inquiry"
-        const target = STAGE_ORDER.includes(stageId) ? stageId : "inquiry"
+        const raw = (row.metadata?.pipeline_stage as string) || "inquiry"
+        const target = validIds.has(raw) ? raw : stageConfig[0]?.id ?? "inquiry"
+        if (!stageMap[target]) stageMap[target] = []
         stageMap[target].push(mapRowToLead(row))
       }
 
-      return STAGE_ORDER.map((stageId) => ({
-        id: stageId,
-        title: STAGE_CONFIG[stageId].title,
-        color: STAGE_CONFIG[stageId].color,
-        leads: stageMap[stageId],
+      return stageConfig.map((s) => ({
+        id: s.id,
+        title: s.title,
+        color: s.color,
+        leads: stageMap[s.id] ?? [],
       }))
     },
   })

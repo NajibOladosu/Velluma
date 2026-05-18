@@ -44,18 +44,25 @@ import {
   Clock,
   AlertTriangle,
   MessageSquare,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import {
   usePipelineStages,
+  usePipelineStagesConfig,
+  useUpsertPipelineStages,
   useMovePipelineLead,
   useCreatePipelineLead,
   useUpdatePipelineLead,
   useArchivePipelineLead,
+  DEFAULT_PIPELINE_STAGES,
+  SYSTEM_STAGE_IDS,
   type PipelineLead,
   type PipelineStageData,
   type CreateLeadPayload,
   type UpdateLeadPayload,
+  type StageConfig,
 } from "@/lib/queries/pipeline";
+import { useToast } from "@/components/ui/toast";
 
 /* ═══════════════════════════════════════════════════════
    TYPE DEFINITIONS
@@ -1090,6 +1097,7 @@ export default function PipelinePage() {
   const [addLeadInitialStage, setAddLeadInitialStage] = React.useState("inquiry");
   const [priorityFilterOpen, setPriorityFilterOpen] = React.useState(false);
   const [tagFilterOpen, setTagFilterOpen] = React.useState(false);
+  const [editStagesOpen, setEditStagesOpen] = React.useState(false);
 
   // Drag-and-drop state
   const [dragOverStageId, setDragOverStageId] = React.useState<string | null>(null);
@@ -1190,14 +1198,25 @@ export default function PipelinePage() {
               {isLoading ? "Loading…" : `${totalLeads} leads across ${stages.length} stages`}
             </Muted>
           </div>
-          <Button
-            className="font-semibold px-4 sm:px-5 gap-2 shrink-0 w-full sm:w-auto"
-            onClick={() => handleOpenAddLead()}
-          >
-            <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Add Lead</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-2"
+              onClick={() => setEditStagesOpen(true)}
+            >
+              <SettingsIcon className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Edit stages</span>
+            </Button>
+            <Button
+              className="font-semibold px-4 sm:px-5 gap-2 flex-1 sm:flex-none"
+              onClick={() => handleOpenAddLead()}
+            >
+              <Plus className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Add Lead</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </div>
         </div>
 
         {/* Financial Metrics */}
@@ -1529,6 +1548,242 @@ export default function PipelinePage() {
           isLoading={archiveLeadMutation.isPending}
         />
       )}
+
+      {editStagesOpen && (
+        <EditStagesModal onClose={() => setEditStagesOpen(false)} />
+      )}
     </>
+  );
+}
+
+/* ───────────────────────── Edit Stages Modal ───────────────────────── */
+
+function EditStagesModal({ onClose }: { onClose: () => void }) {
+  const { data: stages = DEFAULT_PIPELINE_STAGES } = usePipelineStagesConfig();
+  const upsert = useUpsertPipelineStages();
+  const { toast } = useToast();
+
+  const [draft, setDraft] = React.useState<StageConfig[]>(() => stages.map((s) => ({ ...s })));
+  const [error, setError] = React.useState<string | null>(null);
+  const [dragIndex, setDragIndex] = React.useState<number | null>(null);
+
+  // Default colors to cycle through when adding new stages.
+  const CYCLE_COLORS = [
+    "bg-amber-500",
+    "bg-sky-500",
+    "bg-fuchsia-500",
+    "bg-indigo-500",
+    "bg-rose-500",
+    "bg-teal-500",
+  ];
+
+  function slugId(label: string): string {
+    return label
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 40);
+  }
+
+  function addStage() {
+    setError(null);
+    const id = `stage_${Math.random().toString(36).slice(2, 8)}`;
+    const color = CYCLE_COLORS[draft.length % CYCLE_COLORS.length];
+    setDraft((d) => [...d, { id, title: "New stage", color }]);
+  }
+
+  function updateTitle(idx: number, title: string) {
+    setError(null);
+    setDraft((d) =>
+      d.map((s, i) => {
+        if (i !== idx) return s;
+        // Re-derive id from title for user-defined stages only; system IDs are frozen.
+        if (s.system) return { ...s, title };
+        const newId = slugId(title) || s.id;
+        return { ...s, title, id: newId };
+      }),
+    );
+  }
+
+  function removeStage(idx: number) {
+    setError(null);
+    const target = draft[idx];
+    if (target.system) {
+      setError(`"${target.title}" is a built-in stage and can't be removed.`);
+      return;
+    }
+    setDraft((d) => d.filter((_, i) => i !== idx));
+  }
+
+  function move(from: number, to: number) {
+    if (to < 0 || to >= draft.length || from === to) return;
+    setDraft((d) => {
+      const next = d.slice();
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  }
+
+  async function handleSave() {
+    setError(null);
+    // Validate: unique non-empty IDs.
+    const ids = draft.map((s) => s.id);
+    if (ids.some((id) => !id)) {
+      setError("Every stage needs a name.");
+      return;
+    }
+    if (new Set(ids).size !== ids.length) {
+      setError("Stage names must be distinct.");
+      return;
+    }
+    // System stages must all still be present.
+    for (const required of SYSTEM_STAGE_IDS) {
+      if (!ids.includes(required)) {
+        setError("Built-in stages can't be removed — only renamed.");
+        return;
+      }
+    }
+    try {
+      await upsert.mutateAsync(draft);
+      toast({ title: "Pipeline stages updated", variant: "success" });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save.");
+    }
+  }
+
+  async function handleReset() {
+    if (!confirm("Reset stages to the default order?")) return;
+    try {
+      await upsert.mutateAsync(null);
+      toast({ title: "Pipeline reset to defaults", variant: "success" });
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to reset.");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-md max-h-[85vh] overflow-y-auto p-6 space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <H3 className="text-base">Pipeline stages</H3>
+            <Muted className="text-xs">
+              Rename, reorder, add, or remove custom stages. Built-in stages
+              power auto-transitions and can't be deleted.
+            </Muted>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-400 hover:text-zinc-700 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        <ul className="space-y-2">
+          {draft.map((s, idx) => (
+            <li
+              key={`${s.id}-${idx}`}
+              draggable
+              onDragStart={() => setDragIndex(idx)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragIndex !== null) move(dragIndex, idx);
+                setDragIndex(null);
+              }}
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 rounded-md border border-zinc-200 bg-white",
+                dragIndex === idx && "opacity-50",
+              )}
+            >
+              <span
+                className="cursor-grab text-zinc-300 select-none"
+                aria-label="Drag to reorder"
+              >
+                ≡
+              </span>
+              <span className={cn("h-3 w-3 rounded-full shrink-0", s.color)} />
+              <input
+                type="text"
+                value={s.title}
+                onChange={(e) => updateTitle(idx, e.target.value)}
+                className="flex-1 h-8 px-2 text-sm rounded border border-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+              />
+              {s.system ? (
+                <span className="text-[10px] uppercase tracking-wide font-semibold text-zinc-400 px-1.5">
+                  built-in
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => removeStage(idx)}
+                  className="text-zinc-400 hover:text-red-600 transition-colors text-xs"
+                  aria-label={`Remove ${s.title}`}
+                >
+                  ✕
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full h-9 gap-2"
+          onClick={addStage}
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+          Add stage
+        </Button>
+
+        {error && (
+          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {error}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-zinc-100">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 text-zinc-500"
+            onClick={handleReset}
+            disabled={upsert.isPending}
+          >
+            Reset defaults
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={onClose}
+              disabled={upsert.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-9"
+              onClick={handleSave}
+              disabled={upsert.isPending}
+            >
+              {upsert.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
