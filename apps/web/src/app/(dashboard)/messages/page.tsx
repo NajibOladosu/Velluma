@@ -9,7 +9,7 @@ import { Surface } from "@/components/ui/surface"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { MessageThread } from "@/components/messages/message-thread"
-import { MessageSquare, Inbox, User, Folder, Plus, Hash } from "lucide-react"
+import { MessageSquare, Inbox, User, Folder, Plus, Hash, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -112,10 +112,20 @@ export default function MessagesPage() {
   const [selectedClientId, setSelectedClientId] = React.useState<string | null>(null)
   const [activeProjectId, setActiveProjectId] = React.useState<string | null>(null)
   const [pickingProject, setPickingProject] = React.useState(false)
+  /**
+   * Mobile-only view state. On lg+ the grid is always two columns, so this
+   * is ignored. On mobile we show one panel at a time so the thread isn't
+   * stacked below the list. Default "list" — user picks a client to enter.
+   */
+  const [mobileView, setMobileView] = React.useState<"list" | "thread">("list")
 
-  // Auto-select the first client on first render.
+  // Auto-select the first client on lg+ only so mobile can land on the list.
   React.useEffect(() => {
-    if (!selectedClientId && groups[0]) setSelectedClientId(groups[0].clientId)
+    if (selectedClientId || !groups[0]) return
+    if (typeof window === "undefined") return
+    if (window.matchMedia("(min-width: 1024px)").matches) {
+      setSelectedClientId(groups[0].clientId)
+    }
   }, [groups, selectedClientId])
 
   // Reset active sub-thread when switching clients.
@@ -176,8 +186,14 @@ export default function MessagesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-6 min-h-[60vh]">
-        {/* Client list */}
-        <Surface className="overflow-hidden flex flex-col">
+        {/* Client list — on mobile, hidden once user enters a thread. */}
+        <Surface
+          className={cn(
+            "overflow-hidden flex-col",
+            mobileView === "list" ? "flex" : "hidden",
+            "lg:flex",
+          )}
+        >
           <div className="px-4 py-3 border-b border-zinc-200">
             <P className="text-xs font-bold uppercase tracking-widest text-zinc-500">Clients</P>
           </div>
@@ -204,7 +220,10 @@ export default function MessagesPage() {
                       "w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors flex items-start gap-3",
                       isActive && "bg-zinc-50",
                     )}
-                    onClick={() => setSelectedClientId(g.clientId)}
+                    onClick={() => {
+                      setSelectedClientId(g.clientId)
+                      setMobileView("thread")
+                    }}
                   >
                     <div className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center shrink-0 mt-0.5">
                       <User className="h-4 w-4 text-zinc-500" strokeWidth={1.5} />
@@ -225,17 +244,33 @@ export default function MessagesPage() {
           )}
         </Surface>
 
-        {/* Active thread */}
-        <Surface className="p-4 sm:p-6 flex flex-col">
+        {/* Active thread — on mobile, hidden until user picks a client. */}
+        <Surface
+          className={cn(
+            "p-4 sm:p-6 flex-col",
+            mobileView === "thread" ? "flex" : "hidden",
+            "lg:flex",
+          )}
+        >
           {selectedGroup && apiPath ? (
             <>
               <div className="pb-4 border-b border-zinc-200 mb-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <P className="text-sm font-medium truncate">{clientLabel(selectedGroup.client)}</P>
-                  <Muted className="text-xs truncate">
-                    {selectedGroup.client.email ?? "Client"}
-                    {activeProjectId ? ` · ${activeProjectTitle}` : ""}
-                  </Muted>
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setMobileView("list")}
+                    className="lg:hidden h-8 w-8 -ml-1 rounded-md flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors shrink-0"
+                    aria-label="Back to client list"
+                  >
+                    <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+                  </button>
+                  <div className="min-w-0">
+                    <P className="text-sm font-medium truncate">{clientLabel(selectedGroup.client)}</P>
+                    <Muted className="text-xs truncate">
+                      {selectedGroup.client.email ?? "Client"}
+                      {activeProjectId ? ` · ${activeProjectTitle}` : ""}
+                    </Muted>
+                  </div>
                 </div>
                 <Link
                   href={`/clients/${selectedGroup.clientId}`}
