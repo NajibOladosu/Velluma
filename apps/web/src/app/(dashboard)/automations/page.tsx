@@ -84,6 +84,14 @@ export default function AutomationsPage() {
 
   const activeCount = items.filter((a) => a.enabled).length;
   const totalRuns   = items.reduce((s, a) => s + a.runs, 0);
+  // Rough heuristic: each automation run saves ~5 minutes of manual work.
+  // Show "—" when there's nothing to estimate; otherwise compute honestly.
+  const hoursSavedLabel = (() => {
+    if (totalRuns === 0) return "—";
+    const hours = Math.round((totalRuns * 5) / 60);
+    if (hours < 1) return "<1h total";
+    return `~${hours}h total`;
+  })();
 
   return (
     <div className="space-y-8 pb-12">
@@ -104,7 +112,7 @@ export default function AutomationsPage() {
         {[
           { label: "Active Rules", value: `${activeCount}`, icon: Zap    },
           { label: "Total Runs",   value: `${totalRuns}`,   icon: Repeat },
-          { label: "Hours Saved",  value: "~6h / mo",       icon: Clock  },
+          { label: "Hours Saved",  value: hoursSavedLabel,  icon: Clock  },
         ].map((m) => (
           <Surface key={m.label} className="p-5">
             <div className="flex items-center justify-between pb-2">
