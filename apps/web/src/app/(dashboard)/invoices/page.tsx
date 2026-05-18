@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, formatWorkspaceDate } from "@/lib/utils";
 import {
   Plus,
   Search,
@@ -43,6 +43,7 @@ import {
 } from "@/lib/queries/invoices";
 import { useContracts } from "@/lib/queries/contracts";
 import { useProjects } from "@/lib/queries/projects";
+import { useBusinessProfile } from "@/lib/queries/business-profile";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -78,6 +79,8 @@ function NewInvoiceDialog({
 }) {
   const { data: contracts = [] } = useContracts();
   const { data: projects = [] } = useProjects();
+  const { data: businessProfile } = useBusinessProfile();
+  const workspaceDateFormat = businessProfile?.dateFormat ?? "MMM d, yyyy";
   const { mutateAsync: createInvoice, isPending } = useCreateInvoice();
 
   type Mode = "simple" | "contract";
@@ -271,6 +274,11 @@ function NewInvoiceDialog({
               }
               className="h-10 border-zinc-200 bg-white text-sm text-zinc-900 [color-scheme:light]"
             />
+            {form.dueDate && (
+              <p className="text-[11px] text-zinc-500">
+                Due {formatWorkspaceDate(form.dueDate, workspaceDateFormat)}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -335,6 +343,8 @@ export default function InvoicesPage() {
   const [newInvoiceOpen, setNewInvoiceOpen] = React.useState(false);
   const { data: invoices = [], isLoading } = useInvoices();
   const { mutateAsync: updateInvoice } = useUpdateInvoice();
+  const { data: businessProfile } = useBusinessProfile();
+  const workspaceDateFormat = businessProfile?.dateFormat ?? "MMM d, yyyy";
 
   // Auto-open the New Invoice modal when arriving via /invoices?new=1.
   React.useEffect(() => {
@@ -609,7 +619,9 @@ export default function InvoicesPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm text-zinc-500 whitespace-nowrap hidden md:table-cell">
-                      {invoice.dueDate}
+                      {invoice.dueDateIso
+                        ? formatWorkspaceDate(invoice.dueDateIso, workspaceDateFormat)
+                        : invoice.dueDate}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
