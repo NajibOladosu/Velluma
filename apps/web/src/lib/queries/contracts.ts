@@ -265,6 +265,44 @@ export function useContractTemplates() {
   })
 }
 
+/**
+ * Create a user-owned contract template. Templates are reusable; they have
+ * no client or project — those come in when the template is later applied.
+ */
+export interface CreateContractTemplatePayload {
+  name: string
+  description?: string | null
+  content: string
+  category?: string | null
+}
+
+export function useCreateContractTemplate() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: CreateContractTemplatePayload) => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+      const { data, error } = await supabase
+        .from("contract_templates")
+        .insert({
+          user_id: user.id,
+          name: payload.name,
+          description: payload.description ?? null,
+          content: payload.content,
+          category: payload.category ?? "custom",
+        })
+        .select("*")
+        .single()
+      if (error) throw new Error(error.message)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: contractKeys.templates() })
+    },
+  })
+}
+
 /** Create a new contract draft via the API Gateway. */
 export interface CreateContractPayload {
   title: string

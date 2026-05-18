@@ -14,6 +14,7 @@ import { useToast } from "@/components/ui/toast";
 import {
   useContracts,
   useContractTemplates,
+  useCreateContractTemplate,
   type ContractStatus,
   type Contract,
   type ContractTemplate,
@@ -68,10 +69,12 @@ export default function ContractsDirectoryPage() {
   const [activeTab, setActiveTab] = React.useState<ContractStatus | "all">("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [showWizard, setShowWizard] = React.useState(false);
+  const [showNewTemplate, setShowNewTemplate] = React.useState(false);
 
   // Real data hooks
   const { data: contractsData = [], isLoading: contractsLoading } = useContracts();
   const { data: templatesData = [], isLoading: templatesLoading } = useContractTemplates();
+  const createTemplate = useCreateContractTemplate();
 
   const isLoading = contractsLoading || templatesLoading;
 
@@ -125,13 +128,25 @@ export default function ContractsDirectoryPage() {
               Manage your legal templates and track active client agreements.
             </Muted>
           </div>
-          <Button
-            className="font-semibold px-4 sm:px-5 gap-2 w-full sm:w-auto shrink-0"
-            onClick={() => setShowWizard(true)}
-          >
-            <Sparkles className="h-4 w-4" strokeWidth={1.5} />
-            {viewMode === "templates" ? "New Template" : "Draft with AI"}
-          </Button>
+          <div className="flex w-full sm:w-auto gap-2 shrink-0">
+            {viewMode === "templates" && (
+              <Button
+                variant="outline"
+                className="font-semibold px-4 gap-2 flex-1 sm:flex-none"
+                onClick={() => setShowNewTemplate(true)}
+              >
+                <FileText className="h-4 w-4" strokeWidth={1.5} />
+                New Template
+              </Button>
+            )}
+            <Button
+              className="font-semibold px-4 sm:px-5 gap-2 flex-1 sm:flex-none"
+              onClick={() => setShowWizard(true)}
+            >
+              <Sparkles className="h-4 w-4" strokeWidth={1.5} />
+              Draft with AI
+            </Button>
+          </div>
         </div>
 
         {/* ── View Toggle ──────────────────────── */}
@@ -522,6 +537,147 @@ export default function ContractsDirectoryPage() {
           router.push(`/contracts/${contractId}`);
         }}
       />
+
+      {showNewTemplate && (
+        <NewTemplateModal
+          onClose={() => setShowNewTemplate(false)}
+          onSubmit={async (payload) => {
+            await createTemplate.mutateAsync(payload);
+            toast({ title: "Template created", variant: "success" });
+            setShowNewTemplate(false);
+          }}
+          isPending={createTemplate.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── New Template Modal ───────────────────────── */
+
+function NewTemplateModal({
+  onClose,
+  onSubmit,
+  isPending,
+}: {
+  onClose: () => void;
+  onSubmit: (payload: {
+    name: string;
+    description: string | null;
+    content: string;
+    category: string;
+  }) => Promise<void>;
+  isPending: boolean;
+}) {
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [content, setContent] = React.useState("");
+  const [category, setCategory] = React.useState("custom");
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!content.trim()) {
+      setError("Template content is required — this is the body you'll reuse.");
+      return;
+    }
+    try {
+      await onSubmit({
+        name: name.trim(),
+        description: description.trim() || null,
+        content,
+        category,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save template.");
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="relative bg-white rounded-lg border border-zinc-200 shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4">
+        <div>
+          <H3 className="text-base">New template</H3>
+          <Muted className="text-xs">
+            Reusable template. No client or project required — those come in
+            when you apply this template to a contract.
+          </Muted>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700">Template name</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Standard web dev MSA"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700">
+              Description{" "}
+              <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="When you'd reach for this template"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700">
+              Category{" "}
+              <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <Input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="custom"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-zinc-700">Body</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={10}
+              placeholder="Paste or type the template body. Use {{client_name}}, {{project_title}}, etc. as merge tags."
+              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 resize-y font-mono"
+            />
+          </div>
+
+          {error && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-zinc-100">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={onClose}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" className="h-9" disabled={isPending}>
+              {isPending ? "Saving…" : "Create template"}
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
