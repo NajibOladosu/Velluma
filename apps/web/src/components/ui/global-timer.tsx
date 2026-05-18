@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { usePathname } from "next/navigation"
-import { motion, type PanInfo } from "framer-motion"
+import { motion } from "framer-motion"
 import { Play, Square, Timer, GripVertical, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./button"
@@ -30,7 +30,7 @@ interface Position {
 function readStoredPosition(): Position | null {
     if (typeof window === "undefined") return null
     try {
-        const raw = sessionStorage.getItem(STORAGE_KEY)
+        const raw = localStorage.getItem(STORAGE_KEY)
         if (!raw) return null
         const parsed = JSON.parse(raw) as Position
         if (typeof parsed.x !== "number" || typeof parsed.y !== "number") return null
@@ -43,9 +43,9 @@ function readStoredPosition(): Position | null {
 function writeStoredPosition(pos: Position) {
     if (typeof window === "undefined") return
     try {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(pos))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(pos))
     } catch {
-        /* sessionStorage disabled — ignore */
+        /* localStorage disabled — ignore */
     }
 }
 
@@ -164,15 +164,50 @@ export function GlobalTimer() {
         return () => window.removeEventListener("resize", handler)
     }, [mounted, measure])
 
-    function handleDragEnd(_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
+    // Pointer-driven drag (no framer drag). Framer's `drag` was conflicting
+    // with `animate={{ x: 0, y: 0 }}` and snapping the pill back to its
+    // starting transform after drop. Using raw pointer events gives us
+    // pixel-accurate placement and lets us persist on each move-end.
+    const dragOffsetRef = React.useRef<{ dx: number; dy: number } | null>(null)
+    const [dragging, setDragging] = React.useState(false)
+
+    function handlePointerDownDrag(e: React.PointerEvent<HTMLDivElement>) {
+        // Don't start drag from interactive controls; their wrappers stop propagation.
+        if (e.button !== 0) return
+        const node = containerRef.current
+        if (!node) return
+        const rect = node.getBoundingClientRect()
+        dragOffsetRef.current = {
+            dx: e.clientX - rect.left,
+            dy: e.clientY - rect.top,
+        }
+        setDragging(true)
+        node.setPointerCapture(e.pointerId)
+    }
+
+    function handlePointerMoveDrag(e: React.PointerEvent<HTMLDivElement>) {
+        if (!dragging || !dragOffsetRef.current) return
         const { w, h } = sizeRef.current
         const next = clampToViewport(
-            { x: position.x + info.offset.x, y: position.y + info.offset.y },
+            {
+                x: e.clientX - dragOffsetRef.current.dx,
+                y: e.clientY - dragOffsetRef.current.dy,
+            },
             w,
             h,
         )
         setPosition(next)
-        writeStoredPosition(next)
+    }
+
+    function handlePointerUpDrag(e: React.PointerEvent<HTMLDivElement>) {
+        if (!dragging) return
+        const node = containerRef.current
+        if (node?.hasPointerCapture(e.pointerId)) {
+            node.releasePointerCapture(e.pointerId)
+        }
+        dragOffsetRef.current = null
+        setDragging(false)
+        writeStoredPosition(position)
     }
 
     // ── Start popover state ───────────────────────────────────────────────
@@ -221,17 +256,17 @@ export function GlobalTimer() {
         <>
             <motion.div
                 ref={containerRef}
-                drag
-                dragMomentum={false}
-                dragElastic={0}
-                style={{ position: "fixed", left: position.x, top: position.y, zIndex: 50 }}
-                animate={{ x: 0, y: 0, opacity: 1 }}
+                style={{ position: "fixed", left: position.x, top: position.y, zIndex: 50, touchAction: "none" }}
                 initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ opacity: { duration: 0.2 } }}
-                onDragEnd={handleDragEnd}
+                onPointerDown={handlePointerDownDrag}
+                onPointerMove={handlePointerMoveDrag}
+                onPointerUp={handlePointerUpDrag}
+                onPointerCancel={handlePointerUpDrag}
                 className={cn(
                     "flex items-center gap-2 bg-zinc-900 shadow-lg rounded-full pl-2 pr-3 py-2 select-none",
-                    "cursor-grab active:cursor-grabbing",
+                    dragging ? "cursor-grabbing" : "cursor-grab",
                     isActive && "ring-2 ring-blue-500 ring-offset-2",
                 )}
             >
