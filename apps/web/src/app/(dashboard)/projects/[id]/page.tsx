@@ -291,6 +291,8 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
     setDueDate(task.due_date ?? "");
   }, [task]);
 
+  const [descSaved, setDescSaved] = React.useState<"idle" | "saving" | "saved">("idle");
+
   const updateMutation = useMutation({
     mutationFn: async (patch: Partial<Task>) => {
       const res = await fetch(`/api/projects/${projectId}/tasks/${task.id}`, {
@@ -302,6 +304,25 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", projectId] }),
   });
+
+  // Flush pending description edit. Called from onBlur AND on close click so
+  // the X button can't race past the textarea blur and lose the user's input.
+  const flushDescription = React.useCallback(async () => {
+    if (description === (task.description ?? "")) return;
+    setDescSaved("saving");
+    try {
+      await updateMutation.mutateAsync({ description });
+      setDescSaved("saved");
+      setTimeout(() => setDescSaved("idle"), 1500);
+    } catch {
+      setDescSaved("idle");
+    }
+  }, [description, task.description, updateMutation]);
+
+  async function handleClose() {
+    await flushDescription();
+    onClose();
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -339,18 +360,19 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
                 <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
               )}
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleClose}>
               <X className="h-4 w-4" strokeWidth={1.5} />
             </Button>
           </div>
         </div>
 
-        <input
-          type="text"
+        {/* Use textarea so long titles wrap; auto-resize via rows by line count. */}
+        <textarea
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => title.trim() && title !== task.title && commit("title", title.trim())}
-          className="w-full text-xl font-semibold text-zinc-900 bg-transparent border-0 px-0 focus-visible:outline-none focus-visible:ring-0"
+          rows={Math.min(4, Math.max(1, Math.ceil(title.length / 36)))}
+          className="w-full text-xl font-semibold text-zinc-900 bg-transparent border-0 px-0 focus-visible:outline-none focus-visible:ring-0 resize-none leading-tight"
         />
         <Separator />
 
@@ -402,15 +424,45 @@ function TaskDrawer({ task, projectId, onClose }: { task: Task; projectId: strin
 
         <Separator />
         <div className="space-y-2">
-          <Muted className="text-[10px] uppercase tracking-widest font-bold block">Description</Muted>
+          <div className="flex items-center justify-between">
+            <Muted className="text-[10px] uppercase tracking-widest font-bold block">Description</Muted>
+            {descSaved === "saving" && (
+              <Muted className="text-[10px] flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+              </Muted>
+            )}
+            {descSaved === "saved" && (
+              <Muted className="text-[10px] text-emerald-600">Saved</Muted>
+            )}
+            {descSaved === "idle" && description !== (task.description ?? "") && (
+              <Muted className="text-[10px] text-amber-600">Unsaved — click Save or close to flush</Muted>
+            )}
+          </div>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={() => description !== (task.description ?? "") && commit("description", description)}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              if (descSaved !== "idle") setDescSaved("idle");
+            }}
+            onBlur={flushDescription}
             placeholder="Add a description, acceptance criteria, links…"
             rows={6}
             className="w-full text-sm text-zinc-700 leading-relaxed rounded-md border border-zinc-200 bg-white px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 resize-y"
           />
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={flushDescription}
+              disabled={
+                description === (task.description ?? "") ||
+                descSaved === "saving"
+              }
+            >
+              Save description
+            </Button>
+          </div>
         </div>
 
         {updateMutation.isPending && (
