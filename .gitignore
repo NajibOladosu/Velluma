@@ -63,3 +63,6 @@ dist
 *.md
 !README.md
 .gstack/
+
+# infra
+/infra
