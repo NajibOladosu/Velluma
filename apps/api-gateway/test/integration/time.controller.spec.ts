@@ -6,6 +6,10 @@ import { TimeController } from '../../src/time/time.controller';
 
 const mockClient = { send: jest.fn() };
 
+// Authenticated user id injected by the middleware below, standing in for the
+// SupabaseAuthGuard that populates req.user in production.
+const AUTH_USER_ID = 'user-1';
+
 async function buildApp(): Promise<INestApplication> {
   const module: TestingModule = await Test.createTestingModule({
     controllers: [TimeController],
@@ -13,9 +17,19 @@ async function buildApp(): Promise<INestApplication> {
   }).compile();
 
   const app = module.createNestApplication();
+  // Simulate the auth layer so controllers that read req.user.id work.
+  app.use((req: any, _res: any, next: () => void) => {
+    req.user = { id: AUTH_USER_ID };
+    next();
+  });
   await app.init();
   return app;
 }
+
+// Routes guarded by ParseUUIDPipe require real UUIDs for :id / :projectId.
+const TIMER_ID = '11111111-1111-4111-8111-111111111111';
+const MISSING_TIMER_ID = '22222222-2222-4222-8222-222222222222';
+const PROJECT_ID = '33333333-3333-4333-8333-333333333333';
 
 describe('TimeController (integration)', () => {
   let app: INestApplication;
@@ -75,13 +89,13 @@ describe('TimeController (integration)', () => {
       mockClient.send.mockReturnValue(of(expected));
 
       const { body, status } = await request(app.getHttpServer()).put(
-        '/time/timers/session-1/stop',
+        `/time/timers/${TIMER_ID}/stop`,
       );
 
       expect(status).toBe(200);
       expect(body).toEqual(expected);
       expect(mockClient.send).toHaveBeenCalledWith('stop_timer', {
-        timerId: 'session-1',
+        timerId: TIMER_ID,
       });
     });
 
@@ -91,7 +105,7 @@ describe('TimeController (integration)', () => {
       );
 
       const { status } = await request(app.getHttpServer()).put(
-        '/time/timers/session-missing/stop',
+        `/time/timers/${MISSING_TIMER_ID}/stop`,
       );
 
       expect(status).toBe(500);
@@ -109,13 +123,13 @@ describe('TimeController (integration)', () => {
       mockClient.send.mockReturnValue(of(expected));
 
       const { body, status } = await request(app.getHttpServer()).get(
-        '/time/project/project-1/timers',
+        `/time/project/${PROJECT_ID}/timers`,
       );
 
       expect(status).toBe(200);
       expect(body).toEqual(expected);
       expect(mockClient.send).toHaveBeenCalledWith('list_timers', {
-        projectId: 'project-1',
+        projectId: PROJECT_ID,
       });
     });
   });
