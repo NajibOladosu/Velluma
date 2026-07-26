@@ -1,0 +1,147 @@
+name: Deploy to Azure
+
+# Builds the 13 backend images (gateway + 12 services) to GitHub Container
+# Registry, then deploys the Azure Container Apps stack via Bicep.
+#
+# The Next.js frontend is NOT deployed here — it lives on Vercel / Static Web
+# Apps. See Azure_Plan.md and infra/README.md.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'docker/**'
+      - 'infra/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/velluma
+
+jobs:
+  # ── Build & push all 13 backend images ─────────────────────────────────────
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: api-gateway,                 dockerfile: apps/api-gateway/Dockerfile, build_args: '' }
+          - { name: identity-service,            dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=identity-service' }
+          - { name: crm-service,                 dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=crm-service' }
+          - { name: contract-service,            dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=contract-service' }
+          - { name: project-service,             dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=project-service' }
+          - { name: invoice-payment-service,     dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=invoice-payment-service' }
+          - { name: document-service,            dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=document-service' }
+          - { name: notification-service,        dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=notification-service' }
+          - { name: automation-service,          dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=automation-service' }
+          - { name: budget-tracking-service,     dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=budget-tracking-service' }
+          - { name: expense-bookkeeping-service, dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=expense-bookkeeping-service' }
+          - { name: time-tracking-service,       dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=time-tracking-service' }
+          - { name: resource-service,            dockerfile: docker/Dockerfile.nestjs,    build_args: 'SERVICE_NAME=resource-service' }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.name }}:latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+  # ── Deploy the Container Apps stack via Bicep ──────────────────────────────
+  deploy:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write      # OIDC federated login to Azure
+      contents: read
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az deployment group create \
+              --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+              --template-file infra/main.bicep \
+              --parameters infra/main.bicepparam
+        env:
+          # --- Registry (ghcr PAT with read:packages so ACA can pull) ---------
+          GHCR_OWNER: ${{ github.repository_owner }}
+          GHCR_USERNAME: ${{ github.repository_owner }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          IMAGE_TAG: ${{ github.sha }}
+          # --- Supabase -------------------------------------------------------
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # --- Redis ----------------------------------------------------------
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          # --- Gateway --------------------------------------------------------
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          # --- Integrations ---------------------------------------------------
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_FROM_NUMBER: ${{ vars.TWILIO_FROM_NUMBER }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+
+      - name: Smoke test gateway health
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            URL=$(az deployment group show \
+              --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+              --name main \
+              --query properties.outputs.gatewayUrl.value -o tsv)
+            echo "Gateway: $URL"
+            for i in $(seq 1 10); do
+              if curl -fsS "$URL/health"; then echo "OK"; exit 0; fi
+              echo "waiting for gateway... ($i)"; sleep 15
+            done
+            echo "Gateway health check failed"; exit 1
