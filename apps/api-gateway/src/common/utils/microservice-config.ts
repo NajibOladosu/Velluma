@@ -14,6 +14,9 @@ export const getMicroserviceConfig = (
   options: {
     host: configService.get<string>('REDIS_HOST', 'localhost'),
     port: configService.get<number>('REDIS_PORT', 6379),
+    // Set REDIS_PASSWORD when the broker requires auth (e.g. the self-hosted
+    // Redis container on Azure). Left undefined for local dev where Redis is open.
+    password: configService.get<string>('REDIS_PASSWORD') || undefined,
     retryAttempts: 5,
     retryDelay: 3000,
   },
