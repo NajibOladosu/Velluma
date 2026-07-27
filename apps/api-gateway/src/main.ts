@@ -40,15 +40,11 @@ async function bootstrap() {
       requestOrigin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) {
-      // No Origin header — server-to-server or same-origin request.
-      // Permit in development; block in production.
+      // No Origin header — this is a non-browser caller (health probes,
+      // server-to-server, uptime checks). CORS only guards browser
+      // cross-origin requests, which always carry an Origin, so permitting
+      // these is safe and is required for the platform /health probe.
       if (!requestOrigin) {
-        if (process.env.NODE_ENV === 'production') {
-          return callback(
-            new Error('Origin header is required in production'),
-            false,
-          );
-        }
         return callback(null, true);
       }
 
