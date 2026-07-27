@@ -15,5 +15,12 @@
   "scripts": {
     "build": "tsc"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3"
+  },
   "license": "ISC"
 }
