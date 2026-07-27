@@ -13,7 +13,7 @@
 using './main.bicep'
 
 // --- General -----------------------------------------------------------------
-param location = 'eastus'
+param location = readEnvironmentVariable('AZURE_LOCATION', 'westeurope')
 param environmentName = 'velluma-env'
 param ghcrOwner = readEnvironmentVariable('GHCR_OWNER', 'your-github-username')
 param ghcrUsername = readEnvironmentVariable('GHCR_USERNAME', 'your-github-username')
