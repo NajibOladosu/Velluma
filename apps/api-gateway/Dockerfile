@@ -11,6 +11,10 @@ COPY packages/ ./packages/
 
 RUN npm install
 
+# Build the shared workspace library first. Its dist/ is gitignored (absent in
+# CI), so the gateway's tsc build can't resolve `supabase-lib` until it's built.
+RUN npm run build --workspace=supabase-lib
+
 # Copy source
 COPY apps/api-gateway/ ./apps/api-gateway/
 
@@ -27,6 +31,9 @@ WORKDIR /app
 COPY --from=builder /app/apps/api-gateway/dist ./dist
 COPY --from=builder /app/apps/api-gateway/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
+# node_modules/supabase-lib is a workspace symlink -> ../packages/supabase-lib,
+# so the built library must be present for the require() to resolve at runtime.
+COPY --from=builder /app/packages ./packages
 
 EXPOSE 3001
 
