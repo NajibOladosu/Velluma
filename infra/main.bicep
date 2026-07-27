@@ -231,7 +231,8 @@ module redis 'modules/containerApp.bicep' = {
 module workers 'modules/containerApp.bicep' = [for svc in services: {
   name: 'app-${svc.dir}'
   params: {
-    name: 'velluma-${svc.dir}'
+    // ACA app names must be <= 32 chars; the image name keeps the full dir.
+    name: take('velluma-${svc.dir}', 32)
     location: location
     environmentId: env.id
     image: '${imageRepo}/velluma-${svc.dir}:${imageTag}'
